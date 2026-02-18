@@ -10,6 +10,11 @@ export default async function Home() {
   return (
     <main style={{ padding: 24, fontFamily: "system-ui, Arial" }}>
       <h1>Vendeo</h1>
+      
+      <p>
+        <a href="/campaigns">Ver campanhas</a>
+      </p>
+
 
       <h2 style={{ marginTop: 24 }}>Lojas cadastradas</h2>
 
