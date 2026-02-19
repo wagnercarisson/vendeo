@@ -1,79 +1,168 @@
-// app/campaigns/page.tsx
-import { supabase } from "../../lib/supabase";
+"use client";
 
-export default async function CampaignsPage() {
-  const { data: campaigns, error } = await supabase
-    .from("campaigns")
-    .select("id, product_name, price, audience, objective, image_url, store_id, created_at")
-    .order("created_at", { ascending: false });
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 
-  async function generateAndSave(campaign: any) {
-  const res = await fetch("/api/generate/campaign", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      product_name: campaign.product_name,
-      price: campaign.price,
-      audience: campaign.audience,
-      objective: campaign.objective,
-    }),
-  });
+type Store = {
+  id: string;
+  name: string;
+  city: string | null;
+  state: string | null;
+};
 
-  const data = await res.json();
+type Campaign = {
+  id: string;
+  product_name: string;
+  price: number;
+  audience: string;
+  objective: string;
+  image_url: string | null;
 
-  const { error } = await supabase
-    .from("campaigns")
-    .update({
-      ai_caption: data.caption,
-      ai_text: data.text,
-      ai_cta: data.cta,
-      ai_hashtags: data.hashtags,
-      ai_generated_at: new Date().toISOString(),
-    })
-    .eq("id", campaign.id);
+  ai_caption: string | null;
+  ai_text: string | null;
+  ai_cta: string | null;
+  ai_hashtags: string | null;
 
-  if (error) {
-    alert("Erro ao salvar IA");
-    return;
+  stores?: Store | null;
+};
+
+export default function CampaignsPage() {
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<any>(null);
+
+  useEffect(() => {
+    loadCampaigns();
+  }, []);
+
+  async function loadCampaigns() {
+    setLoading(true);
+    setError(null);
+
+    const { data, error } = await supabase
+      .from("campaigns")
+      .select(
+        "id, product_name, price, audience, objective, image_url, ai_caption, ai_text, ai_cta, ai_hashtags, stores(id, name, city, state)"
+      )
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      setError(error);
+      setCampaigns([]);
+    } else {
+      setCampaigns((data as any) ?? []);
+    }
+
+    setLoading(false);
   }
 
-  alert("Texto gerado e salvo!");
-}
+  async function generateAndSave(campaign: Campaign) {
+    try {
+      const res = await fetch("/api/generate/campaign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product_name: campaign.product_name,
+          price: campaign.price,
+          audience: campaign.audience,
+          objective: campaign.objective,
+          store_name: campaign.stores?.name,
+          city: campaign.stores?.city,
+          state: campaign.stores?.state,
+        }),
+      });
+
+      if (!res.ok) throw new Error(`Erro na API: ${res.status}`);
+
+      const data = await res.json();
+
+      const { error } = await supabase
+        .from("campaigns")
+        .update({
+          ai_caption: data.caption,
+          ai_text: data.text,
+          ai_cta: data.cta,
+          ai_hashtags: data.hashtags,
+          ai_generated_at: new Date().toISOString(),
+        })
+        .eq("id", campaign.id);
+
+      if (error) throw error;
+
+      await loadCampaigns(); // atualiza a tela
+      alert("Texto gerado e salvo!");
+    } catch (e: any) {
+      alert(e?.message ?? "Erro ao gerar/salvar");
+      console.error(e);
+    }
+  }
 
   return (
     <main style={{ padding: 24, fontFamily: "system-ui, Arial" }}>
       <h1>Campanhas</h1>
 
+      <p>
+        <Link href="/campaigns/new">+ Nova campanha</Link>
+      </p>
+
       {error && <p style={{ color: "crimson" }}>Erro: {error.message}</p>}
+      {loading && <p>Carregando...</p>}
 
-      {!error && (!campaigns || campaigns.length === 0) && (
-        <p>Nenhuma campanha ainda.</p>
-      )}
+      {!loading && campaigns.length === 0 && <p>Nenhuma campanha ainda.</p>}
 
-      {!error && campaigns && campaigns.length > 0 && (
-        <ul style={{ lineHeight: 1.8 }}>
-          {campaigns.map((c) => (
-            <li key={c.id}>
-              <strong>{c.product_name}</strong> — R$ {Number(c.price ?? 0).toFixed(2)} — {c.audience} — {c.objective}
-            </li>
-            <button onClick={() => generateAndSave(c)}>
+      <div style={{ display: "grid", gap: 12 }}>
+        {campaigns.map((c) => (
+          <div
+            key={c.id}
+            style={{
+              border: "1px solid #ddd",
+              borderRadius: 8,
+              padding: 12,
+            }}
+          >
+            <div>
+              <strong>Produto:</strong> {c.product_name}
+            </div>
+            <div>
+              <strong>Preço:</strong> R$ {c.price}
+            </div>
+            <div>
+              <strong>Público:</strong> {c.audience}
+            </div>
+            <div>
+              <strong>Objetivo:</strong> {c.objective}
+            </div>
+            <div>
+              <strong>Loja:</strong> {c.stores?.name ?? "—"}
+            </div>
+
+            <button
+              onClick={() => generateAndSave(c)}
+              style={{ marginTop: 10 }}
+            >
               Gerar texto com IA
             </button>
-           
+
             {c.ai_caption && (
-              <div style={{ marginTop: 10 }}>
-                <strong>Legenda:</strong> {c.ai_caption} <br />
-                <strong>Texto:</strong> {c.ai_text} <br />
-                <strong>CTA:</strong> {c.ai_cta} <br />
-                <strong>Hashtags:</strong> {c.ai_hashtags}
+              <div style={{ marginTop: 12 }}>
+                <div>
+                  <strong>Legenda:</strong> {c.ai_caption}
+                </div>
+                <div>
+                  <strong>Texto:</strong> {c.ai_text}
+                </div>
+                <div>
+                  <strong>CTA:</strong> {c.ai_cta}
+                </div>
+                <div>
+                  <strong>Hashtags:</strong> {c.ai_hashtags}
+                </div>
               </div>
             )}
-
-
-          ))}
-        </ul>
-      )}
+          </div>
+        ))}
+      </div>
     </main>
   );
- 
 }
