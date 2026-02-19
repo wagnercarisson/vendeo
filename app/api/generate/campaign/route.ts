@@ -33,22 +33,18 @@ export async function POST(req: Request) {
     } as const;
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content:
-            "Você é um redator de marketing para pequeno varejo no Brasil. Seja direto, persuasivo e claro."
-        },
-        {
-          role: "user",
-          content: `Crie uma campanha com base nos dados abaixo:
-Produto: ${body.product_name}
-Preço: R$ ${body.price}
-Público: ${body.audience}
-Objetivo: ${body.objective}
-Loja: ${body.store_name ?? ""}
-Cidade/UF: ${body.city ?? ""} ${body.state ?? ""}
+  model: "gpt-4o-mini",
+  messages: [
+    {
+      role: "system",
+      content:
+        "Você é um redator de marketing para pequeno varejo no Brasil. Seja direto, persuasivo e claro. Responda em JSON com caption,text,cta,hashtags.",
+    },
+    { role: "user", content: prompt },
+  ],
+  temperature: 0.6,     // menos “viajado”
+  max_tokens: 220,      // controla custo
+});
 
 Regras:
 - caption: até 240 caracteres
