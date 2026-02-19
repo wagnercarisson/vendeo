@@ -73,7 +73,10 @@ export default function CampaignsPage() {
         }),
       });
 
-      if (!res.ok) throw new Error(`Erro na API: ${res.status}`);
+      if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err?.error ?? `Erro na API: ${res.status}`);
+      }
 
       const data = await res.json();
 
