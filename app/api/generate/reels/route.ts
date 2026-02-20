@@ -123,7 +123,7 @@ REGRAS:
     // 4) Chamada OpenAI com parse robusto (via JSON “puro”)
     const ai = await withTimeout(
       openai.chat.completions.create({
-        model: "gpt-4.1-mini",
+        model: "gpt-4o-mini",
         temperature: 0.7,
         messages: [
           { role: "system", content: "Responda somente com JSON válido." },
