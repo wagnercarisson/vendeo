@@ -57,28 +57,28 @@ export default function CampaignsPage() {
     setLoading(false);
   }
 
-  async function generateAndSave(campaign: Campaign) {
-    
-     // Proteção contra geração repetida
-    if (c.ai_caption) {
-      const ok = confirm("Já existe texto gerado. Gerar novamente?");
+async function generateAndSave(campaign: Campaign) {
+  // Proteção contra geração repetida
+  if (campaign.ai_caption) {
+    const ok = confirm("Já existe texto gerado. Gerar novamente?");
     if (!ok) return;
-      }
-    
-    try {
-        const res = await fetch("/api/generate/campaign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          product_name: campaign.product_name,
-          price: campaign.price,
-          audience: campaign.audience,
-          objective: campaign.objective,
-          store_name: campaign.stores?.name,
-          city: campaign.stores?.city,
-          state: campaign.stores?.state,
-        }),
-      });
+  }
+
+  try {
+    const res = await fetch("/api/generate/campaign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        product_name: campaign.product_name,
+        price: campaign.price,
+        audience: campaign.audience,
+        objective: campaign.objective,
+        store_name: campaign.stores?.name,
+        city: campaign.stores?.city,
+        state: campaign.stores?.state,
+      }),
+    });
+
 
       if (!res.ok) {
       const err = await res.json().catch(() => ({}));
