@@ -183,6 +183,56 @@ export default function CampaignsPage() {
     );
   }
 
+  function buildReelsFullText(c: Campaign) {
+  const lines: string[] = [];
+
+  lines.push(`HOOK: ${c.reels_hook ?? ""}`);
+  lines.push(`DURAÇÃO: ${c.reels_duration_seconds ? c.reels_duration_seconds + "s" : ""}`);
+  lines.push(`ÁUDIO: ${c.reels_audio_suggestion ?? ""}`);
+  lines.push("");
+
+  if (Array.isArray(c.reels_on_screen_text) && c.reels_on_screen_text.length) {
+    lines.push("TEXTO NA TELA:");
+    for (const t of c.reels_on_screen_text) lines.push(`- ${t}`);
+    lines.push("");
+  }
+
+  if (Array.isArray(c.reels_shotlist) && c.reels_shotlist.length) {
+    lines.push("SHOTLIST:");
+    for (const s of c.reels_shotlist) {
+      lines.push(`Cena ${s.scene}: ${s.camera}`);
+      lines.push(`Ação: ${s.action}`);
+      lines.push(`Fala: ${s.dialogue}`);
+      lines.push("");
+    }
+  }
+
+  if (c.reels_script) {
+    lines.push("ROTEIRO:");
+    lines.push(c.reels_script);
+    lines.push("");
+  }
+
+  if (c.reels_caption) {
+    lines.push("LEGENDA:");
+    lines.push(c.reels_caption);
+    lines.push("");
+  }
+
+  if (c.reels_cta) {
+    lines.push("CTA:");
+    lines.push(c.reels_cta);
+    lines.push("");
+  }
+
+  if (c.reels_hashtags) {
+    lines.push("HASHTAGS:");
+    lines.push(c.reels_hashtags);
+  }
+
+  return lines.join("\n");
+}
+
   return (
     <main style={{ padding: 24, fontFamily: "system-ui, Arial" }}>
       <h1>Campanhas</h1>
@@ -347,14 +397,17 @@ export default function CampaignsPage() {
                         {c.reels_script}
                       </div>
                       <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-                        <button onClick={() => safeCopy(c.reels_script ?? "")}>
-                          Copiar roteiro
-                        </button>
+                        <button onClick={() => safeCopy(c.reels_script ?? "")}>Copiar roteiro</button>
                         {c.reels_caption && (
-                          <button onClick={() => safeCopy(c.reels_caption ?? "")}>
-                            Copiar legenda do Reels
-                          </button>
-                        )}
+                        <button onClick={() => safeCopy(c.reels_caption ?? "")}>
+                        Copiar legenda do Reels
+                        </button>
+                      )}
+
+                      {/* NOVO */}
+                      <button onClick={() => safeCopy(buildReelsFullText(c))}>
+                        Copiar tudo (Reels)
+                      </button>
                       </div>
                     </div>
                   )}
