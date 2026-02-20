@@ -58,13 +58,15 @@ export default function CampaignsPage() {
   }
 
   async function generateAndSave(campaign: Campaign) {
-    try {
-      
-      if (c.ai_caption) {
-        const ok = confirm("Já existe texto gerado. Gerar novamente?");
-      if (!ok) return;
+    
+     // Proteção contra geração repetida
+    if (c.ai_caption) {
+      const ok = confirm("Já existe texto gerado. Gerar novamente?");
+    if (!ok) return;
       }
-      const res = await fetch("/api/generate/campaign", {
+    
+    try {
+        const res = await fetch("/api/generate/campaign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
