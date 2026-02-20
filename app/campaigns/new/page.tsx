@@ -1,174 +1,331 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 
 type Store = {
   id: string;
   name: string;
+  city: string | null;
+  state: string | null;
+
+  // novos campos que ajudam como fallback/contexto
+  brand_positioning: string | null;
+  main_segment: string | null;
+  tone_of_voice: string | null;
 };
 
+const PRODUCT_POSITIONING_OPTIONS = [
+  { value: "", label: "Padrão da loja (recomendado)" },
+  { value: "popular", label: "Popular" },
+  { value: "medio", label: "Médio" },
+  { value: "premium", label: "Premium" },
+  { value: "jovem", label: "Jovem / Festa" },
+  { value: "familia", label: "Família" },
+] as const;
+
 export default function NewCampaignPage() {
-  const router = useRouter();
-
-  const [loading, setLoading] = useState(false);
   const [stores, setStores] = useState<Store[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [loadingStores, setLoadingStores] = useState(true);
 
-  const [storeId, setStoreId] = useState('');
-  const [productName, setProductName] = useState('');
-  const [price, setPrice] = useState<string>('4.99');
-  const [audience, setAudience] = useState('Jovem / Festa');
-  const [objective, setObjective] = useState('Divulgar novidade');
-  const [imageUrl, setImageUrl] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [okMsg, setOkMsg] = useState<string | null>(null);
+
+  const [storeId, setStoreId] = useState<string>("");
+  const [productName, setProductName] = useState("");
+  const [price, setPrice] = useState<string>(""); // string para input; salva number
+  const [audience, setAudience] = useState("");
+  const [objective, setObjective] = useState("");
+
+  // novo: perfil do produto/campanha
+  const [productPositioning, setProductPositioning] = useState<string>("");
+
+  // (opcional) imagem URL se você já usa
+  const [imageUrl, setImageUrl] = useState("");
 
   useEffect(() => {
-    (async () => {
-      setError(null);
-      const { data, error } = await supabase
-        .from('stores')
-        .select('id,name')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        setError(error.message);
-        return;
-      }
-      setStores((data ?? []) as Store[]);
-      if ((data ?? []).length > 0) setStoreId((data ?? [])[0].id);
-    })();
+    loadStores();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    // validações simples
-    if (!storeId) {
-      setLoading(false);
-      setError('Selecione uma loja.');
-      return;
-    }
-    if (!productName.trim()) {
-      setLoading(false);
-      setError('Informe o nome do produto.');
-      return;
-    }
-
-    // price no banco é numeric; vamos converter com segurança
-    const parsedPrice = Number(String(price).replace(',', '.'));
-    if (Number.isNaN(parsedPrice) || parsedPrice <= 0) {
-      setLoading(false);
-      setError('Preço inválido.');
-      return;
-    }
-
-    const { error } = await supabase.from('campaigns').insert({
-      store_id: storeId,
-      product_name: productName.trim(),
-      price: parsedPrice,
-      audience,
-      objective,
-      image_url: imageUrl.trim() || null,
-    });
-
-    setLoading(false);
+  async function loadStores() {
+    setLoadingStores(true);
+    const { data, error } = await supabase
+      .from("stores")
+      .select("id, name, city, state, brand_positioning, main_segment, tone_of_voice")
+      .order("created_at", { ascending: false });
 
     if (error) {
-      setError(error.message);
+      console.error(error);
+      setStores([]);
+    } else {
+      setStores((data as any) ?? []);
+      // auto-select primeira loja para acelerar (se existir)
+      if ((data as any)?.length && !storeId) setStoreId((data as any)[0].id);
+    }
+    setLoadingStores(false);
+  }
+
+  const selectedStore = useMemo(
+    () => stores.find((s) => s.id === storeId) ?? null,
+    [stores, storeId]
+  );
+
+  function resetMessages() {
+    setError(null);
+    setOkMsg(null);
+  }
+
+  function validate() {
+    if (!storeId) return "Selecione uma loja.";
+    if (!productName.trim()) return "Informe o nome do produto.";
+    if (!price.trim()) return "Informe o preço.";
+    const p = Number(price.replace(",", "."));
+    if (Number.isNaN(p) || p <= 0) return "Preço inválido. Ex: 8.99";
+    if (!audience.trim()) return "Informe o público.";
+    if (!objective.trim()) return "Informe o objetivo.";
+    return null;
+  }
+
+  async function createCampaign() {
+    resetMessages();
+    const v = validate();
+    if (v) {
+      setError(v);
       return;
     }
 
-    router.push('/campaigns');
-    router.refresh();
+    setSaving(true);
+    try {
+      const p = Number(price.replace(",", "."));
+
+      const payload: any = {
+        store_id: storeId,
+        product_name: productName.trim(),
+        price: p,
+        audience: audience.trim(),
+        objective: objective.trim(),
+        image_url: imageUrl.trim() || null,
+
+        // novo campo no banco
+        product_positioning: productPositioning || null,
+      };
+
+      const { error } = await supabase.from("campaigns").insert(payload);
+
+      if (error) {
+        console.error(error);
+        throw new Error(error.message);
+      }
+
+      setOkMsg("Campanha criada com sucesso!");
+      setProductName("");
+      setPrice("");
+      setAudience("");
+      setObjective("");
+      setImageUrl("");
+      setProductPositioning("");
+
+    } catch (e: any) {
+      setError(e?.message ?? "Erro ao criar campanha");
+    } finally {
+      setSaving(false);
+    }
   }
 
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    padding: "10px 12px",
+    border: "1px solid #ddd",
+    borderRadius: 10,
+    fontSize: 14,
+  };
+
+  const labelStyle: React.CSSProperties = {
+    fontSize: 13,
+    color: "#111",
+    marginBottom: 6,
+    display: "block",
+  };
+
+  const cardStyle: React.CSSProperties = {
+    border: "1px solid #e5e7eb",
+    borderRadius: 14,
+    padding: 16,
+    background: "white",
+    maxWidth: 860,
+  };
+
   return (
-    <div style={{ padding: 24, maxWidth: 520 }}>
-      <h1 style={{ fontSize: 40, marginBottom: 16 }}>Nova Campanha</h1>
+    <main style={{ padding: 24, fontFamily: "system-ui, Arial" }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+        <h1 style={{ margin: 0 }}>Nova campanha</h1>
+        <Link href="/campaigns" style={{ fontSize: 14 }}>
+          ← Voltar para campanhas
+        </Link>
+      </div>
 
-      {error && (
-        <p style={{ color: 'crimson', marginBottom: 12 }}>
-          Erro: {error}
-        </p>
-      )}
-
-      <form onSubmit={handleSubmit}>
-        <label>
-          Loja
-          <select
-            value={storeId}
-            onChange={(e) => setStoreId(e.target.value)}
-            style={{ display: 'block', width: '100%', marginBottom: 12 }}
-          >
-            {stores.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label>
-          Produto
-          <input
-            value={productName}
-            onChange={(e) => setProductName(e.target.value)}
-            style={{ display: 'block', width: '100%', marginBottom: 12 }}
-            placeholder="Ex: Energético Baly Tadala 250ml"
-          />
-        </label>
-
-        <label>
-          Preço (R$)
-          <input
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            style={{ display: 'block', width: '100%', marginBottom: 12 }}
-            placeholder="4.99"
-          />
-        </label>
-
-        <label>
-          Público
-          <input
-            value={audience}
-            onChange={(e) => setAudience(e.target.value)}
-            style={{ display: 'block', width: '100%', marginBottom: 12 }}
-            placeholder="Ex: Jovem / Festa"
-          />
-        </label>
-
-        <label>
-          Objetivo
-          <input
-            value={objective}
-            onChange={(e) => setObjective(e.target.value)}
-            style={{ display: 'block', width: '100%', marginBottom: 12 }}
-            placeholder="Ex: Divulgar novidade"
-          />
-        </label>
-
-        <label>
-          URL da imagem (opcional)
-          <input
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-            style={{ display: 'block', width: '100%', marginBottom: 16 }}
-            placeholder="https://..."
-          />
-        </label>
-
-        <button type="submit" disabled={loading}>
-          {loading ? 'Salvando...' : 'Salvar campanha'}
-        </button>
-      </form>
-
-      <p style={{ marginTop: 16 }}>
-        <a href="/campaigns">← Voltar para campanhas</a>
+      <p style={{ color: "#555", marginTop: 8 }}>
+        Crie uma campanha para um produto. Você pode definir o posicionamento do produto (opcional).
       </p>
-    </div>
+
+      <section style={cardStyle}>
+        {error && (
+          <div style={{ marginBottom: 12, color: "crimson" }}>
+            <strong>Erro:</strong> {error}
+          </div>
+        )}
+        {okMsg && (
+          <div style={{ marginBottom: 12, color: "green" }}>
+            <strong>OK:</strong> {okMsg}
+          </div>
+        )}
+
+        <div style={{ display: "grid", gap: 12 }}>
+          <div>
+            <label style={labelStyle}>Loja *</label>
+            {loadingStores ? (
+              <p>Carregando lojas...</p>
+            ) : stores.length === 0 ? (
+              <p>
+                Nenhuma loja cadastrada. <Link href="/store">Cadastre uma loja</Link>.
+              </p>
+            ) : (
+              <>
+                <select
+                  style={inputStyle}
+                  value={storeId}
+                  onChange={(e) => setStoreId(e.target.value)}
+                >
+                  {stores.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} — {s.city ?? "—"}/{s.state ?? "—"}
+                    </option>
+                  ))}
+                </select>
+
+                {selectedStore && (
+                  <div style={{ fontSize: 12, color: "#666", marginTop: 8 }}>
+                    <strong>Padrão da loja:</strong>{" "}
+                    {selectedStore.brand_positioning ?? "—"} ·{" "}
+                    {selectedStore.main_segment ?? "—"} ·{" "}
+                    {selectedStore.tone_of_voice ?? "—"}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          <div>
+            <label style={labelStyle}>Produto *</label>
+            <input
+              style={inputStyle}
+              value={productName}
+              onChange={(e) => setProductName(e.target.value)}
+              placeholder="Ex: Cerveja Antarctica Original 600 ml"
+            />
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "160px 1fr", gap: 12 }}>
+            <div>
+              <label style={labelStyle}>Preço *</label>
+              <input
+                style={inputStyle}
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="Ex: 8.99"
+                inputMode="decimal"
+              />
+            </div>
+
+            <div>
+              <label style={labelStyle}>Posicionamento do produto (opcional)</label>
+              <select
+                style={inputStyle}
+                value={productPositioning}
+                onChange={(e) => setProductPositioning(e.target.value)}
+              >
+                {PRODUCT_POSITIONING_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+
+              <div style={{ fontSize: 12, color: "#666", marginTop: 6 }}>
+                Se deixar em “Padrão da loja”, o sistema usa o posicionamento da loja automaticamente.
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label style={labelStyle}>Público *</label>
+            <input
+              style={inputStyle}
+              value={audience}
+              onChange={(e) => setAudience(e.target.value)}
+              placeholder="Ex: Jovem / Festa"
+            />
+          </div>
+
+          <div>
+            <label style={labelStyle}>Objetivo *</label>
+            <input
+              style={inputStyle}
+              value={objective}
+              onChange={(e) => setObjective(e.target.value)}
+              placeholder="Ex: Promoção"
+            />
+          </div>
+
+          <div>
+            <label style={labelStyle}>Imagem URL (opcional)</label>
+            <input
+              style={inputStyle}
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="https://..."
+            />
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 4 }}>
+            <button
+              onClick={createCampaign}
+              disabled={saving || stores.length === 0}
+              style={{
+                padding: "10px 14px",
+                borderRadius: 12,
+                border: "1px solid #111",
+                background: saving ? "#eee" : "#111",
+                color: saving ? "#111" : "white",
+                cursor: saving ? "not-allowed" : "pointer",
+                fontWeight: 600,
+              }}
+            >
+              {saving ? "Salvando..." : "Criar campanha"}
+            </button>
+
+            <button
+              onClick={() => {
+                resetMessages();
+                loadStores();
+              }}
+              disabled={saving}
+              style={{
+                padding: "10px 14px",
+                borderRadius: 12,
+                border: "1px solid #ddd",
+                background: "white",
+                cursor: saving ? "not-allowed" : "pointer",
+              }}
+            >
+              Atualizar lojas
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
   );
 }
