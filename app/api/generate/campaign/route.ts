@@ -6,6 +6,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Supabase admin (bypassa RLS) — SOMENTE no servidor
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL || "",
   process.env.SUPABASE_SERVICE_ROLE_KEY || ""
@@ -20,8 +21,7 @@ function clampStr(v: unknown, max = 400): string {
 
 function clampNumber(v: unknown): number {
   const n = Number(v);
-  if (!Number.isFinite(n)) return 0;
-  return n;
+  return Number.isFinite(n) ? n : 0;
 }
 
 function extractJson(text: string) {
@@ -61,41 +61,38 @@ export async function POST(req: Request) {
       );
     }
 
-    const body = await req.json().catch(() => ({}));
+    const body = await req.json().catch(() => ({} as any));
 
     const campaign_id = clampStr(body.campaign_id, 60);
+    const force = Boolean(body.force);
 
-    // ✅ IDempotência: se já existe texto salvo, retorna sem chamar OpenAI
-const force = !!body.force;
+    // ✅ Idempotência: se já existe e NÃO é force, retorna o salvo e não chama OpenAI
+    if (campaign_id && !force) {
+      const { data: existing, error: readErr } = await supabaseAdmin
+        .from("campaigns")
+        .select("ai_caption, ai_text, ai_cta, ai_hashtags")
+        .eq("id", campaign_id)
+        .maybeSingle();
 
-if (campaign_id && !force) {
-  const { data: existing, error: readErr } = await supabaseAdmin
-    .from("campaigns")
-    .select("ai_caption, ai_text, ai_cta, ai_hashtags")
-    .eq("id", campaign_id)
-    .maybeSingle();
-}
+      if (readErr) {
+        return NextResponse.json(
+          { error: `Erro ao ler campanha: ${readErr.message}` },
+          { status: 500 }
+        );
+      }
 
-  if (readErr) {
-    return NextResponse.json(
-      { error: `Erro ao ler campanha: ${readErr.message}` },
-      { status: 500 }
-    );
-  }
-
-  if (existing?.ai_caption) {
-    return NextResponse.json({
-      caption: existing.ai_caption,
-      text: existing.ai_text ?? "",
-      cta: existing.ai_cta ?? "",
-      hashtags: existing.ai_hashtags ?? "",
-      reused: true,
-    });
-  }
-}
+      if (existing?.ai_caption) {
+        return NextResponse.json({
+          caption: existing.ai_caption,
+          text: existing.ai_text ?? "",
+          cta: existing.ai_cta ?? "",
+          hashtags: existing.ai_hashtags ?? "",
+          reused: true,
+        });
+      }
     }
 
-    // valida / normaliza input para geração
+    // ✅ Valida / normaliza input
     const product_name = clampStr(body.product_name, 80);
     const audience = clampStr(body.audience, 120);
     const objective = clampStr(body.objective, 120);
@@ -137,8 +134,9 @@ Formato obrigatório:
 {"caption":"","text":"","cta":"","hashtags":""}
 `.trim();
 
+    // ✅ Timeout simples
     const controller = new AbortController();
-    const t = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
     let content = "";
     try {
@@ -156,14 +154,16 @@ Formato obrigatório:
           temperature: 0.6,
           max_tokens: 220,
         },
+        // Vercel/Next aceita signal; tipagem às vezes reclama, então cast leve
         { signal: controller.signal } as any
       );
 
       content = completion.choices?.[0]?.message?.content ?? "";
     } finally {
-      clearTimeout(t);
+      clearTimeout(timeout);
     }
 
+    // ✅ Parse robusto
     let parsed: any = null;
     try {
       parsed = JSON.parse(content);
@@ -187,7 +187,7 @@ Formato obrigatório:
       );
     }
 
-    // ✅ Se veio campaign_id, salva no banco (server-side, com service role)
+    // ✅ Se tiver campaign_id, salva server-side
     if (campaign_id) {
       const { error: updErr } = await supabaseAdmin
         .from("campaigns")
