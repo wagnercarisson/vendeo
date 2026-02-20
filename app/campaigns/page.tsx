@@ -148,6 +148,10 @@ export default function CampaignsPage() {
               <strong>Loja:</strong> {c.stores?.name ?? "—"}
             </div>
 
+            <div style={{ fontSize: 12, opacity: 0.6 }}>
+              ai_caption valor: [{String(c.ai_caption)}]
+            </div>
+
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
             <button onClick={() => generateAndSave(c)} disabled={generatingId === c.id}>
               {generatingId === c.id ? "Gerando..." : "Gerar texto com IA"}  
