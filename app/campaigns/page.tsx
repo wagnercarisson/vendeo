@@ -65,64 +65,49 @@ export default function CampaignsPage() {
     setLoading(false);
   }
 
-  async function generateAndSave(campaign: Campaign) {
-    // ✅ evita clique duplo enquanto a mesma campanha está gerando
-    if (generatingId === campaign.id) return;
+  async function generateAndSave(campaign: Campaign, force = false) {
+  if (generatingId === campaign.id) return;
 
-    // ✅ proteção contra geração repetida (custo)
-    if (campaign.ai_caption) {
-      const ok = confirm("Já existe texto gerado. Gerar novamente?");
-      if (!ok) return;
-    }
-
-    setGeneratingId(campaign.id);
-
-    try {
-      const res = await fetch("/api/generate/campaign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          campaign_id: campaign.id,
-          product_name: campaign.product_name,
-          price: campaign.price,
-          audience: campaign.audience,
-          objective: campaign.objective,
-          store_name: campaign.stores?.name,
-          city: campaign.stores?.city,
-          state: campaign.stores?.state,
-        }),
-      });
-
-      // ✅ erro amigável: mostra mensagem real do backend
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error ?? `Erro na API: ${res.status}`);
-      }
-
-      const data = await res.json();
-
-      const { error } = await supabase
-        .from("campaigns")
-        .update({
-          ai_caption: data.caption,
-          ai_text: data.text,
-          ai_cta: data.cta,
-          ai_hashtags: data.hashtags,
-          ai_generated_at: new Date().toISOString(),
-        })
-        .eq("id", campaign.id);
-
-      if (error) throw error;
-
-      await loadCampaigns(); // ✅ atualiza a lista sem reload
-      alert("Texto gerado e salvo!");
-    } catch (e: any) {
-      alert(e?.message ?? "Erro ao gerar/salvar");
-      console.error(e);
-    } finally {
-      setGeneratingId(null);
-    }
+  // Só pergunta se já existe texto E se não for "force"
+  if (!force && campaign.ai_caption) {
+    const ok = confirm("Já existe texto gerado. Gerar novamente?");
+    if (!ok) return;
   }
+
+  setGeneratingId(campaign.id);
+
+  try {
+    const res = await fetch("/api/generate/campaign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        campaign_id: campaign.id,
+        force, // ✅ novo
+        product_name: campaign.product_name,
+        price: campaign.price,
+        audience: campaign.audience,
+        objective: campaign.objective,
+        store_name: campaign.stores?.name,
+        city: campaign.stores?.city,
+        state: campaign.stores?.state,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err?.error ?? `Erro na API: ${res.status}`);
+    }
+
+    await res.json(); // não precisamos usar o retorno, pois já salvamos no banco
+    await loadCampaigns();
+    alert(force ? "Texto regenerado e salvo!" : "Texto gerado e salvo!");
+  } catch (e: any) {
+    alert(e?.message ?? "Erro ao gerar/salvar");
+    console.error(e);
+  } finally {
+    setGeneratingId(null);
+  }
+}
 
   return (
     <main style={{ padding: 24, fontFamily: "system-ui, Arial" }}>
@@ -164,12 +149,22 @@ export default function CampaignsPage() {
             </div>
 
             <button
-              onClick={() => generateAndSave(c)}
-              disabled={generatingId === c.id}
-              style={{ marginTop: 10 }}
-            >
-              {generatingId === c.id ? "Gerando..." : "Gerar texto com IA"}
-            </button>
+  onClick={() => generateAndSave(c)}
+  disabled={generatingId === c.id}
+  style={{ marginTop: 10 }}
+>
+  {generatingId === c.id ? "Gerando..." : "Gerar texto com IA"}
+</button>
+
+{c.ai_caption && (
+  <button
+    onClick={() => generateAndSave(c, true)}
+    disabled={generatingId === c.id}
+    style={{ marginLeft: 8, marginTop: 10 }}
+  >
+    Regenerar
+  </button>
+)}
 
             {c.ai_caption && (
               <div style={{ marginTop: 12 }}>
