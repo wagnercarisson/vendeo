@@ -74,6 +74,7 @@ if (campaign_id && !force) {
     .select("ai_caption, ai_text, ai_cta, ai_hashtags")
     .eq("id", campaign_id)
     .maybeSingle();
+}
 
   if (readErr) {
     return NextResponse.json(
