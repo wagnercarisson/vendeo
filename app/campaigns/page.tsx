@@ -121,7 +121,8 @@ export default function CampaignsPage() {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error ?? `Erro na API: ${res.status}`);
+        // mostra details primeiro (é onde está o erro real)
+        throw new Error(err?.details ?? err?.error ?? `Erro na API: ${res.status}`);
       }
 
       await res.json();
