@@ -177,11 +177,12 @@ REGRAS:
 
     return NextResponse.json({ ok: true, requestId, reused: false, reels });
 
-  } catch (err: any) {
-    const msg = typeof err?.message === "string" ? err.message : "UNKNOWN_ERROR";
-    return NextResponse.json(
-      { ok: false, error: "UNHANDLED", details: msg },
-      { status: 500 }
-    );
-  }
+} catch (err: any) {
+  const msg = typeof err?.message === "string" ? err.message : "UNKNOWN_ERROR";
+  console.error("[generate/reels] error:", msg, err?.stack ?? err);
+  return NextResponse.json(
+    { ok: false, error: "UNHANDLED", details: msg },
+    { status: 500 }
+  );
+}
 }
