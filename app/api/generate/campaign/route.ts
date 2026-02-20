@@ -66,29 +66,32 @@ export async function POST(req: Request) {
     const campaign_id = clampStr(body.campaign_id, 60);
 
     // ✅ IDempotência: se já existe texto salvo, retorna sem chamar OpenAI
-    if (campaign_id) {
-      const { data: existing, error: readErr } = await supabaseAdmin
-        .from("campaigns")
-        .select("ai_caption, ai_text, ai_cta, ai_hashtags")
-        .eq("id", campaign_id)
-        .maybeSingle();
+const force = !!body.force;
 
-      if (readErr) {
-        return NextResponse.json(
-          { error: `Erro ao ler campanha: ${readErr.message}` },
-          { status: 500 }
-        );
-      }
+if (campaign_id && !force) {
+  const { data: existing, error: readErr } = await supabaseAdmin
+    .from("campaigns")
+    .select("ai_caption, ai_text, ai_cta, ai_hashtags")
+    .eq("id", campaign_id)
+    .maybeSingle();
 
-      if (existing?.ai_caption) {
-        return NextResponse.json({
-          caption: existing.ai_caption,
-          text: existing.ai_text ?? "",
-          cta: existing.ai_cta ?? "",
-          hashtags: existing.ai_hashtags ?? "",
-          reused: true, // 👈 só para debug
-        });
-      }
+  if (readErr) {
+    return NextResponse.json(
+      { error: `Erro ao ler campanha: ${readErr.message}` },
+      { status: 500 }
+    );
+  }
+
+  if (existing?.ai_caption) {
+    return NextResponse.json({
+      caption: existing.ai_caption,
+      text: existing.ai_text ?? "",
+      cta: existing.ai_cta ?? "",
+      hashtags: existing.ai_hashtags ?? "",
+      reused: true,
+    });
+  }
+}
     }
 
     // valida / normaliza input para geração
