@@ -32,8 +32,12 @@ export default function CampaignsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<any>(null);
 
+  // ✅ impede múltiplos cliques/requests ao mesmo tempo
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
+
   useEffect(() => {
     loadCampaigns();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function loadCampaigns() {
@@ -43,7 +47,11 @@ export default function CampaignsPage() {
     const { data, error } = await supabase
       .from("campaigns")
       .select(
-        "id, product_name, price, audience, objective, image_url, ai_caption, ai_text, ai_cta, ai_hashtags, stores(id, name, city, state)"
+        `
+        id, product_name, price, audience, objective, image_url,
+        ai_caption, ai_text, ai_cta, ai_hashtags,
+        stores ( id, name, city, state )
+      `
       )
       .order("created_at", { ascending: false });
 
@@ -57,32 +65,37 @@ export default function CampaignsPage() {
     setLoading(false);
   }
 
-async function generateAndSave(campaign: Campaign) {
-  // Proteção contra geração repetida
-  if (campaign.ai_caption) {
-    const ok = confirm("Já existe texto gerado. Gerar novamente?");
-    if (!ok) return;
-  }
+  async function generateAndSave(campaign: Campaign) {
+    // ✅ evita clique duplo enquanto a mesma campanha está gerando
+    if (generatingId === campaign.id) return;
 
-  try {
-    const res = await fetch("/api/generate/campaign", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        product_name: campaign.product_name,
-        price: campaign.price,
-        audience: campaign.audience,
-        objective: campaign.objective,
-        store_name: campaign.stores?.name,
-        city: campaign.stores?.city,
-        state: campaign.stores?.state,
-      }),
-    });
+    // ✅ proteção contra geração repetida (custo)
+    if (campaign.ai_caption) {
+      const ok = confirm("Já existe texto gerado. Gerar novamente?");
+      if (!ok) return;
+    }
 
+    setGeneratingId(campaign.id);
 
+    try {
+      const res = await fetch("/api/generate/campaign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product_name: campaign.product_name,
+          price: campaign.price,
+          audience: campaign.audience,
+          objective: campaign.objective,
+          store_name: campaign.stores?.name,
+          city: campaign.stores?.city,
+          state: campaign.stores?.state,
+        }),
+      });
+
+      // ✅ erro amigável: mostra mensagem real do backend
       if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err?.error ?? `Erro na API: ${res.status}`);
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error ?? `Erro na API: ${res.status}`);
       }
 
       const data = await res.json();
@@ -100,11 +113,13 @@ async function generateAndSave(campaign: Campaign) {
 
       if (error) throw error;
 
-      await loadCampaigns(); // atualiza a tela
+      await loadCampaigns(); // ✅ atualiza a lista sem reload
       alert("Texto gerado e salvo!");
     } catch (e: any) {
       alert(e?.message ?? "Erro ao gerar/salvar");
       console.error(e);
+    } finally {
+      setGeneratingId(null);
     }
   }
 
@@ -149,9 +164,10 @@ async function generateAndSave(campaign: Campaign) {
 
             <button
               onClick={() => generateAndSave(c)}
+              disabled={generatingId === c.id}
               style={{ marginTop: 10 }}
             >
-              Gerar texto com IA
+              {generatingId === c.id ? "Gerando..." : "Gerar texto com IA"}
             </button>
 
             {c.ai_caption && (
