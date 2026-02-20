@@ -82,6 +82,7 @@ export default function CampaignsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          campaign_id: campaign.id,
           product_name: campaign.product_name,
           price: campaign.price,
           audience: campaign.audience,
