@@ -148,23 +148,17 @@ export default function CampaignsPage() {
               <strong>Loja:</strong> {c.stores?.name ?? "—"}
             </div>
 
-            <button
-  onClick={() => generateAndSave(c)}
-  disabled={generatingId === c.id}
-  style={{ marginTop: 10 }}
->
-  {generatingId === c.id ? "Gerando..." : "Gerar texto com IA"}
-</button>
+            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+            <button onClick={() => generateAndSave(c)} disabled={generatingId === c.id}>
+              {generatingId === c.id ? "Gerando..." : "Gerar texto com IA"}  
+            </button>
 
-{c.ai_caption && (
-  <button
-    onClick={() => generateAndSave(c, true)}
-    disabled={generatingId === c.id}
-    style={{ marginLeft: 8, marginTop: 10 }}
-  >
-    Regenerar
-  </button>
-)}
+            {(c.ai_caption ?? "").trim().length > 0 && (
+            <button onClick={() => generateAndSave(c, true)} disabled={generatingId === c.id}>
+              Regenerar
+            </button>
+            )}
+            </div>
 
             {c.ai_caption && (
               <div style={{ marginTop: 12 }}>
