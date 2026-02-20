@@ -97,9 +97,11 @@ export async function POST(req: Request) {
     }
 
     // 3) Prompt “com contexto” usando o que já existe na campanha
-    const prompt = `
+const prompt = `
 Você é um roteirista especialista em Reels/Instagram para vendas locais.
-Crie UM roteiro de Reels curto e altamente prático para vender o produto abaixo.
+
+Gere UM roteiro de Reels em PORTUGUÊS-BR e responda SOMENTE com JSON válido.
+NÃO inclua markdown, comentários, texto antes/depois do JSON.
 
 DADOS DA CAMPANHA:
 - Produto: ${campaign.product_name}
@@ -107,17 +109,30 @@ DADOS DA CAMPANHA:
 - Público: ${campaign.audience ?? "não informado"}
 - Objetivo: ${campaign.objective ?? "não informado"}
 
-COPY EXISTENTE (se ajudar):
-- Legenda: ${campaign.ai_caption ?? ""}
-- Texto: ${campaign.ai_text ?? ""}
-- CTA: ${campaign.ai_cta ?? ""}
-- Hashtags: ${campaign.ai_hashtags ?? ""}
-
 REGRAS:
-- Duração entre 15 e 45s (defina duration_seconds).
-- Linguagem brasileira, direta, sem enrolação.
-- Estruture exatamente no JSON do schema (sem markdown, sem texto fora do JSON).
-- Inclua: hook forte, shotlist por cenas, on_screen_text (frases curtas), áudio sugerido, roteiro corrido, legenda, CTA e hashtags.
+- duration_seconds entre 15 e 45
+- "on_screen_text" deve ser array de frases curtas
+- "shotlist" deve ser array com 3 a 8 itens, cada item contendo scene, camera, action, dialogue
+- Preencha TODOS os campos abaixo (NENHUM pode faltar)
+
+FORMATO OBRIGATÓRIO (exemplo):
+{
+  "hook": "frase curta e forte",
+  "duration_seconds": 25,
+  "audio_suggestion": "um estilo de áudio (ex: funk leve / trend X / pop animado)",
+  "on_screen_text": ["frase 1", "frase 2", "frase 3"],
+  "shotlist": [
+    { "scene": 1, "camera": "close no produto", "action": "mostrar o produto", "dialogue": "fala curta" },
+    { "scene": 2, "camera": "plano médio", "action": "apontar preço", "dialogue": "fala curta" },
+    { "scene": 3, "camera": "close", "action": "final com convite", "dialogue": "fala curta" }
+  ],
+  "script": "roteiro corrido com as falas, em parágrafos curtos",
+  "caption": "legenda pronta para postar",
+  "cta": "chamada para ação (ex: peça no WhatsApp)",
+  "hashtags": "#tag1 #tag2 #tag3"
+}
+
+AGORA gere o JSON para a campanha acima.
 `;
 
     // 4) Chamada OpenAI com parse robusto (via JSON “puro”)
@@ -149,7 +164,45 @@ REGRAS:
       }
     }
 
-    const reels = ReelsSchema.parse(parsed);
+let reels;
+try {
+  reels = ReelsSchema.parse(parsed);
+} catch (zerr: any) {
+  // Retry: pedir para o modelo corrigir o JSON exatamente no schema
+  const fixPrompt = `
+O JSON abaixo está INVALIDO e NÃO bate com o schema obrigatório.
+Corrija e devolva SOMENTE o JSON válido no formato exigido.
+
+ERROS:
+${JSON.stringify(zerr?.issues ?? zerr, null, 2)}
+
+JSON PARA CORRIGIR:
+${JSON.stringify(parsed, null, 2)}
+`;
+
+  const ai2 = await openai.chat.completions.create({
+    model: "gpt-4o-mini", // ou o mesmo que você usa em campaign
+    temperature: 0.2,
+    messages: [
+      { role: "system", content: "Responda somente com JSON válido." },
+      { role: "user", content: fixPrompt },
+    ],
+  });
+
+  const raw2 = ai2.choices?.[0]?.message?.content ?? "";
+  let parsed2: unknown;
+
+  try {
+    parsed2 = JSON.parse(raw2);
+  } catch {
+    const first = raw2.indexOf("{");
+    const last = raw2.lastIndexOf("}");
+    if (first >= 0 && last > first) parsed2 = JSON.parse(raw2.slice(first, last + 1));
+    else throw new Error("AI_RETURNED_NON_JSON_AFTER_FIX");
+  }
+
+  reels = ReelsSchema.parse(parsed2);
+}
 
     // 5) Salvar no banco
     const { error: upErr } = await supabaseAdmin
