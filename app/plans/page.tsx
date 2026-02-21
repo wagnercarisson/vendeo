@@ -30,18 +30,6 @@ type Plan = {
   created_at: string;
 };
 
-type PlanItem = {
-  id: string;
-  plan_id: string;
-  day_of_week: number; // 1..7
-  content_type: string; // post|reels
-  theme: string;
-  recommended_time: string | null;
-  campaign_id: string | null;
-  brief: any;
-  created_at: string;
-};
-
 type WeeklyPlanItem = {
   id: string;
   plan_id: string;
@@ -49,7 +37,7 @@ type WeeklyPlanItem = {
   content_type: "post" | "reels";
   theme: string;
   recommended_time: string | null;
-  campaign_id: string;
+  campaign_id: string | null;
   brief: any;
   created_at: string;
 };
@@ -202,7 +190,7 @@ function buildReelsFullText(c: Campaign) {
   return lines.join("\n");
 }
 
-function buildBriefText(it: PlanItem) {
+function buildBriefText(it: WeeklyPlanItem) {
   const b = it.brief ?? {};
   const lines: string[] = [];
   lines.push(`BRIEF — ${dayLabel(it.day_of_week)} (${String(it.content_type).toUpperCase()})`);
@@ -293,6 +281,7 @@ export default function PlansPage() {
 
   async function loadPlan() {
     setLoadingPlan(true);
+    setError(null);
     try {
       const res = await fetch(
         `/api/generate/weekly-plan?week_start=${encodeURIComponent(weekStart)}`,
@@ -307,7 +296,7 @@ export default function PlansPage() {
 
       setPlan(data.plan ?? null);
       setItems((data.items ?? []) as WeeklyPlanItem[]);
-      setCampaigns(data.campaigns ?? []);
+      setCampaigns((data.campaigns ?? []) as Campaign[]);
       setDrafts({}); // limpa drafts ao recarregar
     } catch (e: any) {
       setError(e?.message ?? "Erro ao carregar plano");
@@ -341,8 +330,8 @@ export default function PlansPage() {
         body: JSON.stringify({
           week_start: weekStart,
           force,
-      }),
-    });
+        }),
+      });
 
       const data = await res.json();
       if (!res.ok || !data.ok) {
@@ -350,7 +339,7 @@ export default function PlansPage() {
       }
 
       setPlan(data.plan ?? null);
-      setItems((data.items ?? []) as PlanItem[]);
+      setItems((data.items ?? []) as WeeklyPlanItem[]);
       setCampaigns((data.campaigns ?? []) as Campaign[]);
       setDrafts({});
 
@@ -396,7 +385,7 @@ export default function PlansPage() {
         product_name: (merged.product_name ?? "").trim(),
         audience: (merged.audience ?? "").trim(),
         objective: (merged.objective ?? "").trim(),
-        product_positioning: (merged.product_positioning ?? null),
+        product_positioning: merged.product_positioning ?? null,
       };
 
       // preço: aceita vazio => null
@@ -489,7 +478,7 @@ export default function PlansPage() {
         const camp = it.campaign_id ? campaignsById.get(it.campaign_id) : null;
         return { it, camp };
       })
-      .filter((x) => !!x.camp) as { it: PlanItem; camp: Campaign }[];
+      .filter((x) => !!x.camp) as { it: WeeklyPlanItem; camp: Campaign }[];
 
     if (tasks.length === 0) {
       setWarn("Plano não tem campanhas vinculadas.");
@@ -774,7 +763,11 @@ export default function PlansPage() {
                               disabled={!complete || autoRunning || generatingTextId === camp.id}
                               title={!complete ? "Preencha Produto, Público e Objetivo" : "Gerar texto"}
                             >
-                              {generatingTextId === camp.id ? "Gerando texto..." : hasText ? "Gerar texto (já existe)" : "Gerar texto"}
+                              {generatingTextId === camp.id
+                                ? "Gerando texto..."
+                                : hasText
+                                ? "Gerar texto (já existe)"
+                                : "Gerar texto"}
                             </button>
 
                             {hasText && (
@@ -809,7 +802,11 @@ export default function PlansPage() {
                               disabled={!complete || autoRunning || generatingReelsId === camp.id}
                               title={!complete ? "Preencha Produto, Público e Objetivo" : "Gerar Reels"}
                             >
-                              {generatingReelsId === camp.id ? "Gerando Reels..." : hasReels ? "Gerar Reels (já existe)" : "Gerar Reels"}
+                              {generatingReelsId === camp.id
+                                ? "Gerando Reels..."
+                                : hasReels
+                                ? "Gerar Reels (já existe)"
+                                : "Gerar Reels"}
                             </button>
 
                             {hasReels && (
