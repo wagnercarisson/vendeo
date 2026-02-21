@@ -280,32 +280,23 @@ export default function PlansPage() {
   }, [campaigns]);
 
   async function loadPlan() {
-    setError(null);
-    setNotice(null);
-    setWarn(null);
+    setLoadingPlan(true);
+    try {
+      const res = await fetch(
+        `/api/generate/weekly-plan?week_start=${encodeURIComponent(weekStart)}`,
+        { method: "GET" }
+      );
 
-    if (!storeId) return;
+      const data = await res.json();
 
-    const res = await fetch(
-      `/api/generate/weekly-plan?week_start=${weekStart}`,
-      { method: "GET" }
-    );
-
-      if (!res.ok || !data.ok) {
-        throw new Error(data?.details ?? data?.error ?? "Falha ao carregar plano");
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.details || data?.error || "Erro ao carregar plano");
       }
 
-      if (!data.exists) {
-        setPlan(null);
-        setItems([]);
-        setCampaigns([]);
-        setDrafts({});
-      } else {
-        setPlan(data.plan ?? null);
-        setItems((data.items ?? []) as PlanItem[]);
-        setCampaigns((data.campaigns ?? []) as Campaign[]);
-        setDrafts({}); // limpa drafts ao recarregar
-      }
+      setPlan(data.plan ?? null);
+      setItems((data.items ?? []) as WeeklyPlanItem[]);
+      setCampaigns((data.campaigns ?? []) as Campaign[]);
+      setDrafts({}); // limpa drafts ao recarregar
     } catch (e: any) {
       setError(e?.message ?? "Erro ao carregar plano");
     } finally {
