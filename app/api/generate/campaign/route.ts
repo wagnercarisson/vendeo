@@ -16,21 +16,70 @@ const BodySchema = z.object({
   force: z.boolean().optional().default(false),
 });
 
-const AIResponseSchema = z.object({
+// ⚠️ Mantenha schema “realista”: IA às vezes erra.
+// Vamos validar e aplicar fallback.
+const AISchema = z.object({
   caption: z.string().optional(),
   text: z.string().optional(),
   cta: z.string().optional(),
   hashtags: z.string().optional(),
 });
 
-function parseJsonLoose(raw: string) {
+function withTimeout<T>(promise: Promise<T>, ms: number) {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error("TIMEOUT")), ms)),
+  ]);
+}
+
+// Extrai o PRIMEIRO objeto JSON completo (robusto contra texto extra e múltiplos JSONs)
+function extractFirstJSONObject(raw: string) {
+  const s = raw ?? "";
+  let start = -1;
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+
+    if (escape) {
+      escape = false;
+      continue;
+    }
+    if (ch === "\\") {
+      if (inString) escape = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+
+    if (ch === "{") {
+      if (depth === 0) start = i;
+      depth++;
+      continue;
+    }
+    if (ch === "}") {
+      if (depth > 0) depth--;
+      if (depth === 0 && start !== -1) {
+        return s.slice(start, i + 1);
+      }
+      continue;
+    }
+  }
+
+  throw new Error("AI_RETURNED_NON_JSON");
+}
+
+function parseJsonFirstObject(raw: string) {
   try {
     return JSON.parse(raw);
   } catch {
-    const first = raw.indexOf("{");
-    const last = raw.lastIndexOf("}");
-    if (first >= 0 && last > first) return JSON.parse(raw.slice(first, last + 1));
-    throw new Error("AI_RETURNED_NON_JSON");
+    const jsonStr = extractFirstJSONObject(raw);
+    return JSON.parse(jsonStr);
   }
 }
 
@@ -48,6 +97,7 @@ export async function POST(req: Request) {
   try {
     const json = await req.json().catch(() => null);
     const body = BodySchema.safeParse(json);
+
     if (!body.success) {
       return NextResponse.json(
         { ok: false, requestId, error: "INVALID_INPUT", details: body.error.flatten() },
@@ -57,7 +107,7 @@ export async function POST(req: Request) {
 
     const { campaign_id, force } = body.data;
 
-    // 1) Buscar campanha (fonte da verdade)
+    // 1) Busca campanha (fonte da verdade)
     const { data: campaign, error: cErr } = await supabaseAdmin
       .from("campaigns")
       .select(
@@ -77,24 +127,35 @@ export async function POST(req: Request) {
     }
 
     // 2) Idempotência
-    const already = (campaign.ai_caption ?? "").trim().length > 0;
-    if (already && !force) {
-      return NextResponse.json({
-        ok: true,
-        requestId,
-        reused: true,
-        campaign_id,
-      });
+    const already = !!(campaign.ai_caption && String(campaign.ai_caption).trim().length > 0);
+    if (!force && already) {
+      return NextResponse.json({ ok: true, requestId, reused: true });
     }
 
-    // 3) Buscar loja (contexto)
+    // 3) Validação mínima
+    const nameOk = !!String(campaign.product_name ?? "").trim();
+    const audOk = !!String(campaign.audience ?? "").trim();
+    const objOk = !!String(campaign.objective ?? "").trim();
+    if (!nameOk || !audOk || !objOk) {
+      return NextResponse.json(
+        {
+          ok: false,
+          requestId,
+          error: "INSUFFICIENT_DATA",
+          details: "Campanha incompleta: preencha Produto, Público e Objetivo antes de gerar o texto.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // 4) Busca loja (contexto)
     const { data: store, error: sErr } = await supabaseAdmin
       .from("stores")
       .select(
         `
         id, name, city, state,
         brand_positioning, main_segment, tone_of_voice,
-        address, neighborhood, phone, whatsapp, instagram,
+        whatsapp, phone, instagram,
         primary_color, secondary_color, logo_url
       `
       )
@@ -108,120 +169,109 @@ export async function POST(req: Request) {
       );
     }
 
-    // 4) Validação mínima de dados essenciais (agora vindo do banco)
-    if (
-      !campaign.product_name ||
-      !campaign.audience ||
-      !campaign.objective
-    ) {
-      return NextResponse.json(
-        {
-          ok: false,
-          requestId,
-          error: "INSUFFICIENT_DATA",
-          details:
-            "Campanha incompleta no banco (product_name/audience/objective). Edite a campanha e tente novamente.",
-        },
-        { status: 400 }
-      );
-    }
-
-    // 5) Prompt IA
+    // 5) Prompt
     const prompt = `
-Você é um especialista em marketing para comércios locais.
-Crie 4 peças para uma campanha de redes sociais.
+Você é especialista em marketing de comércio local.
+Crie conteúdo para INSTAGRAM para vender um produto.
+
+Responda SOMENTE com JSON válido (sem markdown, sem texto fora do JSON).
 
 DADOS DA LOJA:
 - Nome: ${store.name}
 - Cidade/UF: ${store.city ?? ""}/${store.state ?? ""}
 - Segmento: ${store.main_segment ?? "—"}
 - Posicionamento: ${store.brand_positioning ?? "—"}
-- Tom de voz: ${store.tone_of_voice ?? "—"}
-- WhatsApp: ${store.whatsapp ?? store.phone ?? "—"}
+- Tom: ${store.tone_of_voice ?? "—"}
+- Contato: ${store.whatsapp ?? store.phone ?? "—"}
 - Instagram: ${store.instagram ?? "—"}
 
 DADOS DA CAMPANHA:
 - Produto: ${campaign.product_name}
-- Preço: ${campaign.price ?? "—"}
+- Preço: ${campaign.price ?? "não informado"}
 - Público: ${campaign.audience}
 - Objetivo: ${campaign.objective}
 - Perfil do produto: ${campaign.product_positioning ?? "—"}
-
-REGRAS:
-- Responda SOMENTE em JSON válido (sem markdown).
-- Use português do Brasil.
-- Faça textos curtos, prontos para copiar e colar.
 
 FORMATO OBRIGATÓRIO:
 {
   "caption": "Legenda curta com emojis (se combinar)",
   "text": "Texto principal (pode ser um pouco maior)",
   "cta": "Chamada para ação",
-  "hashtags": "#... #... #..."
+  "hashtags": "#tag1 #tag2 #tag3"
 }
 `;
 
-    // 6) Chamada OpenAI + parse robusto + retry
-    const ai1 = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      temperature: 0.7,
-      messages: [
-        { role: "system", content: "Responda somente com JSON válido." },
-        { role: "user", content: prompt },
-      ],
-    });
+    // 6) OpenAI (forçar JSON + parse robusto)
+    const ai1 = await withTimeout(
+      openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        temperature: 0.7,
+        response_format: { type: "json_object" } as any,
+        messages: [
+          { role: "system", content: "Responda somente com JSON válido." },
+          { role: "user", content: prompt },
+        ],
+      }),
+      20000
+    );
 
     const raw1 = ai1.choices?.[0]?.message?.content ?? "";
-    const parsed1 = parseJsonLoose(raw1);
+    const parsed1 = parseJsonFirstObject(raw1);
 
-    let aiData: z.infer<typeof AIResponseSchema>;
-    try {
-      const parsedSafe = AIResponseSchema.safeParse(parsed1);
+    // 7) Validar + retry se necessário
+    let aiData: z.infer<typeof AISchema>;
 
-      if (!parsedSafe.success) {
-      throw new Error("AI_INVALID_FORMAT");  
-    }
-
-    let aiData = parsedSafe.data;
-
-    // Fallbacks seguros (evita erro se IA esquecer campo)
-    aiData.caption = aiData.caption ?? "Confira essa novidade!";
-    aiData.text = aiData.text ?? "";
-    aiData.cta = aiData.cta ?? "Fale conosco agora!";
-    aiData.hashtags = aiData.hashtags ?? "";
-    } catch (e: any) {
+    const firstTry = AISchema.safeParse(parsed1);
+    if (firstTry.success) {
+      aiData = firstTry.data;
+    } else {
       const fixPrompt = `
-O JSON abaixo está inválido ou não segue o formato.
-Corrija e devolva SOMENTE o JSON válido no formato obrigatório.
+O JSON abaixo está inválido ou fora do formato.
+Corrija e devolva SOMENTE o JSON válido no formato exigido (sem texto fora do JSON).
 
-ERRO:
-${safeStringify(e?.issues ?? e?.message ?? e)}
+ERROS:
+${safeStringify(firstTry.error.issues)}
 
 JSON PARA CORRIGIR:
 ${safeStringify(parsed1)}
 `;
-      const ai2 = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        temperature: 0.2,
-        messages: [
-          { role: "system", content: "Responda somente com JSON válido." },
-          { role: "user", content: fixPrompt },
-        ],
-      });
+      const ai2 = await withTimeout(
+        openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          temperature: 0.2,
+          response_format: { type: "json_object" } as any,
+          messages: [
+            { role: "system", content: "Responda somente com JSON válido." },
+            { role: "user", content: fixPrompt },
+          ],
+        }),
+        20000
+      );
 
       const raw2 = ai2.choices?.[0]?.message?.content ?? "";
-      const parsed2 = parseJsonLoose(raw2);
-      aiData = AIResponseSchema.parse(parsed2);
+      const parsed2 = parseJsonFirstObject(raw2);
+
+      aiData = AISchema.parse(parsed2);
     }
 
-    // 7) Salvar no banco
+    // 8) Fallbacks (NUNCA quebra por campo ausente)
+    const caption = (aiData.caption ?? "").trim() || `✨ ${campaign.product_name} em destaque!`;
+    const text = (aiData.text ?? "").trim() || `Passe na ${store.name} e garanta o seu hoje.`;
+    const cta =
+      (aiData.cta ?? "").trim() ||
+      (store.whatsapp ? "Chama no WhatsApp e peça agora!" : "Fale conosco e peça agora!");
+    const hashtags =
+      (aiData.hashtags ?? "").trim() ||
+      "#promo #oferta #instafood #loja #bairro";
+
+    // 9) Salvar no banco
     const { error: upErr } = await supabaseAdmin
       .from("campaigns")
       .update({
-        ai_caption: aiData.caption,
-        ai_text: aiData.text,
-        ai_cta: aiData.cta,
-        ai_hashtags: aiData.hashtags,
+        ai_caption: caption,
+        ai_text: text,
+        ai_cta: cta,
+        ai_hashtags: hashtags,
         ai_generated_at: new Date().toISOString(),
       })
       .eq("id", campaign_id);
@@ -241,7 +291,10 @@ ${safeStringify(parsed1)}
     });
   } catch (err: any) {
     const msg = typeof err?.message === "string" ? err.message : "UNKNOWN_ERROR";
-    console.error("[generate-campaign] error:", msg, err?.stack ?? err);
-    return NextResponse.json({ ok: false, requestId, error: "UNHANDLED", details: msg }, { status: 500 });
+    console.error("[generate/campaign] error:", msg, err?.stack ?? err);
+    return NextResponse.json(
+      { ok: false, requestId, error: "UNHANDLED", details: msg },
+      { status: 500 }
+    );
   }
 }
