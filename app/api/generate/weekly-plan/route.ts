@@ -27,12 +27,13 @@ const AIItemSchema = z.object({
   content_type: z.enum(["post", "reels"]),
   theme: z.string().min(3),
   recommended_time: z.string().min(3), // "19:30"
+  // aqui a IA sugere, mas o lojista pode editar depois
   campaign: z.object({
     product_name: z.string().min(3),
     price: z.number().nonnegative().optional().nullable(),
     audience: z.string().min(3),
     objective: z.string().min(3),
-    product_positioning: z.string().optional().nullable(), // popular|medio|premium|jovem|familia...
+    product_positioning: z.string().optional().nullable(),
   }),
   brief: z.object({
     angle: z.string().min(3),
@@ -53,11 +54,10 @@ function toISODate(d: Date) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-// Week start = Monday (Segunda) in UTC (MVP ok)
 function getWeekStartMondayISO(today = new Date()) {
   const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
-  const jsDay = d.getUTCDay(); // 0=Sun..6=Sat
-  const diffToMonday = (jsDay + 6) % 7; // Monday->0 ... Sunday->6
+  const jsDay = d.getUTCDay(); // 0..6
+  const diffToMonday = (jsDay + 6) % 7;
   d.setUTCDate(d.getUTCDate() - diffToMonday);
   return toISODate(d);
 }
@@ -90,9 +90,6 @@ function uniqueByDay(items: any[]) {
   return true;
 }
 
-/**
- * Busca plano + itens + campaigns completas (base + ai + reels)
- */
 async function fetchPlan(store_id: string, week_start: string) {
   const { data: plan, error: planErr } = await supabaseAdmin
     .from("weekly_plans")
@@ -106,7 +103,9 @@ async function fetchPlan(store_id: string, week_start: string) {
 
   const { data: items, error: itemsErr } = await supabaseAdmin
     .from("weekly_plan_items")
-    .select("id, plan_id, day_of_week, content_type, theme, recommended_time, campaign_id, brief, created_at")
+    .select(
+      "id, plan_id, day_of_week, content_type, theme, recommended_time, campaign_id, brief, created_at"
+    )
     .eq("plan_id", plan.id)
     .order("day_of_week", { ascending: true });
 
@@ -184,14 +183,14 @@ export async function POST(req: Request) {
     const { store_id, force } = body.data;
     const week_start = (body.data.week_start ?? getWeekStartMondayISO()).trim();
 
-    // 1) Buscar loja (contexto)
+    // loja (contexto)
     const { data: store, error: sErr } = await supabaseAdmin
       .from("stores")
       .select(
         `
         id, name, city, state,
         brand_positioning, main_segment, tone_of_voice,
-        address, neighborhood, phone, whatsapp, instagram,
+        phone, whatsapp, instagram,
         primary_color, secondary_color, logo_url
       `
       )
@@ -205,7 +204,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 2) Idempotência
+    // idempotência
     const existing = await fetchPlan(store_id, week_start);
     if (existing && !force) {
       return NextResponse.json({
@@ -218,7 +217,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // 3) Se force e existe: limpar itens (não deletar campanhas por segurança)
+    // se force e existe: limpar itens (não deletar campaigns para segurança)
     if (existing && force) {
       const { error: delItemsErr } = await supabaseAdmin
         .from("weekly_plan_items")
@@ -228,7 +227,7 @@ export async function POST(req: Request) {
       if (delItemsErr) throw new Error(delItemsErr.message);
     }
 
-    // 4) Upsert do plano (garante 1 por loja/semana)
+    // upsert do plano
     const { data: upPlan, error: upPlanErr } = await supabaseAdmin
       .from("weekly_plans")
       .upsert(
@@ -240,7 +239,7 @@ export async function POST(req: Request) {
 
     if (upPlanErr || !upPlan) throw new Error(upPlanErr?.message ?? "FAILED_UPSERT_PLAN");
 
-    // 5) IA cria 4 itens
+    // IA
     const prompt = `
 Você é um estrategista de marketing para comércios locais.
 Crie um PLANO SEMANAL de 4 conteúdos para a loja abaixo (foco em vendas e recorrência).
@@ -255,16 +254,16 @@ LOJA:
 REGRAS:
 - Responda SOMENTE com JSON válido (sem markdown).
 - Gere exatamente 4 itens em "items".
-- Cada item deve ter day_of_week (1=Seg ... 7=Dom), e deve ser ÚNICO (não repetir dia).
+- day_of_week (1=Seg ... 7=Dom) deve ser ÚNICO (não repetir dia).
 - content_type: "post" ou "reels".
 - recommended_time: formato "HH:MM" (24h).
-- theme: curto (ex: "Promoção relâmpago", "Produto destaque", "Engajamento", "Combo do fim de semana").
+- theme: curto.
 - Em campaign, preencha SEMPRE: product_name, audience, objective. price pode ser null.
 - Em brief: angle, hook_hint, cta_hint.
 
-FORMATO OBRIGATÓRIO:
+FORMATO:
 {
-  "strategy_summary": "texto curto com a estratégia da semana",
+  "strategy_summary": "...",
   "items": [
     {
       "day_of_week": 1,
@@ -301,10 +300,9 @@ FORMATO OBRIGATÓRIO:
       planAI = AIResponseSchema.parse(parsed1);
       if (!uniqueByDay(planAI.items)) throw new Error("DUPLICATE_DAY_OF_WEEK");
     } catch (e: any) {
-      // Retry de correção
       const fixPrompt = `
 O JSON abaixo está inválido ou não atende as regras.
-Corrija e devolva SOMENTE o JSON válido no mesmo formato obrigatório.
+Corrija e devolva SOMENTE o JSON válido no mesmo formato.
 
 ERRO:
 ${safeStringify(e?.issues ?? e?.message ?? e)}
@@ -328,7 +326,7 @@ ${safeStringify(parsed1)}
       if (!uniqueByDay(planAI.items)) throw new Error("DUPLICATE_DAY_OF_WEEK_AFTER_FIX");
     }
 
-    // 6) Salvar strategy no plano
+    // salvar strategy no plano
     const { error: updPlanErr } = await supabaseAdmin
       .from("weekly_plans")
       .update({
@@ -348,7 +346,7 @@ ${safeStringify(parsed1)}
 
     if (updPlanErr) throw new Error(updPlanErr.message);
 
-    // 7) Criar campaigns + itens
+    // criar campaigns + itens (sempre cria campaign_id)
     for (const it of planAI.items) {
       const { data: cRow, error: cErr } = await supabaseAdmin
         .from("campaigns")
@@ -360,13 +358,7 @@ ${safeStringify(parsed1)}
           objective: it.campaign.objective,
           product_positioning: it.campaign.product_positioning ?? null,
         })
-        .select(`
-          id, store_id, product_name, price, audience, objective, product_positioning, created_at,
-          ai_caption, ai_text, ai_cta, ai_hashtags,
-          reels_hook, reels_script, reels_shotlist, reels_on_screen_text,
-          reels_audio_suggestion, reels_duration_seconds,
-          reels_caption, reels_cta, reels_hashtags, reels_generated_at
-        `)
+        .select("id")
         .single();
 
       if (cErr || !cRow) throw new Error(cErr?.message ?? "FAILED_CREATE_CAMPAIGN");
@@ -384,7 +376,6 @@ ${safeStringify(parsed1)}
       if (iErr) throw new Error(iErr.message);
     }
 
-    // 8) Retornar plano completo (com campaigns completas)
     const final = await fetchPlan(store_id, week_start);
 
     return NextResponse.json({
