@@ -1,12 +1,11 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-export async function getUserStoreIdOrNull() {
+export async function getUserStoreIdOrThrow() {
   const supabase = createSupabaseServerClient();
 
   const { data: userData } = await supabase.auth.getUser();
   const user = userData?.user;
-
-  if (!user) return { user: null, storeId: null as string | null };
+  if (!user) throw new Error("not_authenticated");
 
   const { data, error } = await supabase
     .from("store_members")
@@ -16,13 +15,7 @@ export async function getUserStoreIdOrNull() {
     .limit(1)
     .maybeSingle();
 
-  if (error) return { user, storeId: null };
-  return { user, storeId: data?.store_id ?? null };
-}
+  if (error || !data?.store_id) throw new Error("store_not_found");
 
-export async function getUserStoreIdOrThrow() {
-  const { user, storeId } = await getUserStoreIdOrNull();
-  if (!user) throw new Error("not_authenticated");
-  if (!storeId) throw new Error("store_not_found");
-  return { user, storeId };
+  return { user, storeId: data.store_id as string };
 }
