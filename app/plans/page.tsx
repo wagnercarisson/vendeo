@@ -24,7 +24,7 @@ type Store = {
 type Plan = {
   id: string;
   store_id: string;
-  week_start: string; // YYYY-MM-DD
+  week_start: string;
   status: string;
   strategy: any;
   created_at: string;
@@ -52,10 +52,10 @@ type ReelsShot = {
 type Campaign = {
   id: string;
   store_id: string;
-  product_name: string;
+  product_name: string | null;
   price: number | null;
-  audience: string;
-  objective: string;
+  audience: string | null;
+  objective: string | null;
   product_positioning: string | null;
 
   ai_caption?: string | null;
@@ -203,6 +203,14 @@ function buildBriefText(it: PlanItem) {
   return lines.join("\n");
 }
 
+function isCampaignComplete(c?: Campaign) {
+  if (!c) return false;
+  const nameOk = (c.product_name ?? "").trim().length > 0;
+  const audOk = (c.audience ?? "").trim().length > 0;
+  const objOk = (c.objective ?? "").trim().length > 0;
+  return nameOk && audOk && objOk;
+}
+
 export default function PlansPage() {
   const [stores, setStores] = useState<Store[]>([]);
   const [loadingStores, setLoadingStores] = useState(true);
@@ -218,15 +226,22 @@ export default function PlansPage() {
   const [generatingPlan, setGeneratingPlan] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // geração por campanha (travar clique)
   const [generatingTextId, setGeneratingTextId] = useState<string | null>(null);
   const [generatingReelsId, setGeneratingReelsId] = useState<string | null>(null);
 
-  // Modo automático (já liberado; depois bloqueamos por plano)
+  // Modo automático
   const [autoRunning, setAutoRunning] = useState(false);
   const [autoTotal, setAutoTotal] = useState(0);
   const [autoDone, setAutoDone] = useState(0);
   const [autoCurrent, setAutoCurrent] = useState<string>("");
+
+  // Mensagens “apresentáveis”
+  const [notice, setNotice] = useState<string | null>(null);
+  const [warn, setWarn] = useState<string | null>(null);
+
+  // edição local por campaign (sem precisar controlled inputs em massa)
+  const [drafts, setDrafts] = useState<Record<string, Partial<Campaign>>>({});
+  const [savingId, setSavingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadStores();
@@ -266,6 +281,9 @@ export default function PlansPage() {
 
   async function loadPlan() {
     setError(null);
+    setNotice(null);
+    setWarn(null);
+
     if (!storeId) return;
 
     setLoadingPlan(true);
@@ -284,10 +302,12 @@ export default function PlansPage() {
         setPlan(null);
         setItems([]);
         setCampaigns([]);
+        setDrafts({});
       } else {
         setPlan(data.plan ?? null);
         setItems((data.items ?? []) as PlanItem[]);
         setCampaigns((data.campaigns ?? []) as Campaign[]);
+        setDrafts({}); // limpa drafts ao recarregar
       }
     } catch (e: any) {
       setError(e?.message ?? "Erro ao carregar plano");
@@ -303,6 +323,9 @@ export default function PlansPage() {
 
   async function generatePlan(force = false) {
     setError(null);
+    setNotice(null);
+    setWarn(null);
+
     if (!storeId) return;
 
     if (force && plan) {
@@ -330,7 +353,9 @@ export default function PlansPage() {
       setPlan(data.plan ?? null);
       setItems((data.items ?? []) as PlanItem[]);
       setCampaigns((data.campaigns ?? []) as Campaign[]);
-      alert(force ? "Plano regenerado!" : "Plano gerado!");
+      setDrafts({});
+
+      setNotice(force ? "Plano regenerado!" : "Plano gerado!");
     } catch (e: any) {
       setError(e?.message ?? "Erro ao gerar plano");
     } finally {
@@ -338,14 +363,68 @@ export default function PlansPage() {
     }
   }
 
+  function getDraft(camp: Campaign): Campaign {
+    const d = drafts[camp.id] ?? {};
+    return {
+      ...camp,
+      ...d,
+    };
+  }
+
+  function setDraft(campaignId: string, patch: Partial<Campaign>) {
+    setDrafts((prev) => ({
+      ...prev,
+      [campaignId]: {
+        ...(prev[campaignId] ?? {}),
+        ...patch,
+      },
+    }));
+  }
+
+  async function saveCampaignEdits(campId: string) {
+    const base = campaignsById.get(campId);
+    if (!base) return;
+
+    const merged = getDraft(base);
+
+    setSavingId(campId);
+    setError(null);
+    setNotice(null);
+    setWarn(null);
+
+    try {
+      const payload: any = {
+        product_name: (merged.product_name ?? "").trim(),
+        audience: (merged.audience ?? "").trim(),
+        objective: (merged.objective ?? "").trim(),
+        product_positioning: (merged.product_positioning ?? null),
+      };
+
+      // preço: aceita vazio => null
+      if (merged.price === null || merged.price === undefined || Number.isNaN(merged.price as any)) {
+        payload.price = null;
+      } else {
+        payload.price = Number(merged.price);
+      }
+
+      const { error } = await supabase.from("campaigns").update(payload).eq("id", campId);
+      if (error) throw new Error(error.message);
+
+      // Atualiza a tela
+      await loadPlan();
+      setNotice("Campanha atualizada!");
+    } catch (e: any) {
+      setError(e?.message ?? "Erro ao salvar campanha");
+    } finally {
+      setSavingId(null);
+    }
+  }
+
   async function generateTextForCampaign(camp: Campaign, force = false) {
-    // evita clique duplo
     if (generatingTextId === camp.id) return;
 
-    // se não for regenerar, pergunta antes quando já tem texto
-    if (!force && (camp.ai_caption ?? "").trim().length > 0) {
-      const ok = confirm("Já existe texto gerado. Gerar novamente?");
-      if (!ok) return;
+    if (!isCampaignComplete(camp)) {
+      throw new Error("Preencha Produto, Público e Objetivo antes de gerar o texto.");
     }
 
     setGeneratingTextId(camp.id);
@@ -354,42 +433,14 @@ export default function PlansPage() {
       const res = await fetch("/api/generate/campaign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          campaign_id: camp.id,
-          force,
-
-          product_name: camp.product_name,
-          price: camp.price ?? 0,
-          audience: camp.audience,
-          objective: camp.objective,
-          product_positioning: camp.product_positioning,
-
-          store_name: selectedStore?.name,
-          city: selectedStore?.city,
-          state: selectedStore?.state,
-          brand_positioning: selectedStore?.brand_positioning,
-          main_segment: selectedStore?.main_segment,
-          tone_of_voice: selectedStore?.tone_of_voice,
-
-          whatsapp: selectedStore?.whatsapp,
-          phone: selectedStore?.phone,
-          instagram: selectedStore?.instagram,
-          primary_color: selectedStore?.primary_color,
-          secondary_color: selectedStore?.secondary_color,
-        }),
+        // ✅ envia só campaign_id; backend busca no banco
+        body: JSON.stringify({ campaign_id: camp.id, force }),
       });
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) throw new Error(data?.details ?? data?.error ?? "Falha ao gerar texto");
 
-      // atualiza para refletir status/cópias
       await loadPlan();
-
-      alert(force ? "Texto regenerado!" : "Texto gerado!");
-    } catch (e: any) {
-      alert(e?.message ?? "Erro ao gerar texto");
-      console.error(e);
-      throw e; // importante pro modo automático capturar
     } finally {
       setGeneratingTextId(null);
     }
@@ -398,10 +449,8 @@ export default function PlansPage() {
   async function generateReelsForCampaign(camp: Campaign, force = false) {
     if (generatingReelsId === camp.id) return;
 
-    const hasReels = !!camp.reels_generated_at;
-    if (!force && hasReels) {
-      const ok = confirm("Já existe Reels gerado. Gerar novamente?");
-      if (!ok) return;
+    if (!isCampaignComplete(camp)) {
+      throw new Error("Preencha Produto, Público e Objetivo antes de gerar o Reels.");
     }
 
     setGeneratingReelsId(camp.id);
@@ -410,43 +459,29 @@ export default function PlansPage() {
       const res = await fetch("/api/generate/reels", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          campaign_id: camp.id,
-          force,
-
-          product_positioning: camp.product_positioning,
-
-          store_name: selectedStore?.name,
-          city: selectedStore?.city,
-          state: selectedStore?.state,
-          brand_positioning: selectedStore?.brand_positioning,
-          main_segment: selectedStore?.main_segment,
-          tone_of_voice: selectedStore?.tone_of_voice,
-          whatsapp: selectedStore?.whatsapp,
-        }),
+        // ✅ mínimo
+        body: JSON.stringify({ campaign_id: camp.id, force }),
       });
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) throw new Error(data?.details ?? data?.error ?? "Falha ao gerar Reels");
 
       await loadPlan();
-      alert(force ? "Reels regenerado!" : "Reels gerado!");
-    } catch (e: any) {
-      alert(e?.message ?? "Erro ao gerar Reels");
-      console.error(e);
-      throw e; // importante pro modo automático capturar
     } finally {
       setGeneratingReelsId(null);
     }
   }
 
-  // MODO AUTOMÁTICO: gera apenas o que não existe
   async function runAutoMode() {
     if (!plan) {
-      alert("Gere ou carregue um plano primeiro.");
+      setWarn("Gere ou carregue um plano primeiro.");
       return;
     }
     if (autoRunning) return;
+
+    setError(null);
+    setNotice(null);
+    setWarn(null);
 
     const sorted = items.slice().sort((a, b) => a.day_of_week - b.day_of_week);
 
@@ -458,7 +493,15 @@ export default function PlansPage() {
       .filter((x) => !!x.camp) as { it: PlanItem; camp: Campaign }[];
 
     if (tasks.length === 0) {
-      alert("Plano não tem campanhas vinculadas.");
+      setWarn("Plano não tem campanhas vinculadas.");
+      return;
+    }
+
+    const incompletos = tasks.filter((t) => !isCampaignComplete(t.camp));
+    if (incompletos.length > 0) {
+      setWarn(
+        `Há ${incompletos.length} item(ns) com campanha incompleta. Preencha Produto, Público e Objetivo e tente novamente.`
+      );
       return;
     }
 
@@ -468,41 +511,28 @@ export default function PlansPage() {
     setAutoCurrent("");
 
     const errors: string[] = [];
-
     try {
       for (let i = 0; i < tasks.length; i++) {
-        // sempre usa versão mais recente do mapa (recarrega no loop)
         const it = tasks[i].it;
-        const campLatest = it.campaign_id ? campaignsById.get(it.campaign_id) : null;
-        const camp = campLatest ?? tasks[i].camp;
+        const camp = tasks[i].camp;
 
-        const isPost = String(it.content_type).toLowerCase() === "post";
         const isReels = String(it.content_type).toLowerCase() === "reels";
-
         const hasText = !!(camp.ai_caption && String(camp.ai_caption).trim().length > 0);
         const hasReels = !!camp.reels_generated_at;
 
         setAutoCurrent(`${i + 1}/${tasks.length} — ${dayLabel(it.day_of_week)} (${String(it.content_type).toUpperCase()})`);
 
         try {
-          // POST: só precisa texto
-          if (isPost && !hasText) {
-            await generateTextForCampaign(camp, false);
-          }
+          // texto: gera só se não existe
+          if (!hasText) await generateTextForCampaign(camp, false);
 
-          // REELS: texto + reels (mas só o que não existe)
-          if (isReels) {
-            if (!hasText) await generateTextForCampaign(camp, false);
-            if (!hasReels) await generateReelsForCampaign(camp, false);
-          }
+          // reels: só se o item for reels e não existe
+          if (isReels && !hasReels) await generateReelsForCampaign(camp, false);
         } catch (e: any) {
           errors.push(`${dayLabel(it.day_of_week)}: ${e?.message ?? "Erro desconhecido"}`);
         }
 
         setAutoDone((v) => v + 1);
-
-        // garante UI sempre correta e também atualiza campaignsById (via state)
-        await loadPlan();
       }
     } finally {
       setAutoRunning(false);
@@ -510,9 +540,10 @@ export default function PlansPage() {
     }
 
     if (errors.length) {
-      alert(`Modo automático concluído com alguns erros:\n\n- ${errors.join("\n- ")}`);
+      setWarn(`Modo automático terminou com ${errors.length} erro(s). Veja detalhes abaixo.`);
+      setError(errors.join("\n"));
     } else {
-      alert("Modo automático concluído! ✅");
+      setNotice("Modo automático concluído! ✅");
     }
   }
 
@@ -531,6 +562,14 @@ export default function PlansPage() {
     fontSize: 14,
   };
 
+  const smallInputStyle: React.CSSProperties = {
+    width: "100%",
+    padding: "8px 10px",
+    border: "1px solid #ddd",
+    borderRadius: 10,
+    fontSize: 13,
+  };
+
   return (
     <main style={{ padding: 24, fontFamily: "system-ui, Arial" }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
@@ -541,13 +580,23 @@ export default function PlansPage() {
       </div>
 
       <p style={{ color: "#555", marginTop: 8 }}>
-        Gere 4 campanhas sugeridas para a semana. Depois, gere texto e/ou Reels diretamente aqui — ou use o modo automático.
+        1) Gere a programação da semana · 2) Ajuste os produtos · 3) Gere tudo automaticamente.
       </p>
 
-      <section style={{ ...cardStyle, maxWidth: 1100 }}>
+      <section style={{ ...cardStyle, maxWidth: 1120 }}>
+        {notice && (
+          <div style={{ marginBottom: 10, padding: 10, background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: 10 }}>
+            ✅ {notice}
+          </div>
+        )}
+        {warn && (
+          <div style={{ marginBottom: 10, padding: 10, background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 10 }}>
+            ⚠️ {warn}
+          </div>
+        )}
         {error && (
-          <div style={{ marginBottom: 12, color: "crimson" }}>
-            <strong>Erro:</strong> {error}
+          <div style={{ marginBottom: 10, padding: 10, background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, whiteSpace: "pre-wrap" }}>
+            ❌ {error}
           </div>
         )}
 
@@ -589,28 +638,13 @@ export default function PlansPage() {
 
             <div>
               <label style={{ fontSize: 13, display: "block", marginBottom: 6 }}>Semana (início)</label>
-              <input
-                style={inputStyle}
-                type="date"
-                value={weekStart}
-                onChange={(e) => setWeekStart(e.target.value)}
-              />
+              <input style={inputStyle} type="date" value={weekStart} onChange={(e) => setWeekStart(e.target.value)} />
               <div style={{ fontSize: 12, color: "#666", marginTop: 6 }}>Use a segunda-feira como início.</div>
             </div>
           </div>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button
-              onClick={() => loadPlan()}
-              disabled={!storeId || loadingPlan || generatingPlan || autoRunning}
-              style={{
-                padding: "10px 14px",
-                borderRadius: 12,
-                border: "1px solid #ddd",
-                background: "white",
-                cursor: "pointer",
-              }}
-            >
+            <button onClick={() => loadPlan()} disabled={!storeId || loadingPlan || generatingPlan || autoRunning}>
               {loadingPlan ? "Carregando..." : "Recarregar"}
             </button>
 
@@ -631,18 +665,7 @@ export default function PlansPage() {
             </button>
 
             {plan && (
-              <button
-                onClick={() => generatePlan(true)}
-                disabled={!storeId || generatingPlan || autoRunning}
-                style={{
-                  padding: "10px 14px",
-                  borderRadius: 12,
-                  border: "1px solid #111",
-                  background: "white",
-                  cursor: generatingPlan ? "not-allowed" : "pointer",
-                  fontWeight: 600,
-                }}
-              >
+              <button onClick={() => generatePlan(true)} disabled={!storeId || generatingPlan || autoRunning}>
                 Regenerar plano
               </button>
             )}
@@ -658,14 +681,14 @@ export default function PlansPage() {
                 cursor: autoRunning ? "not-allowed" : "pointer",
                 fontWeight: 800,
               }}
-              title="Gera automaticamente apenas o que não existe"
+              title="Gera automaticamente apenas o que não existe (somente itens completos)"
             >
               {autoRunning ? `Modo automático... (${autoDone}/${autoTotal})` : "Modo automático (Gerar tudo)"}
             </button>
           </div>
 
           {autoRunning && (
-            <div style={{ marginTop: 4, fontSize: 13, color: "#444" }}>
+            <div style={{ marginTop: 2, fontSize: 13, color: "#444" }}>
               <strong>Executando:</strong> {autoCurrent} · <strong>Progresso:</strong> {autoDone}/{autoTotal}
             </div>
           )}
@@ -677,7 +700,7 @@ export default function PlansPage() {
       {!plan ? (
         <p style={{ color: "#555" }}>Nenhum plano encontrado para esta semana.</p>
       ) : (
-        <div style={{ display: "grid", gap: 16, maxWidth: 1100 }}>
+        <div style={{ display: "grid", gap: 16, maxWidth: 1120 }}>
           <section style={cardStyle}>
             <h2 style={{ marginTop: 0, fontSize: 16 }}>Estratégia</h2>
             <div style={{ whiteSpace: "pre-wrap", color: "#333" }}>
@@ -686,7 +709,7 @@ export default function PlansPage() {
           </section>
 
           <section style={cardStyle}>
-            <h2 style={{ marginTop: 0, fontSize: 16 }}>Conteúdos sugeridos (4)</h2>
+            <h2 style={{ marginTop: 0, fontSize: 16 }}>Itens da semana (edite os produtos antes de gerar)</h2>
 
             {items.length === 0 ? (
               <p>Sem itens ainda.</p>
@@ -697,12 +720,17 @@ export default function PlansPage() {
                   .sort((a, b) => a.day_of_week - b.day_of_week)
                   .map((it) => {
                     const camp = it.campaign_id ? campaignsById.get(it.campaign_id) : undefined;
+                    if (!camp) return null;
 
-                    const hasText = !!(camp?.ai_caption && String(camp.ai_caption).trim().length > 0);
-                    const hasReels = !!camp?.reels_generated_at;
+                    const merged = getDraft(camp);
+
+                    const hasText = !!(camp.ai_caption && String(camp.ai_caption).trim().length > 0);
+                    const hasReels = !!camp.reels_generated_at;
 
                     const isPost = String(it.content_type).toLowerCase() === "post";
                     const isReels = String(it.content_type).toLowerCase() === "reels";
+
+                    const complete = isCampaignComplete(merged);
 
                     return (
                       <div
@@ -726,106 +754,183 @@ export default function PlansPage() {
                           </div>
 
                           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                            {camp?.id ? (
-                              <>
-                                <button
-                                  onClick={() => generateTextForCampaign(camp, false)}
-                                  disabled={autoRunning || generatingTextId === camp.id}
-                                >
-                                  {generatingTextId === camp.id
-                                    ? "Gerando texto..."
-                                    : hasText
-                                    ? "Gerar texto (já existe)"
-                                    : "Gerar texto"}
-                                </button>
+                            <button
+                              onClick={() => saveCampaignEdits(camp.id)}
+                              disabled={savingId === camp.id || autoRunning}
+                            >
+                              {savingId === camp.id ? "Salvando..." : "Salvar"}
+                            </button>
 
-                                {hasText && (
-                                  <button
-                                    onClick={() => generateTextForCampaign(camp, true)}
-                                    disabled={autoRunning || generatingTextId === camp.id}
-                                  >
-                                    Regenerar texto
-                                  </button>
-                                )}
+                            <button
+                              onClick={async () => {
+                                try {
+                                  setError(null);
+                                  setWarn(null);
+                                  await generateTextForCampaign(camp, false);
+                                  setNotice("Texto gerado!");
+                                } catch (e: any) {
+                                  setWarn(e?.message ?? "Erro ao gerar texto");
+                                }
+                              }}
+                              disabled={!complete || autoRunning || generatingTextId === camp.id}
+                              title={!complete ? "Preencha Produto, Público e Objetivo" : "Gerar texto"}
+                            >
+                              {generatingTextId === camp.id ? "Gerando texto..." : hasText ? "Gerar texto (já existe)" : "Gerar texto"}
+                            </button>
 
-                                <button
-                                  onClick={() => generateReelsForCampaign(camp, false)}
-                                  disabled={autoRunning || generatingReelsId === camp.id}
-                                >
-                                  {generatingReelsId === camp.id
-                                    ? "Gerando Reels..."
-                                    : hasReels
-                                    ? "Gerar Reels (já existe)"
-                                    : "Gerar Reels"}
-                                </button>
+                            {hasText && (
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    setError(null);
+                                    setWarn(null);
+                                    await generateTextForCampaign(camp, true);
+                                    setNotice("Texto regenerado!");
+                                  } catch (e: any) {
+                                    setWarn(e?.message ?? "Erro ao regenerar texto");
+                                  }
+                                }}
+                                disabled={!complete || autoRunning || generatingTextId === camp.id}
+                              >
+                                Regenerar texto
+                              </button>
+                            )}
 
-                                {hasReels && (
-                                  <button
-                                    onClick={() => generateReelsForCampaign(camp, true)}
-                                    disabled={autoRunning || generatingReelsId === camp.id}
-                                  >
-                                    Regenerar Reels
-                                  </button>
-                                )}
+                            <button
+                              onClick={async () => {
+                                try {
+                                  setError(null);
+                                  setWarn(null);
+                                  await generateReelsForCampaign(camp, false);
+                                  setNotice("Reels gerado!");
+                                } catch (e: any) {
+                                  setWarn(e?.message ?? "Erro ao gerar Reels");
+                                }
+                              }}
+                              disabled={!complete || autoRunning || generatingReelsId === camp.id}
+                              title={!complete ? "Preencha Produto, Público e Objetivo" : "Gerar Reels"}
+                            >
+                              {generatingReelsId === camp.id ? "Gerando Reels..." : hasReels ? "Gerar Reels (já existe)" : "Gerar Reels"}
+                            </button>
 
-                                {isPost && (
-                                  <button
-                                    onClick={() => safeCopy(buildPostFullText(camp))}
-                                    disabled={!hasText}
-                                    title={!hasText ? "Gere o texto primeiro" : "Copiar tudo do post"}
-                                  >
-                                    Copiar tudo (Post)
-                                  </button>
-                                )}
+                            {hasReels && (
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    setError(null);
+                                    setWarn(null);
+                                    await generateReelsForCampaign(camp, true);
+                                    setNotice("Reels regenerado!");
+                                  } catch (e: any) {
+                                    setWarn(e?.message ?? "Erro ao regenerar Reels");
+                                  }
+                                }}
+                                disabled={!complete || autoRunning || generatingReelsId === camp.id}
+                              >
+                                Regenerar Reels
+                              </button>
+                            )}
 
-                                {isReels && (
-                                  <button
-                                    onClick={() => safeCopy(buildReelsFullText(camp))}
-                                    disabled={!hasReels}
-                                    title={!hasReels ? "Gere o Reels primeiro" : "Copiar tudo do Reels"}
-                                  >
-                                    Copiar tudo (Reels)
-                                  </button>
-                                )}
+                            {isPost && (
+                              <button
+                                onClick={() => safeCopy(buildPostFullText(camp))}
+                                disabled={!hasText}
+                                title={!hasText ? "Gere o texto primeiro" : "Copiar tudo do post"}
+                              >
+                                Copiar tudo (Post)
+                              </button>
+                            )}
 
-                                <button onClick={() => safeCopy(buildBriefText(it))}>Copiar brief</button>
-                              </>
-                            ) : null}
+                            {isReels && (
+                              <button
+                                onClick={() => safeCopy(buildReelsFullText(camp))}
+                                disabled={!hasReels}
+                                title={!hasReels ? "Gere o Reels primeiro" : "Copiar tudo do Reels"}
+                              >
+                                Copiar tudo (Reels)
+                              </button>
+                            )}
 
-                            <Link href="/campaigns" style={{ fontSize: 13 }}>
-                              Ver campanhas →
-                            </Link>
+                            <button onClick={() => safeCopy(buildBriefText(it))}>Copiar brief</button>
                           </div>
                         </div>
 
-                        <div style={{ marginTop: 8 }}>
-                          <div>
-                            <strong>Campanha:</strong> {camp?.product_name ?? "—"}
-                            {camp?.price != null ? ` (R$ ${camp.price})` : ""}
-                          </div>
-                          <div style={{ fontSize: 13, color: "#444" }}>
-                            <strong>Público:</strong> {camp?.audience ?? "—"} · <strong>Objetivo:</strong>{" "}
-                            {camp?.objective ?? "—"}
-                          </div>
-
-                          {it.brief && (
-                            <div style={{ fontSize: 13, color: "#444", marginTop: 6 }}>
-                              <div>
-                                <strong>Ângulo:</strong> {it.brief.angle ?? "—"}
-                              </div>
-                              <div>
-                                <strong>Hook:</strong> {it.brief.hook_hint ?? "—"}
-                              </div>
-                              <div>
-                                <strong>CTA:</strong> {it.brief.cta_hint ?? "—"}
-                              </div>
+                        <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
+                          {/* Form de edição */}
+                          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 10 }}>
+                            <div>
+                              <div style={{ fontSize: 12, color: "#666", marginBottom: 6 }}>Produto</div>
+                              <input
+                                style={smallInputStyle}
+                                value={merged.product_name ?? ""}
+                                onChange={(e) => setDraft(camp.id, { product_name: e.target.value })}
+                                placeholder="Ex: Cerveja Antarctica 600ml"
+                              />
                             </div>
-                          )}
-                        </div>
 
-                        <div style={{ marginTop: 10, fontSize: 12, color: "#666" }}>
-                          Status: <span>{hasText ? "Texto ✅" : "Texto —"}</span> ·{" "}
-                          <span>{hasReels ? "Reels ✅" : "Reels —"}</span>
+                            <div>
+                              <div style={{ fontSize: 12, color: "#666", marginBottom: 6 }}>Preço (opcional)</div>
+                              <input
+                                style={smallInputStyle}
+                                value={merged.price ?? ""}
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  const n = v === "" ? null : Number(v);
+                                  setDraft(camp.id, { price: Number.isNaN(n as any) ? null : (n as any) });
+                                }}
+                                placeholder="Ex: 8.99"
+                              />
+                            </div>
+
+                            <div>
+                              <div style={{ fontSize: 12, color: "#666", marginBottom: 6 }}>Perfil do produto</div>
+                              <select
+                                style={smallInputStyle}
+                                value={merged.product_positioning ?? ""}
+                                onChange={(e) => setDraft(camp.id, { product_positioning: e.target.value || null })}
+                              >
+                                <option value="">—</option>
+                                <option value="popular">popular</option>
+                                <option value="premium">premium</option>
+                                <option value="jovem">jovem</option>
+                                <option value="familia">família</option>
+                                <option value="presentes">presentes</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                            <div>
+                              <div style={{ fontSize: 12, color: "#666", marginBottom: 6 }}>Público</div>
+                              <input
+                                style={smallInputStyle}
+                                value={merged.audience ?? ""}
+                                onChange={(e) => setDraft(camp.id, { audience: e.target.value })}
+                                placeholder="Ex: Jovens / Festa / Amigos"
+                              />
+                            </div>
+
+                            <div>
+                              <div style={{ fontSize: 12, color: "#666", marginBottom: 6 }}>Objetivo</div>
+                              <input
+                                style={smallInputStyle}
+                                value={merged.objective ?? ""}
+                                onChange={(e) => setDraft(camp.id, { objective: e.target.value })}
+                                placeholder="Ex: Promoção / Aumentar vendas / Girar estoque"
+                              />
+                            </div>
+                          </div>
+
+                          <div style={{ fontSize: 12, color: complete ? "#065f46" : "#92400e" }}>
+                            {complete
+                              ? "✅ Campanha completa — pronto para gerar."
+                              : "⚠️ Preencha Produto, Público e Objetivo e clique em Salvar."}
+                          </div>
+
+                          <div style={{ fontSize: 12, color: "#666" }}>
+                            Status: <span>{hasText ? "Texto ✅" : "Texto —"}</span> ·{" "}
+                            <span>{hasReels ? "Reels ✅" : "Reels —"}</span>
+                          </div>
                         </div>
                       </div>
                     );
