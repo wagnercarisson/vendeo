@@ -17,10 +17,10 @@ const BodySchema = z.object({
 });
 
 const AIResponseSchema = z.object({
-  caption: z.string().min(5),
-  text: z.string().min(5),
-  cta: z.string().min(2),
-  hashtags: z.string().min(2),
+  caption: z.string().optional(),
+  text: z.string().optional(),
+  cta: z.string().optional(),
+  hashtags: z.string().optional(),
 });
 
 function parseJsonLoose(raw: string) {
@@ -176,7 +176,19 @@ FORMATO OBRIGATÓRIO:
 
     let aiData: z.infer<typeof AIResponseSchema>;
     try {
-      aiData = AIResponseSchema.parse(parsed1);
+      const parsedSafe = AIResponseSchema.safeParse(parsed1);
+
+      if (!parsedSafe.success) {
+      throw new Error("AI_INVALID_FORMAT");  
+    }
+
+    let aiData = parsedSafe.data;
+
+    // Fallbacks seguros (evita erro se IA esquecer campo)
+    aiData.caption = aiData.caption ?? "Confira essa novidade!";
+    aiData.text = aiData.text ?? "";
+    aiData.cta = aiData.cta ?? "Fale conosco agora!";
+    aiData.hashtags = aiData.hashtags ?? "";
     } catch (e: any) {
       const fixPrompt = `
 O JSON abaixo está inválido ou não segue o formato.
