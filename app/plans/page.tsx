@@ -42,6 +42,18 @@ type PlanItem = {
   created_at: string;
 };
 
+type WeeklyPlanItem = {
+  id: string;
+  plan_id: string;
+  day_of_week: number;
+  content_type: "post" | "reels";
+  theme: string;
+  recommended_time: string | null;
+  campaign_id: string;
+  brief: any;
+  created_at: string;
+};
+
 type ReelsShot = {
   scene: number;
   camera: string;
@@ -220,7 +232,7 @@ export default function PlansPage() {
 
   const [loadingPlan, setLoadingPlan] = useState(false);
   const [plan, setPlan] = useState<Plan | null>(null);
-  const [items, setItems] = useState<PlanItem[]>([]);
+  const [items, setItems] = useState<WeeklyPlanItem[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
 
   const [generatingPlan, setGeneratingPlan] = useState(false);
