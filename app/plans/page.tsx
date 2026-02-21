@@ -221,6 +221,14 @@ export default function PlansPage() {
   // geração por campanha (travar clique)
   const [generatingTextId, setGeneratingTextId] = useState<string | null>(null);
   const [generatingReelsId, setGeneratingReelsId] = useState<string | null>(null);
+  // Modo automático (bulk)
+  const [autoRunning, setAutoRunning] = useState(false);
+  const [autoTotal, setAutoTotal] = useState(0);
+  const [autoDone, setAutoDone] = useState(0);
+  const [autoCurrent, setAutoCurrent] = useState<string>("");
+
+  // Gate (por enquanto liberado; depois vamos ligar com tabela/plano)
+  const [autoAllowed, setAutoAllowed] = useState(true);
 
   useEffect(() => {
     loadStores();
@@ -415,6 +423,83 @@ export default function PlansPage() {
     }
   }
 
+  async function runAutoMode() {
+  if (!plan) {
+    alert("Gere ou carregue um plano primeiro.");
+    return;
+  }
+
+  if (!autoAllowed) {
+    alert("Modo automático disponível apenas no plano Premium.");
+    return;
+  }
+
+  // monta lista de itens com campaign
+  const sorted = items.slice().sort((a, b) => a.day_of_week - b.day_of_week);
+  const tasks = sorted
+    .map((it) => {
+      const camp = it.campaign_id ? campaignsById.get(it.campaign_id) : null;
+      return { it, camp };
+    })
+    .filter((x) => !!x.camp) as { it: any; camp: any }[];
+
+  if (tasks.length === 0) {
+    alert("Plano não tem campanhas vinculadas.");
+    return;
+  }
+
+  setAutoRunning(true);
+  setAutoTotal(tasks.length);
+  setAutoDone(0);
+  setAutoCurrent("");
+
+  const errors: string[] = [];
+
+  try {
+    for (let idx = 0; idx < tasks.length; idx++) {
+      const { it, camp } = tasks[idx];
+
+      const isPost = String(it.content_type).toLowerCase() === "post";
+      const isReels = String(it.content_type).toLowerCase() === "reels";
+
+      const hasText = !!(camp.ai_caption && String(camp.ai_caption).trim().length > 0);
+      const hasReels = !!camp.reels_generated_at;
+
+      setAutoCurrent(`${idx + 1}/${tasks.length} — ${dayLabel(it.day_of_week)} (${String(it.content_type).toUpperCase()})`);
+
+      try {
+        // 1) texto: gera só se não existir
+        if (!hasText) {
+          await generateTextForCampaign(camp, false);
+        }
+
+        // 2) reels: só se o item for reels E não existir
+        if (isReels && !hasReels) {
+          await generateReelsForCampaign(camp, false);
+        }
+
+        // Se for POST, não faz reels.
+        // Se for REELS, texto + reels (conforme acima).
+      } catch (e: any) {
+        errors.push(`${dayLabel(it.day_of_week)}: ${e?.message ?? "Erro desconhecido"}`);
+      }
+
+      setAutoDone((v) => v + 1);
+      // Recarrega pra refletir status atualizado na UI (seguro e simples)
+      await loadPlan();
+    }
+  } finally {
+    setAutoRunning(false);
+    setAutoCurrent("");
+  }
+
+  if (errors.length) {
+    alert(`Modo automático concluído com alguns erros:\n\n- ${errors.join("\n- ")}`);
+  } else {
+    alert("Modo automático concluído! ✅");
+  }
+}
+
   const cardStyle: React.CSSProperties = {
     border: "1px solid #e5e7eb",
     borderRadius: 14,
@@ -544,7 +629,30 @@ export default function PlansPage() {
               >
                 Regenerar plano
               </button>
+
+              <button
+                onClick={runAutoMode}
+                disabled={!plan || autoRunning || generatingPlan}
+                style={{
+                  padding: "10px 14px",
+                  borderRadius: 12,
+                  border: "1px solid #111",
+                  background: autoRunning ? "#eee" : "white",
+                  cursor: autoRunning ? "not-allowed" : "pointer",
+                  fontWeight: 700,
+                }}
+                title={!autoAllowed ? "Disponível apenas no Premium" : "Gera automaticamente apenas o que não existe"}
+                >
+                {autoRunning ? `Modo automático... (${autoDone}/${autoTotal})` : "Modo automático (Gerar tudo)"}
+              </button>
             )}
+
+            {autoRunning && (
+              <div style={{ marginTop: 10, fontSize: 13, color: "#444" }}>    
+              <strong>Executando:</strong> {autoCurrent} · <strong>Progresso:</strong> {autoDone}/{autoTotal}
+              </div>
+            )}
+          
           </div>
         </div>
       </section>
