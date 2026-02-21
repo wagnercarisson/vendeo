@@ -221,14 +221,12 @@ export default function PlansPage() {
   // geração por campanha (travar clique)
   const [generatingTextId, setGeneratingTextId] = useState<string | null>(null);
   const [generatingReelsId, setGeneratingReelsId] = useState<string | null>(null);
-  // Modo automático (bulk)
+
+  // Modo automático (já liberado; depois bloqueamos por plano)
   const [autoRunning, setAutoRunning] = useState(false);
   const [autoTotal, setAutoTotal] = useState(0);
   const [autoDone, setAutoDone] = useState(0);
   const [autoCurrent, setAutoCurrent] = useState<string>("");
-
-  // Gate (por enquanto liberado; depois vamos ligar com tabela/plano)
-  const [autoAllowed, setAutoAllowed] = useState(true);
 
   useEffect(() => {
     loadStores();
@@ -259,6 +257,12 @@ export default function PlansPage() {
     () => stores.find((s) => s.id === storeId) ?? null,
     [stores, storeId]
   );
+
+  const campaignsById = useMemo(() => {
+    const m = new Map<string, Campaign>();
+    for (const c of campaigns) m.set(c.id, c);
+    return m;
+  }, [campaigns]);
 
   async function loadPlan() {
     setError(null);
@@ -334,14 +338,16 @@ export default function PlansPage() {
     }
   }
 
-  const campaignsById = useMemo(() => {
-    const m = new Map<string, Campaign>();
-    for (const c of campaigns) m.set(c.id, c);
-    return m;
-  }, [campaigns]);
-
   async function generateTextForCampaign(camp: Campaign, force = false) {
+    // evita clique duplo
     if (generatingTextId === camp.id) return;
+
+    // se não for regenerar, pergunta antes quando já tem texto
+    if (!force && (camp.ai_caption ?? "").trim().length > 0) {
+      const ok = confirm("Já existe texto gerado. Gerar novamente?");
+      if (!ok) return;
+    }
+
     setGeneratingTextId(camp.id);
 
     try {
@@ -376,11 +382,14 @@ export default function PlansPage() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) throw new Error(data?.details ?? data?.error ?? "Falha ao gerar texto");
 
+      // atualiza para refletir status/cópias
       await loadPlan();
+
       alert(force ? "Texto regenerado!" : "Texto gerado!");
     } catch (e: any) {
       alert(e?.message ?? "Erro ao gerar texto");
       console.error(e);
+      throw e; // importante pro modo automático capturar
     } finally {
       setGeneratingTextId(null);
     }
@@ -388,6 +397,13 @@ export default function PlansPage() {
 
   async function generateReelsForCampaign(camp: Campaign, force = false) {
     if (generatingReelsId === camp.id) return;
+
+    const hasReels = !!camp.reels_generated_at;
+    if (!force && hasReels) {
+      const ok = confirm("Já existe Reels gerado. Gerar novamente?");
+      if (!ok) return;
+    }
+
     setGeneratingReelsId(camp.id);
 
     try {
@@ -418,87 +434,87 @@ export default function PlansPage() {
     } catch (e: any) {
       alert(e?.message ?? "Erro ao gerar Reels");
       console.error(e);
+      throw e; // importante pro modo automático capturar
     } finally {
       setGeneratingReelsId(null);
     }
   }
 
+  // MODO AUTOMÁTICO: gera apenas o que não existe
   async function runAutoMode() {
-  if (!plan) {
-    alert("Gere ou carregue um plano primeiro.");
-    return;
-  }
-
-  if (!autoAllowed) {
-    alert("Modo automático disponível apenas no plano Premium.");
-    return;
-  }
-
-  // monta lista de itens com campaign
-  const sorted = items.slice().sort((a, b) => a.day_of_week - b.day_of_week);
-  const tasks = sorted
-    .map((it) => {
-      const camp = it.campaign_id ? campaignsById.get(it.campaign_id) : null;
-      return { it, camp };
-    })
-    .filter((x) => !!x.camp) as { it: any; camp: any }[];
-
-  if (tasks.length === 0) {
-    alert("Plano não tem campanhas vinculadas.");
-    return;
-  }
-
-  setAutoRunning(true);
-  setAutoTotal(tasks.length);
-  setAutoDone(0);
-  setAutoCurrent("");
-
-  const errors: string[] = [];
-
-  try {
-    for (let idx = 0; idx < tasks.length; idx++) {
-      const { it, camp } = tasks[idx];
-
-      const isPost = String(it.content_type).toLowerCase() === "post";
-      const isReels = String(it.content_type).toLowerCase() === "reels";
-
-      const hasText = !!(camp.ai_caption && String(camp.ai_caption).trim().length > 0);
-      const hasReels = !!camp.reels_generated_at;
-
-      setAutoCurrent(`${idx + 1}/${tasks.length} — ${dayLabel(it.day_of_week)} (${String(it.content_type).toUpperCase()})`);
-
-      try {
-        // 1) texto: gera só se não existir
-        if (!hasText) {
-          await generateTextForCampaign(camp, false);
-        }
-
-        // 2) reels: só se o item for reels E não existir
-        if (isReels && !hasReels) {
-          await generateReelsForCampaign(camp, false);
-        }
-
-        // Se for POST, não faz reels.
-        // Se for REELS, texto + reels (conforme acima).
-      } catch (e: any) {
-        errors.push(`${dayLabel(it.day_of_week)}: ${e?.message ?? "Erro desconhecido"}`);
-      }
-
-      setAutoDone((v) => v + 1);
-      // Recarrega pra refletir status atualizado na UI (seguro e simples)
-      await loadPlan();
+    if (!plan) {
+      alert("Gere ou carregue um plano primeiro.");
+      return;
     }
-  } finally {
-    setAutoRunning(false);
-    setAutoCurrent("");
-  }
+    if (autoRunning) return;
 
-  if (errors.length) {
-    alert(`Modo automático concluído com alguns erros:\n\n- ${errors.join("\n- ")}`);
-  } else {
-    alert("Modo automático concluído! ✅");
+    const sorted = items.slice().sort((a, b) => a.day_of_week - b.day_of_week);
+
+    const tasks = sorted
+      .map((it) => {
+        const camp = it.campaign_id ? campaignsById.get(it.campaign_id) : null;
+        return { it, camp };
+      })
+      .filter((x) => !!x.camp) as { it: PlanItem; camp: Campaign }[];
+
+    if (tasks.length === 0) {
+      alert("Plano não tem campanhas vinculadas.");
+      return;
+    }
+
+    setAutoRunning(true);
+    setAutoTotal(tasks.length);
+    setAutoDone(0);
+    setAutoCurrent("");
+
+    const errors: string[] = [];
+
+    try {
+      for (let i = 0; i < tasks.length; i++) {
+        // sempre usa versão mais recente do mapa (recarrega no loop)
+        const it = tasks[i].it;
+        const campLatest = it.campaign_id ? campaignsById.get(it.campaign_id) : null;
+        const camp = campLatest ?? tasks[i].camp;
+
+        const isPost = String(it.content_type).toLowerCase() === "post";
+        const isReels = String(it.content_type).toLowerCase() === "reels";
+
+        const hasText = !!(camp.ai_caption && String(camp.ai_caption).trim().length > 0);
+        const hasReels = !!camp.reels_generated_at;
+
+        setAutoCurrent(`${i + 1}/${tasks.length} — ${dayLabel(it.day_of_week)} (${String(it.content_type).toUpperCase()})`);
+
+        try {
+          // POST: só precisa texto
+          if (isPost && !hasText) {
+            await generateTextForCampaign(camp, false);
+          }
+
+          // REELS: texto + reels (mas só o que não existe)
+          if (isReels) {
+            if (!hasText) await generateTextForCampaign(camp, false);
+            if (!hasReels) await generateReelsForCampaign(camp, false);
+          }
+        } catch (e: any) {
+          errors.push(`${dayLabel(it.day_of_week)}: ${e?.message ?? "Erro desconhecido"}`);
+        }
+
+        setAutoDone((v) => v + 1);
+
+        // garante UI sempre correta e também atualiza campaignsById (via state)
+        await loadPlan();
+      }
+    } finally {
+      setAutoRunning(false);
+      setAutoCurrent("");
+    }
+
+    if (errors.length) {
+      alert(`Modo automático concluído com alguns erros:\n\n- ${errors.join("\n- ")}`);
+    } else {
+      alert("Modo automático concluído! ✅");
+    }
   }
-}
 
   const cardStyle: React.CSSProperties = {
     border: "1px solid #e5e7eb",
@@ -525,10 +541,10 @@ export default function PlansPage() {
       </div>
 
       <p style={{ color: "#555", marginTop: 8 }}>
-        Gere 4 campanhas sugeridas para a semana. Depois, gere texto e/ou Reels diretamente aqui.
+        Gere 4 campanhas sugeridas para a semana. Depois, gere texto e/ou Reels diretamente aqui — ou use o modo automático.
       </p>
 
-      <section style={{ ...cardStyle, maxWidth: 980 }}>
+      <section style={{ ...cardStyle, maxWidth: 1100 }}>
         {error && (
           <div style={{ marginBottom: 12, color: "crimson" }}>
             <strong>Erro:</strong> {error}
@@ -586,7 +602,7 @@ export default function PlansPage() {
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button
               onClick={() => loadPlan()}
-              disabled={!storeId || loadingPlan || generatingPlan}
+              disabled={!storeId || loadingPlan || generatingPlan || autoRunning}
               style={{
                 padding: "10px 14px",
                 borderRadius: 12,
@@ -600,7 +616,7 @@ export default function PlansPage() {
 
             <button
               onClick={() => generatePlan(false)}
-              disabled={!storeId || generatingPlan}
+              disabled={!storeId || generatingPlan || autoRunning}
               style={{
                 padding: "10px 14px",
                 borderRadius: 12,
@@ -617,7 +633,7 @@ export default function PlansPage() {
             {plan && (
               <button
                 onClick={() => generatePlan(true)}
-                disabled={!storeId || generatingPlan}
+                disabled={!storeId || generatingPlan || autoRunning}
                 style={{
                   padding: "10px 14px",
                   borderRadius: 12,
@@ -629,31 +645,30 @@ export default function PlansPage() {
               >
                 Regenerar plano
               </button>
-
-              <button
-                onClick={runAutoMode}
-                disabled={!plan || autoRunning || generatingPlan}
-                style={{
-                  padding: "10px 14px",
-                  borderRadius: 12,
-                  border: "1px solid #111",
-                  background: autoRunning ? "#eee" : "white",
-                  cursor: autoRunning ? "not-allowed" : "pointer",
-                  fontWeight: 700,
-                }}
-                title={!autoAllowed ? "Disponível apenas no Premium" : "Gera automaticamente apenas o que não existe"}
-                >
-                {autoRunning ? `Modo automático... (${autoDone}/${autoTotal})` : "Modo automático (Gerar tudo)"}
-              </button>
             )}
 
-            {autoRunning && (
-              <div style={{ marginTop: 10, fontSize: 13, color: "#444" }}>    
-              <strong>Executando:</strong> {autoCurrent} · <strong>Progresso:</strong> {autoDone}/{autoTotal}
-              </div>
-            )}
-          
+            <button
+              onClick={runAutoMode}
+              disabled={!plan || autoRunning || generatingPlan}
+              style={{
+                padding: "10px 14px",
+                borderRadius: 12,
+                border: "1px solid #111",
+                background: autoRunning ? "#eee" : "white",
+                cursor: autoRunning ? "not-allowed" : "pointer",
+                fontWeight: 800,
+              }}
+              title="Gera automaticamente apenas o que não existe"
+            >
+              {autoRunning ? `Modo automático... (${autoDone}/${autoTotal})` : "Modo automático (Gerar tudo)"}
+            </button>
           </div>
+
+          {autoRunning && (
+            <div style={{ marginTop: 4, fontSize: 13, color: "#444" }}>
+              <strong>Executando:</strong> {autoCurrent} · <strong>Progresso:</strong> {autoDone}/{autoTotal}
+            </div>
+          )}
         </div>
       </section>
 
@@ -662,7 +677,7 @@ export default function PlansPage() {
       {!plan ? (
         <p style={{ color: "#555" }}>Nenhum plano encontrado para esta semana.</p>
       ) : (
-        <div style={{ display: "grid", gap: 16, maxWidth: 980 }}>
+        <div style={{ display: "grid", gap: 16, maxWidth: 1100 }}>
           <section style={cardStyle}>
             <h2 style={{ marginTop: 0, fontSize: 16 }}>Estratégia</h2>
             <div style={{ whiteSpace: "pre-wrap", color: "#333" }}>
@@ -704,9 +719,7 @@ export default function PlansPage() {
                             <strong>
                               {dayLabel(it.day_of_week)} — {String(it.content_type).toUpperCase()}
                             </strong>
-                            {it.recommended_time ? (
-                              <span style={{ color: "#666" }}> · {it.recommended_time}</span>
-                            ) : null}
+                            {it.recommended_time ? <span style={{ color: "#666" }}> · {it.recommended_time}</span> : null}
                             <div style={{ marginTop: 6 }}>
                               <strong>Tema:</strong> {it.theme}
                             </div>
@@ -715,10 +728,9 @@ export default function PlansPage() {
                           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                             {camp?.id ? (
                               <>
-                                {/* Gerar conteúdo */}
                                 <button
                                   onClick={() => generateTextForCampaign(camp, false)}
-                                  disabled={generatingTextId === camp.id}
+                                  disabled={autoRunning || generatingTextId === camp.id}
                                 >
                                   {generatingTextId === camp.id
                                     ? "Gerando texto..."
@@ -730,7 +742,7 @@ export default function PlansPage() {
                                 {hasText && (
                                   <button
                                     onClick={() => generateTextForCampaign(camp, true)}
-                                    disabled={generatingTextId === camp.id}
+                                    disabled={autoRunning || generatingTextId === camp.id}
                                   >
                                     Regenerar texto
                                   </button>
@@ -738,7 +750,7 @@ export default function PlansPage() {
 
                                 <button
                                   onClick={() => generateReelsForCampaign(camp, false)}
-                                  disabled={generatingReelsId === camp.id}
+                                  disabled={autoRunning || generatingReelsId === camp.id}
                                 >
                                   {generatingReelsId === camp.id
                                     ? "Gerando Reels..."
@@ -750,13 +762,12 @@ export default function PlansPage() {
                                 {hasReels && (
                                   <button
                                     onClick={() => generateReelsForCampaign(camp, true)}
-                                    disabled={generatingReelsId === camp.id}
+                                    disabled={autoRunning || generatingReelsId === camp.id}
                                   >
                                     Regenerar Reels
                                   </button>
                                 )}
 
-                                {/* Copiar (conforme tipo) */}
                                 {isPost && (
                                   <button
                                     onClick={() => safeCopy(buildPostFullText(camp))}
@@ -777,10 +788,7 @@ export default function PlansPage() {
                                   </button>
                                 )}
 
-                                {/* Brief sempre útil */}
-                                <button onClick={() => safeCopy(buildBriefText(it))}>
-                                  Copiar brief
-                                </button>
+                                <button onClick={() => safeCopy(buildBriefText(it))}>Copiar brief</button>
                               </>
                             ) : null}
 
@@ -796,9 +804,10 @@ export default function PlansPage() {
                             {camp?.price != null ? ` (R$ ${camp.price})` : ""}
                           </div>
                           <div style={{ fontSize: 13, color: "#444" }}>
-                            <strong>Público:</strong> {camp?.audience ?? "—"} ·{" "}
-                            <strong>Objetivo:</strong> {camp?.objective ?? "—"}
+                            <strong>Público:</strong> {camp?.audience ?? "—"} · <strong>Objetivo:</strong>{" "}
+                            {camp?.objective ?? "—"}
                           </div>
+
                           {it.brief && (
                             <div style={{ fontSize: 13, color: "#444", marginTop: 6 }}>
                               <div>
