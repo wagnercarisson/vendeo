@@ -307,7 +307,7 @@ export default function PlansPage() {
 
       setPlan(data.plan ?? null);
       setItems((data.items ?? []) as WeeklyPlanItem[]);
-      setCampaigns((data.campaigns ?? []) as Campaign[]);
+      setCampaigns(data.campaigns ?? []);
       setDrafts({}); // limpa drafts ao recarregar
     } catch (e: any) {
       setError(e?.message ?? "Erro ao carregar plano");
