@@ -1,4 +1,5 @@
 import Link from "next/link";
+import LogoutButton from "@/components/LogoutButton";
 
 function ActionCard({
   title,
@@ -44,6 +45,7 @@ export default function DashboardHome() {
             <div className="font-semibold text-vendeo-text">Vendeo</div>
           </div>
           <div className="text-sm text-vendeo-muted">Seu motor de vendas social</div>
+          <LogoutButton />
         </div>
       </header>
 
