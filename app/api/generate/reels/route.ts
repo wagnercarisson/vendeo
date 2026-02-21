@@ -1,3 +1,4 @@
+import { getUserStoreIdOrThrow } from "@/lib/store/getUserStoreId";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import OpenAI from "openai";
@@ -123,6 +124,17 @@ export async function POST(req: Request) {
 
     const { campaign_id, force } = body.data;
 
+    let storeId: string;
+    try {
+      ({ storeId } = await getUserStoreIdOrThrow());
+      } catch (e: any) {
+      const msg = String(e?.message || "");
+      if (msg === "not_authenticated") {
+        return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
+      }
+      return NextResponse.json({ error: "store_not_found" }, { status: 403 });
+    }
+
     // 1) Busca campanha
     const { data: campaign, error: campaignErr } = await supabaseAdmin
       .from("campaigns")
@@ -134,6 +146,7 @@ export async function POST(req: Request) {
       `
       )
       .eq("id", campaign_id)
+      .eq("store_id", storeId)
       .single();
 
     if (campaignErr || !campaign) {
