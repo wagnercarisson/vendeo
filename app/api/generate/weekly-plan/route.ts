@@ -350,7 +350,13 @@ ${safeStringify(parsed1)}
           objective: it.campaign.objective,
           product_positioning: it.campaign.product_positioning ?? null,
         })
-        .select("id, store_id, product_name, price, audience, objective, product_positioning, ai_caption, reels_generated_at, created_at")
+        .select(`
+          id, store_id, product_name, price, audience, objective, product_positioning, created_at,
+          ai_caption, ai_text, ai_cta, ai_hashtags,  
+          reels_hook, reels_script, reels_shotlist, reels_on_screen_text,
+          reels_audio_suggestion, reels_duration_seconds,
+          reels_caption, reels_cta, reels_hashtags, reels_generated_at
+        `)
         .single();
 
       if (cErr || !cRow) throw new Error(cErr?.message ?? "FAILED_CREATE_CAMPAIGN");
