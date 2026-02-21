@@ -1,11 +1,22 @@
 import { redirect } from "next/navigation";
-import { getUserStoreIdOrNull } from "@/lib/store/getUserStoreId";
+import { getUserStoreIdOrThrow } from "@/lib/store/getUserStoreId";
 
 export default async function AppEntry() {
-  const { user, storeId } = await getUserStoreIdOrNull();
+  try {
+    await getUserStoreIdOrThrow();
+  } catch (e: any) {
+    const msg = String(e?.message || "");
 
-  if (!user) redirect("/login?redirect=/app");
-  if (!storeId) redirect("/onboarding/store");
+    if (msg === "not_authenticated") {
+      redirect("/login?redirect=/app");
+    }
+
+    if (msg === "store_not_found") {
+      redirect("/onboarding/store");
+    }
+
+    redirect("/login");
+  }
 
   redirect("/app/dashboard");
 }
