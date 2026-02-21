@@ -1,123 +1,103 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { supabase } from "@/lib/supabase";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function LoginClient() {
-  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const router = useRouter();
-  const search = useSearchParams();
-  const redirectTo = search.get("redirect") || "/app";
+  const searchParams = useSearchParams();
 
+  const redirectTo = searchParams.get("redirect") ?? "/app";
+
+  const [mode, setMode] = useState<"signup" | "login">("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [mode, setMode] = useState<"login" | "signup">("login");
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
 
-  async function onSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setInfo(null);
 
     try {
-      const fn =
-        mode === "login"
-          ? supabase.auth.signInWithPassword
-          : supabase.auth.signUp;
+      if (mode === "signup") {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}${redirectTo}`,
+          },
+        });
 
-      const { error } = await fn({ email, password });
+        if (error) throw error;
 
-      if (error) {
-        setError(error.message);
+        // Se confirmação de e-mail estiver ativa, session pode vir null
+        if (!data.session) {
+          setInfo("Conta criada! Verifique seu e-mail para confirmar o cadastro.");
+          return;
+        }
+
+        router.push(redirectTo);
         return;
       }
 
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
       router.push(redirectTo);
-      router.refresh();
+    } catch (err: any) {
+      setError(err?.message ?? "Erro inesperado.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen bg-vendeo-bg">
-      <header className="border-b border-vendeo-border bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-vendeo-green shadow-soft" />
-            <div className="font-semibold text-vendeo-text">Vendeo</div>
-          </Link>
-          <div className="text-sm text-vendeo-muted">
-            Entre para criar campanhas que vendem
-          </div>
-        </div>
-      </header>
+    <main style={{ padding: 40 }}>
+      <h1>Vendeo</h1>
 
-      <main className="mx-auto max-w-6xl px-6 py-12">
-        <div className="mx-auto max-w-md rounded-2xl border border-vendeo-border bg-white p-6 shadow-soft">
-          <div className="text-sm text-vendeo-muted">
-            {mode === "login" ? "Acessar painel" : "Criar conta"}
-          </div>
-          <h1 className="mt-1 text-2xl font-semibold text-vendeo-text">
-            {mode === "login" ? "Entrar no Vendeo" : "Começar no Vendeo"}
-          </h1>
+      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        <button type="button" onClick={() => setMode("signup")} disabled={loading}>
+          Criar conta
+        </button>
+        <button type="button" onClick={() => setMode("login")} disabled={loading}>
+          Já tenho conta
+        </button>
+      </div>
 
-          <form onSubmit={onSubmit} className="mt-6 grid gap-3">
-            <label className="grid gap-1">
-              <span className="text-sm font-medium text-vendeo-text">E-mail</span>
-              <input
-                className="rounded-xl border border-vendeo-border bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-green-200"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                type="email"
-                placeholder="voce@empresa.com"
-                required
-              />
-            </label>
+      <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12, maxWidth: 360 }}>
+        <input
+          type="email"
+          placeholder="E-mail"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
 
-            <label className="grid gap-1">
-              <span className="text-sm font-medium text-vendeo-text">Senha</span>
-              <input
-                className="rounded-xl border border-vendeo-border bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-green-200"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                type="password"
-                placeholder="••••••••"
-                required
-              />
-            </label>
+        <input
+          type="password"
+          placeholder="Senha"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
 
-            {error ? (
-              <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                {error}
-              </div>
-            ) : null}
+        <button type="submit" disabled={loading}>
+          {loading ? "Processando..." : mode === "signup" ? "Criar conta" : "Entrar"}
+        </button>
 
-            <button
-              disabled={loading}
-              className="mt-2 rounded-xl bg-vendeo-green px-4 py-2 text-sm font-semibold text-white hover:bg-vendeo-greenLight disabled:opacity-60"
-              type="submit"
-            >
-              {loading ? "Aguarde..." : mode === "login" ? "Entrar" : "Criar conta"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setMode(mode === "login" ? "signup" : "login")}
-              className="rounded-xl border border-vendeo-border bg-white px-4 py-2 text-sm font-semibold text-vendeo-text hover:bg-slate-50"
-            >
-              {mode === "login" ? "Não tenho conta (criar agora)" : "Já tenho conta (entrar)"}
-            </button>
-
-            <div className="pt-2 text-center text-xs text-vendeo-muted">
-              Ao continuar, você concorda com os termos do Vendeo.
-            </div>
-          </form>
-        </div>
-      </main>
-    </div>
+        {error && <div style={{ color: "red" }}>{error}</div>}
+        {info && <div style={{ color: "green" }}>{info}</div>}
+      </form>
+    </main>
   );
 }
