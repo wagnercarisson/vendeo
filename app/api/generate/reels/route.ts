@@ -38,18 +38,57 @@ const ReelsSchema = z.object({
   hashtags: z.string().min(3),
 });
 
-function parseJsonLoose(raw: string) {
-  // 1) tenta parse direto
+// Extrai o PRIMEIRO objeto JSON completo do texto (robusto contra texto extra e múltiplos JSONs)
+// Respeita strings e escapes.
+function extractFirstJSONObject(raw: string) {
+  const s = raw ?? "";
+  let start = -1;
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+
+    if (escape) {
+      escape = false;
+      continue;
+    }
+    if (ch === "\\") {
+      if (inString) escape = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+
+    if (ch === "{") {
+      if (depth === 0) start = i;
+      depth++;
+      continue;
+    }
+    if (ch === "}") {
+      if (depth > 0) depth--;
+      if (depth === 0 && start !== -1) {
+        return s.slice(start, i + 1);
+      }
+      continue;
+    }
+  }
+
+  throw new Error("AI_RETURNED_NON_JSON");
+}
+
+function parseJsonFirstObject(raw: string) {
+  // tenta parse direto primeiro (caso venha só JSON puro)
   try {
     return JSON.parse(raw);
   } catch {
-    // 2) tenta “extrair” o primeiro objeto JSON dentro do texto
-    const first = raw.indexOf("{");
-    const last = raw.lastIndexOf("}");
-    if (first >= 0 && last > first) {
-      return JSON.parse(raw.slice(first, last + 1));
-    }
-    throw new Error("AI_RETURNED_NON_JSON");
+    // extrai o primeiro objeto JSON completo e parseia
+    const jsonStr = extractFirstJSONObject(raw);
+    return JSON.parse(jsonStr);
   }
 }
 
@@ -84,7 +123,7 @@ export async function POST(req: Request) {
 
     const { campaign_id, force } = body.data;
 
-    // 1) Busca campanha (fonte da verdade)
+    // 1) Busca campanha
     const { data: campaign, error: campaignErr } = await supabaseAdmin
       .from("campaigns")
       .select(
@@ -124,28 +163,23 @@ export async function POST(req: Request) {
       });
     }
 
-    // 3) Validação mínima (evita “dados insuficientes”)
-    if (
-      !campaign.product_name ||
-      !String(campaign.product_name).trim() ||
-      !campaign.audience ||
-      !String(campaign.audience).trim() ||
-      !campaign.objective ||
-      !String(campaign.objective).trim()
-    ) {
+    // 3) Validação mínima
+    const nameOk = !!String(campaign.product_name ?? "").trim();
+    const audOk = !!String(campaign.audience ?? "").trim();
+    const objOk = !!String(campaign.objective ?? "").trim();
+    if (!nameOk || !audOk || !objOk) {
       return NextResponse.json(
         {
           ok: false,
           requestId,
           error: "INSUFFICIENT_DATA",
-          details:
-            "Campanha incompleta: preencha Produto, Público e Objetivo antes de gerar o Reels.",
+          details: "Campanha incompleta: preencha Produto, Público e Objetivo antes de gerar o Reels.",
         },
         { status: 400 }
       );
     }
 
-    // 4) Prompt (com regras)
+    // 4) Prompt
     const prompt = `
 Você é um roteirista especialista em Reels/Instagram para vendas locais.
 
@@ -183,12 +217,11 @@ FORMATO OBRIGATÓRIO:
 }
 `;
 
-    // 5) Chamada OpenAI (forçando JSON)
+    // 5) OpenAI (mantemos response_format, mas não confiamos 100%)
     const ai1 = await withTimeout(
       openai.chat.completions.create({
         model: "gpt-4o-mini",
         temperature: 0.6,
-        // ✅ força JSON (reduz MUITO "Unexpected non-whitespace...")
         response_format: { type: "json_object" } as any,
         messages: [
           { role: "system", content: "Responda somente com JSON válido." },
@@ -199,15 +232,15 @@ FORMATO OBRIGATÓRIO:
     );
 
     const raw1 = ai1.choices?.[0]?.message?.content ?? "";
-    const parsed1 = parseJsonLoose(raw1);
+    const parsed1 = parseJsonFirstObject(raw1);
 
     let reels: z.infer<typeof ReelsSchema>;
 
-    // 6) Validar e, se falhar, pedir correção
     const firstTry = ReelsSchema.safeParse(parsed1);
     if (firstTry.success) {
       reels = firstTry.data;
     } else {
+      // Retry de correção
       const fixPrompt = `
 O JSON abaixo está INVÁLIDO e não bate com o schema obrigatório.
 Corrija e devolva SOMENTE o JSON válido no formato exigido.
@@ -234,12 +267,12 @@ ${safeStringify(parsed1)}
       );
 
       const raw2 = ai2.choices?.[0]?.message?.content ?? "";
-      const parsed2 = parseJsonLoose(raw2);
+      const parsed2 = parseJsonFirstObject(raw2);
 
       reels = ReelsSchema.parse(parsed2);
     }
 
-    // 7) Salvar no banco
+    // 6) Salvar
     const { error: upErr } = await supabaseAdmin
       .from("campaigns")
       .update({
