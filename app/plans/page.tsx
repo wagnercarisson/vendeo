@@ -42,6 +42,13 @@ type PlanItem = {
   created_at: string;
 };
 
+type ReelsShot = {
+  scene: number;
+  camera: string;
+  action: string;
+  dialogue: string;
+};
+
 type Campaign = {
   id: string;
   store_id: string;
@@ -52,6 +59,19 @@ type Campaign = {
   product_positioning: string | null;
 
   ai_caption?: string | null;
+  ai_text?: string | null;
+  ai_cta?: string | null;
+  ai_hashtags?: string | null;
+
+  reels_hook?: string | null;
+  reels_script?: string | null;
+  reels_shotlist?: ReelsShot[] | null;
+  reels_on_screen_text?: string[] | null;
+  reels_audio_suggestion?: string | null;
+  reels_duration_seconds?: number | null;
+  reels_caption?: string | null;
+  reels_cta?: string | null;
+  reels_hashtags?: string | null;
   reels_generated_at?: string | null;
 
   created_at: string;
@@ -85,6 +105,104 @@ function onlyDigits(v: string) {
   return (v || "").replace(/\D/g, "");
 }
 
+function safeCopy(text: string) {
+  navigator.clipboard.writeText(text).then(
+    () => alert("Copiado!"),
+    () => alert("Falha ao copiar.")
+  );
+}
+
+function buildPostFullText(c: Campaign) {
+  const lines: string[] = [];
+  lines.push(`PRODUTO: ${c.product_name ?? ""}`);
+  if (c.price != null) lines.push(`PREÇO: R$ ${c.price}`);
+  lines.push("");
+
+  if (c.ai_caption) {
+    lines.push("LEGENDA:");
+    lines.push(c.ai_caption);
+    lines.push("");
+  }
+  if (c.ai_text) {
+    lines.push("TEXTO:");
+    lines.push(c.ai_text);
+    lines.push("");
+  }
+  if (c.ai_cta) {
+    lines.push("CTA:");
+    lines.push(c.ai_cta);
+    lines.push("");
+  }
+  if (c.ai_hashtags) {
+    lines.push("HASHTAGS:");
+    lines.push(c.ai_hashtags);
+  }
+  return lines.join("\n");
+}
+
+function buildReelsFullText(c: Campaign) {
+  const lines: string[] = [];
+
+  lines.push(`HOOK: ${c.reels_hook ?? ""}`);
+  lines.push(`DURAÇÃO: ${c.reels_duration_seconds ? c.reels_duration_seconds + "s" : ""}`);
+  lines.push(`ÁUDIO: ${c.reels_audio_suggestion ?? ""}`);
+  lines.push("");
+
+  if (Array.isArray(c.reels_on_screen_text) && c.reels_on_screen_text.length) {
+    lines.push("TEXTO NA TELA:");
+    for (const t of c.reels_on_screen_text) lines.push(`- ${t}`);
+    lines.push("");
+  }
+
+  if (Array.isArray(c.reels_shotlist) && c.reels_shotlist.length) {
+    lines.push("SHOTLIST:");
+    for (const s of c.reels_shotlist) {
+      lines.push(`Cena ${s.scene}: ${s.camera}`);
+      lines.push(`Ação: ${s.action}`);
+      lines.push(`Fala: ${s.dialogue}`);
+      lines.push("");
+    }
+  }
+
+  if (c.reels_script) {
+    lines.push("ROTEIRO:");
+    lines.push(c.reels_script);
+    lines.push("");
+  }
+
+  if (c.reels_caption) {
+    lines.push("LEGENDA:");
+    lines.push(c.reels_caption);
+    lines.push("");
+  }
+
+  if (c.reels_cta) {
+    lines.push("CTA:");
+    lines.push(c.reels_cta);
+    lines.push("");
+  }
+
+  if (c.reels_hashtags) {
+    lines.push("HASHTAGS:");
+    lines.push(c.reels_hashtags);
+  }
+
+  return lines.join("\n");
+}
+
+function buildBriefText(it: PlanItem) {
+  const b = it.brief ?? {};
+  const lines: string[] = [];
+  lines.push(`BRIEF — ${dayLabel(it.day_of_week)} (${String(it.content_type).toUpperCase()})`);
+  lines.push(`Tema: ${it.theme ?? ""}`);
+  if (it.recommended_time) lines.push(`Horário sugerido: ${it.recommended_time}`);
+  lines.push("");
+  if (b.angle) lines.push(`Ângulo: ${b.angle}`);
+  if (b.hook_hint) lines.push(`Hook: ${b.hook_hint}`);
+  if (b.cta_hint) lines.push(`CTA: ${b.cta_hint}`);
+  return lines.join("\n");
+}
+
 export default function PlansPage() {
   const [stores, setStores] = useState<Store[]>([]);
   const [loadingStores, setLoadingStores] = useState(true);
@@ -100,7 +218,7 @@ export default function PlansPage() {
   const [generatingPlan, setGeneratingPlan] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // geração por campanha (para travar clique)
+  // geração por campanha (travar clique)
   const [generatingTextId, setGeneratingTextId] = useState<string | null>(null);
   const [generatingReelsId, setGeneratingReelsId] = useState<string | null>(null);
 
@@ -216,8 +334,8 @@ export default function PlansPage() {
 
   async function generateTextForCampaign(camp: Campaign, force = false) {
     if (generatingTextId === camp.id) return;
-
     setGeneratingTextId(camp.id);
+
     try {
       const res = await fetch("/api/generate/campaign", {
         method: "POST",
@@ -232,7 +350,6 @@ export default function PlansPage() {
           objective: camp.objective,
           product_positioning: camp.product_positioning,
 
-          // contexto da loja
           store_name: selectedStore?.name,
           city: selectedStore?.city,
           state: selectedStore?.state,
@@ -249,11 +366,9 @@ export default function PlansPage() {
       });
 
       const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.ok) {
-        throw new Error(data?.details ?? data?.error ?? "Falha ao gerar texto");
-      }
+      if (!res.ok || !data.ok) throw new Error(data?.details ?? data?.error ?? "Falha ao gerar texto");
 
-      await loadPlan(); // atualiza status do camp na tela
+      await loadPlan();
       alert(force ? "Texto regenerado!" : "Texto gerado!");
     } catch (e: any) {
       alert(e?.message ?? "Erro ao gerar texto");
@@ -265,8 +380,8 @@ export default function PlansPage() {
 
   async function generateReelsForCampaign(camp: Campaign, force = false) {
     if (generatingReelsId === camp.id) return;
-
     setGeneratingReelsId(camp.id);
+
     try {
       const res = await fetch("/api/generate/reels", {
         method: "POST",
@@ -277,7 +392,6 @@ export default function PlansPage() {
 
           product_positioning: camp.product_positioning,
 
-          // contexto (opcional)
           store_name: selectedStore?.name,
           city: selectedStore?.city,
           state: selectedStore?.state,
@@ -289,9 +403,7 @@ export default function PlansPage() {
       });
 
       const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.ok) {
-        throw new Error(data?.details ?? data?.error ?? "Falha ao gerar Reels");
-      }
+      if (!res.ok || !data.ok) throw new Error(data?.details ?? data?.error ?? "Falha ao gerar Reels");
 
       await loadPlan();
       alert(force ? "Reels regenerado!" : "Reels gerado!");
@@ -364,7 +476,11 @@ export default function PlansPage() {
                   <strong>Posicionamento:</strong> {selectedStore.brand_positioning ?? "—"} ·{" "}
                   <strong>Tom:</strong> {selectedStore.tone_of_voice ?? "—"} ·{" "}
                   <strong>Contato:</strong>{" "}
-                  {selectedStore.whatsapp ? `WhatsApp ${onlyDigits(selectedStore.whatsapp)}` : selectedStore.phone ? `Tel ${onlyDigits(selectedStore.phone)}` : "—"}
+                  {selectedStore.whatsapp
+                    ? `WhatsApp ${onlyDigits(selectedStore.whatsapp)}`
+                    : selectedStore.phone
+                    ? `Tel ${onlyDigits(selectedStore.phone)}`
+                    : "—"}
                   {selectedStore.instagram ? ` · IG ${selectedStore.instagram}` : ""}
                 </div>
               )}
@@ -462,6 +578,9 @@ export default function PlansPage() {
                     const hasText = !!(camp?.ai_caption && String(camp.ai_caption).trim().length > 0);
                     const hasReels = !!camp?.reels_generated_at;
 
+                    const isPost = String(it.content_type).toLowerCase() === "post";
+                    const isReels = String(it.content_type).toLowerCase() === "reels";
+
                     return (
                       <div
                         key={it.id}
@@ -475,7 +594,7 @@ export default function PlansPage() {
                         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
                           <div>
                             <strong>
-                              {dayLabel(it.day_of_week)} — {it.content_type.toUpperCase()}
+                              {dayLabel(it.day_of_week)} — {String(it.content_type).toUpperCase()}
                             </strong>
                             {it.recommended_time ? (
                               <span style={{ color: "#666" }}> · {it.recommended_time}</span>
@@ -488,6 +607,7 @@ export default function PlansPage() {
                           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                             {camp?.id ? (
                               <>
+                                {/* Gerar conteúdo */}
                                 <button
                                   onClick={() => generateTextForCampaign(camp, false)}
                                   disabled={generatingTextId === camp.id}
@@ -527,6 +647,32 @@ export default function PlansPage() {
                                     Regenerar Reels
                                   </button>
                                 )}
+
+                                {/* Copiar (conforme tipo) */}
+                                {isPost && (
+                                  <button
+                                    onClick={() => safeCopy(buildPostFullText(camp))}
+                                    disabled={!hasText}
+                                    title={!hasText ? "Gere o texto primeiro" : "Copiar tudo do post"}
+                                  >
+                                    Copiar tudo (Post)
+                                  </button>
+                                )}
+
+                                {isReels && (
+                                  <button
+                                    onClick={() => safeCopy(buildReelsFullText(camp))}
+                                    disabled={!hasReels}
+                                    title={!hasReels ? "Gere o Reels primeiro" : "Copiar tudo do Reels"}
+                                  >
+                                    Copiar tudo (Reels)
+                                  </button>
+                                )}
+
+                                {/* Brief sempre útil */}
+                                <button onClick={() => safeCopy(buildBriefText(it))}>
+                                  Copiar brief
+                                </button>
                               </>
                             ) : null}
 
@@ -561,9 +707,8 @@ export default function PlansPage() {
                         </div>
 
                         <div style={{ marginTop: 10, fontSize: 12, color: "#666" }}>
-                          Status:{" "}
-                          <span>{hasText ? "Texto ✅" : "Texto —"}</span>{" "}
-                          · <span>{hasReels ? "Reels ✅" : "Reels —"}</span>
+                          Status: <span>{hasText ? "Texto ✅" : "Texto —"}</span> ·{" "}
+                          <span>{hasReels ? "Reels ✅" : "Reels —"}</span>
                         </div>
                       </div>
                     );
