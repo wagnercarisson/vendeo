@@ -286,13 +286,10 @@ export default function PlansPage() {
 
     if (!storeId) return;
 
-    setLoadingPlan(true);
-    try {
-      const res = await fetch(
-        `/api/generate/weekly-plan?store_id=${storeId}&week_start=${weekStart}`,
-        { method: "GET" }
-      );
-      const data = await res.json();
+    const res = await fetch(
+      `/api/generate/weekly-plan?week_start=${weekStart}`,
+      { method: "GET" }
+    );
 
       if (!res.ok || !data.ok) {
         throw new Error(data?.details ?? data?.error ?? "Falha ao carregar plano");
@@ -339,11 +336,10 @@ export default function PlansPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          store_id: storeId,
           week_start: weekStart,
           force,
-        }),
-      });
+      }),
+    });
 
       const data = await res.json();
       if (!res.ok || !data.ok) {
