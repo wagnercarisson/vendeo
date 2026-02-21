@@ -1,227 +1,235 @@
-import OpenAI from "openai";
 import { NextResponse } from "next/server";
+import { z } from "zod";
+import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// Supabase admin (bypassa RLS) — SOMENTE no servidor
 const supabaseAdmin = createClient(
-  process.env.SUPABASE_URL || "",
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { persistSession: false } }
 );
 
-const TIMEOUT_MS = 15000;
+const BodySchema = z.object({
+  campaign_id: z.string().uuid(),
+  force: z.boolean().optional().default(false),
+});
 
-function clampStr(v: unknown, max = 400): string {
-  const s = String(v ?? "").trim();
-  return s.length > max ? s.slice(0, max) : s;
-}
+const AIResponseSchema = z.object({
+  caption: z.string().min(5),
+  text: z.string().min(5),
+  cta: z.string().min(2),
+  hashtags: z.string().min(2),
+});
 
-function clampNumber(v: unknown): number {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function extractJson(text: string) {
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
-  if (start === -1 || end === -1 || end <= start) return null;
-  const candidate = text.slice(start, end + 1);
+function parseJsonLoose(raw: string) {
   try {
-    return JSON.parse(candidate);
+    return JSON.parse(raw);
   } catch {
-    return null;
+    const first = raw.indexOf("{");
+    const last = raw.lastIndexOf("}");
+    if (first >= 0 && last > first) return JSON.parse(raw.slice(first, last + 1));
+    throw new Error("AI_RETURNED_NON_JSON");
   }
 }
 
-function normalizeResult(parsed: any) {
-  return {
-    caption: clampStr(parsed?.caption, 260),
-    text: clampStr(parsed?.text, 800),
-    cta: clampStr(parsed?.cta, 200),
-    hashtags: clampStr(parsed?.hashtags, 250),
-  };
+function safeStringify(v: any) {
+  try {
+    return JSON.stringify(v, null, 2);
+  } catch {
+    return String(v);
+  }
 }
 
 export async function POST(req: Request) {
+  const requestId = crypto.randomUUID();
+
   try {
-    if (!process.env.OPENAI_API_KEY) {
+    const json = await req.json().catch(() => null);
+    const body = BodySchema.safeParse(json);
+    if (!body.success) {
       return NextResponse.json(
-        { error: "OPENAI_API_KEY ausente no runtime." },
-        { status: 500 }
+        { ok: false, requestId, error: "INVALID_INPUT", details: body.error.flatten() },
+        { status: 400 }
       );
     }
 
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const { campaign_id, force } = body.data;
+
+    // 1) Buscar campanha (fonte da verdade)
+    const { data: campaign, error: cErr } = await supabaseAdmin
+      .from("campaigns")
+      .select(
+        `
+        id, store_id, product_name, price, audience, objective, product_positioning,
+        ai_caption, ai_text, ai_cta, ai_hashtags
+      `
+      )
+      .eq("id", campaign_id)
+      .single();
+
+    if (cErr || !campaign) {
       return NextResponse.json(
-        { error: "SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY ausentes no runtime." },
-        { status: 500 }
+        { ok: false, requestId, error: "CAMPAIGN_NOT_FOUND", details: cErr?.message },
+        { status: 404 }
       );
     }
 
-    const body = await req.json().catch(() => ({} as any));
-
-    const campaign_id = clampStr(body.campaign_id, 60);
-    const force = Boolean(body.force);
-
-    // ✅ Idempotência: se já existe e NÃO é force, retorna o salvo e não chama OpenAI
-    if (campaign_id && !force) {
-      const { data: existing, error: readErr } = await supabaseAdmin
-        .from("campaigns")
-        .select("ai_caption, ai_text, ai_cta, ai_hashtags")
-        .eq("id", campaign_id)
-        .maybeSingle();
-
-      if (readErr) {
-        return NextResponse.json(
-          { error: `Erro ao ler campanha: ${readErr.message}` },
-          { status: 500 }
-        );
-      }
-
-      if (existing?.ai_caption) {
-        return NextResponse.json({
-          caption: existing.ai_caption,
-          text: existing.ai_text ?? "",
-          cta: existing.ai_cta ?? "",
-          hashtags: existing.ai_hashtags ?? "",
-          reused: true,
-        });
-      }
+    // 2) Idempotência
+    const already = (campaign.ai_caption ?? "").trim().length > 0;
+    if (already && !force) {
+      return NextResponse.json({
+        ok: true,
+        requestId,
+        reused: true,
+        campaign_id,
+      });
     }
 
-    // ✅ Valida / normaliza input
-    const product_name = clampStr(body.product_name, 80);
-    const audience = clampStr(body.audience, 120);
-    const objective = clampStr(body.objective, 120);
-    const price = clampNumber(body.price);
+    // 3) Buscar loja (contexto)
+    const { data: store, error: sErr } = await supabaseAdmin
+      .from("stores")
+      .select(
+        `
+        id, name, city, state,
+        brand_positioning, main_segment, tone_of_voice,
+        address, neighborhood, phone, whatsapp, instagram,
+        primary_color, secondary_color, logo_url
+      `
+      )
+      .eq("id", campaign.store_id)
+      .single();
 
-    const store_name = clampStr(body.store_name, 80);
-    const city = clampStr(body.city, 60);
-    const state = clampStr(body.state, 30);
+    if (sErr || !store) {
+      return NextResponse.json(
+        { ok: false, requestId, error: "STORE_NOT_FOUND", details: sErr?.message },
+        { status: 404 }
+      );
+    }
 
-    if (!product_name || !audience || !objective || !price) {
+    // 4) Validação mínima de dados essenciais (agora vindo do banco)
+    if (
+      !campaign.product_name ||
+      !campaign.audience ||
+      !campaign.objective
+    ) {
       return NextResponse.json(
         {
-          error:
-            "Dados insuficientes para gerar campanha. Verifique produto, preço, público e objetivo.",
+          ok: false,
+          requestId,
+          error: "INSUFFICIENT_DATA",
+          details:
+            "Campanha incompleta no banco (product_name/audience/objective). Edite a campanha e tente novamente.",
         },
         { status: 400 }
       );
     }
 
+    // 5) Prompt IA
     const prompt = `
-Crie uma campanha de marketing para pequeno varejo no Brasil.
+Você é um especialista em marketing para comércios locais.
+Crie 4 peças para uma campanha de redes sociais.
 
-Dados:
-- Produto: ${product_name}
-- Preço: R$ ${price}
-- Público: ${audience}
-- Objetivo: ${objective}
-- Loja: ${store_name || "—"}
-- Cidade/UF: ${city || "—"} ${state || ""}
+DADOS DA LOJA:
+- Nome: ${store.name}
+- Cidade/UF: ${store.city ?? ""}/${store.state ?? ""}
+- Segmento: ${store.main_segment ?? "—"}
+- Posicionamento: ${store.brand_positioning ?? "—"}
+- Tom de voz: ${store.tone_of_voice ?? "—"}
+- WhatsApp: ${store.whatsapp ?? store.phone ?? "—"}
+- Instagram: ${store.instagram ?? "—"}
 
-Regras:
-- Retorne APENAS JSON válido (sem texto extra)
-- caption: até 240 caracteres
-- text: 1 parágrafo curto
-- cta: 1 frase
-- hashtags: 5 a 10 hashtags separadas por espaço (sem vírgulas)
+DADOS DA CAMPANHA:
+- Produto: ${campaign.product_name}
+- Preço: ${campaign.price ?? "—"}
+- Público: ${campaign.audience}
+- Objetivo: ${campaign.objective}
+- Perfil do produto: ${campaign.product_positioning ?? "—"}
 
-Formato obrigatório:
-{"caption":"","text":"","cta":"","hashtags":""}
-`.trim();
+REGRAS:
+- Responda SOMENTE em JSON válido (sem markdown).
+- Use português do Brasil.
+- Faça textos curtos, prontos para copiar e colar.
 
-    // ✅ Timeout simples
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+FORMATO OBRIGATÓRIO:
+{
+  "caption": "Legenda curta com emojis (se combinar)",
+  "text": "Texto principal (pode ser um pouco maior)",
+  "cta": "Chamada para ação",
+  "hashtags": "#... #... #..."
+}
+`;
 
-    let content = "";
+    // 6) Chamada OpenAI + parse robusto + retry
+    const ai1 = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      temperature: 0.7,
+      messages: [
+        { role: "system", content: "Responda somente com JSON válido." },
+        { role: "user", content: prompt },
+      ],
+    });
+
+    const raw1 = ai1.choices?.[0]?.message?.content ?? "";
+    const parsed1 = parseJsonLoose(raw1);
+
+    let aiData: z.infer<typeof AIResponseSchema>;
     try {
-      const completion = await openai.chat.completions.create(
-        {
-          model: "gpt-4o-mini",
-          messages: [
-            {
-              role: "system",
-              content:
-                "Você é um redator de marketing. Responda somente em JSON válido, sem markdown, sem explicações.",
-            },
-            { role: "user", content: prompt },
-          ],
-          temperature: 0.6,
-          max_tokens: 220,
-        },
-        // Vercel/Next aceita signal; tipagem às vezes reclama, então cast leve
-        { signal: controller.signal } as any
-      );
+      aiData = AIResponseSchema.parse(parsed1);
+    } catch (e: any) {
+      const fixPrompt = `
+O JSON abaixo está inválido ou não segue o formato.
+Corrija e devolva SOMENTE o JSON válido no formato obrigatório.
 
-      content = completion.choices?.[0]?.message?.content ?? "";
-    } finally {
-      clearTimeout(timeout);
+ERRO:
+${safeStringify(e?.issues ?? e?.message ?? e)}
+
+JSON PARA CORRIGIR:
+${safeStringify(parsed1)}
+`;
+      const ai2 = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        temperature: 0.2,
+        messages: [
+          { role: "system", content: "Responda somente com JSON válido." },
+          { role: "user", content: fixPrompt },
+        ],
+      });
+
+      const raw2 = ai2.choices?.[0]?.message?.content ?? "";
+      const parsed2 = parseJsonLoose(raw2);
+      aiData = AIResponseSchema.parse(parsed2);
     }
 
-    // ✅ Parse robusto
-    let parsed: any = null;
-    try {
-      parsed = JSON.parse(content);
-    } catch {
-      parsed = extractJson(content);
-    }
+    // 7) Salvar no banco
+    const { error: upErr } = await supabaseAdmin
+      .from("campaigns")
+      .update({
+        ai_caption: aiData.caption,
+        ai_text: aiData.text,
+        ai_cta: aiData.cta,
+        ai_hashtags: aiData.hashtags,
+        ai_generated_at: new Date().toISOString(),
+      })
+      .eq("id", campaign_id);
 
-    if (!parsed) {
+    if (upErr) {
       return NextResponse.json(
-        { error: "A IA não retornou JSON válido.", raw: content.slice(0, 800) },
-        { status: 502 }
+        { ok: false, requestId, error: "DB_UPDATE_FAILED", details: upErr.message },
+        { status: 500 }
       );
     }
 
-    const result = normalizeResult(parsed);
-
-    if (!result.caption || !result.text || !result.cta || !result.hashtags) {
-      return NextResponse.json(
-        { error: "JSON veio incompleto (faltando campos).", raw: parsed },
-        { status: 502 }
-      );
-    }
-
-    // ✅ Se tiver campaign_id, salva server-side
-    if (campaign_id) {
-      const { error: updErr } = await supabaseAdmin
-        .from("campaigns")
-        .update({
-          ai_caption: result.caption,
-          ai_text: result.text,
-          ai_cta: result.cta,
-          ai_hashtags: result.hashtags,
-          ai_generated_at: new Date().toISOString(),
-        })
-        .eq("id", campaign_id);
-
-      if (updErr) {
-        return NextResponse.json(
-          { error: `Erro ao salvar resultado: ${updErr.message}` },
-          { status: 500 }
-        );
-      }
-    }
-
-    return NextResponse.json({ ...result, reused: false });
+    return NextResponse.json({
+      ok: true,
+      requestId,
+      reused: false,
+      campaign_id,
+    });
   } catch (err: any) {
-    const msg = String(err?.message ?? "Erro desconhecido");
-
-    if (msg.toLowerCase().includes("aborted")) {
-      return NextResponse.json(
-        { error: "Timeout ao gerar campanha. Tente novamente." },
-        { status: 504 }
-      );
-    }
-
-    return NextResponse.json(
-      { error: msg, status: err?.status, type: err?.type },
-      { status: 500 }
-    );
+    const msg = typeof err?.message === "string" ? err.message : "UNKNOWN_ERROR";
+    console.error("[generate-campaign] error:", msg, err?.stack ?? err);
+    return NextResponse.json({ ok: false, requestId, error: "UNHANDLED", details: msg }, { status: 500 });
   }
 }
