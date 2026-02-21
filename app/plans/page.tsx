@@ -294,7 +294,7 @@ export default function PlansPage() {
       }
 
       setPlan(data.plan ?? null);
-      setItems((data.items ?? []) as WeeklyPlanItem[]);
+      setItems((data.items ?? []);
       setCampaigns((data.campaigns ?? []) as Campaign[]);
       setDrafts({}); // limpa drafts ao recarregar
     } catch (e: any) {
