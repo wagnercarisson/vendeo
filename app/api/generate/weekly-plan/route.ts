@@ -85,7 +85,13 @@ function uniqueByDay(items: any[]) {
 async function fetchPlan(store_id: string, week_start: string) {
   const { data: plan, error: planErr } = await supabaseAdmin
     .from("weekly_plans")
-    .select("id, store_id, week_start, status, strategy, created_at")
+    .select(`
+      id, store_id, product_name, price, audience, objective, product_positioning, created_at,
+      ai_caption, ai_text, ai_cta, ai_hashtags,
+      reels_hook, reels_script, reels_shotlist, reels_on_screen_text,
+      reels_audio_suggestion, reels_duration_seconds,
+      reels_caption, reels_cta, reels_hashtags, reels_generated_at
+    `)
     .eq("store_id", store_id)
     .eq("week_start", week_start)
     .maybeSingle();
