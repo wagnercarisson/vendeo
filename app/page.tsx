@@ -1,6 +1,11 @@
 // app/page.tsx
 import { supabase } from "../lib/supabase";
 
+// teste
+export default function Page() {
+  return <div className="p-10 text-3xl font-semibold">Tailwind OK</div>;
+}
+
 export default async function Home() {
   const { data: stores, error } = await supabase
     .from("stores")
