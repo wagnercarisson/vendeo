@@ -1,36 +1,106 @@
-import { Suspense } from "react";
-import LoginClient from "./LoginClient";
+"use client";
+
+import { useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-vendeo-bg">
-          <header className="border-b border-vendeo-border bg-white">
-            <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-xl bg-vendeo-green shadow-soft" />
-                <div className="font-semibold text-vendeo-text">Vendeo</div>
-              </div>
-              <div className="text-sm text-vendeo-muted">Carregando…</div>
-            </div>
-          </header>
-          <main className="mx-auto max-w-6xl px-6 py-12">
-            <div className="mx-auto max-w-md rounded-2xl border border-vendeo-border bg-white p-6 shadow-soft">
-              <div className="h-6 w-40 rounded bg-slate-100" />
-              <div className="mt-3 h-8 w-56 rounded bg-slate-100" />
-              <div className="mt-6 grid gap-3">
-                <div className="h-16 rounded bg-slate-50" />
-                <div className="h-16 rounded bg-slate-50" />
-                <div className="h-10 rounded bg-slate-100" />
-                <div className="h-10 rounded bg-slate-50" />
-              </div>
-            </div>
-          </main>
-        </div>
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") ?? "/app";
+
+  const [mode, setMode] = useState<"signup" | "login">("signup");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setInfo(null);
+
+    try {
+      if (mode === "signup") {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            // mantém usuário logado após signup se email confirmation estiver DESLIGADO
+            // se estiver LIGADO, vai pedir confirmação por e-mail
+            emailRedirectTo: `${window.location.origin}${redirectTo}`,
+          },
+        });
+
+        if (error) throw error;
+
+        // Se o Supabase exigir confirmação de e-mail, não haverá session:
+        if (!data.session) {
+          setInfo("Conta criada! Verifique seu e-mail para confirmar o cadastro.");
+          setLoading(false);
+          return;
+        }
+
+        router.push(redirectTo);
+        return;
       }
-    >
-      <LoginClient />
-    </Suspense>
+
+      // login
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      router.push(redirectTo);
+    } catch (err: any) {
+      setError(err?.message ?? "Erro inesperado.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main style={{ padding: 40 }}>
+      <h1>Vendeo</h1>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        <button type="button" onClick={() => setMode("signup")} disabled={loading}>
+          Criar conta
+        </button>
+        <button type="button" onClick={() => setMode("login")} disabled={loading}>
+          Já tenho conta
+        </button>
+      </div>
+
+      <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12, maxWidth: 360 }}>
+        <input
+          type="email"
+          placeholder="E-mail"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+
+        <input
+          type="password"
+          placeholder="Senha"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+
+        <button type="submit" disabled={loading}>
+          {loading ? "Processando..." : mode === "signup" ? "Criar conta" : "Entrar"}
+        </button>
+
+        {error && <div style={{ color: "red" }}>{error}</div>}
+        {info && <div style={{ color: "green" }}>{info}</div>}
+      </form>
+    </main>
   );
 }
