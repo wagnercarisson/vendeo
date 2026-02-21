@@ -21,29 +21,50 @@ const ReelsSchema = z.object({
   duration_seconds: z.number().int().min(10).max(90),
   audio_suggestion: z.string().min(3),
   on_screen_text: z.array(z.string().min(1)).min(2).max(12),
-  shotlist: z.array(
-    z.object({
-      scene: z.number().int().min(1),
-      camera: z.string().min(2),
-      action: z.string().min(2),
-      dialogue: z.string().min(1),
-    })
-  ).min(3).max(12),
+  shotlist: z
+    .array(
+      z.object({
+        scene: z.number().int().min(1),
+        camera: z.string().min(2),
+        action: z.string().min(2),
+        dialogue: z.string().min(1),
+      })
+    )
+    .min(3)
+    .max(12),
   script: z.string().min(20),
   caption: z.string().min(10),
   cta: z.string().min(3),
   hashtags: z.string().min(3),
 });
 
+function parseJsonLoose(raw: string) {
+  // 1) tenta parse direto
+  try {
+    return JSON.parse(raw);
+  } catch {
+    // 2) tenta “extrair” o primeiro objeto JSON dentro do texto
+    const first = raw.indexOf("{");
+    const last = raw.lastIndexOf("}");
+    if (first >= 0 && last > first) {
+      return JSON.parse(raw.slice(first, last + 1));
+    }
+    throw new Error("AI_RETURNED_NON_JSON");
+  }
+}
+
+function safeStringify(v: any) {
+  try {
+    return JSON.stringify(v, null, 2);
+  } catch {
+    return String(v);
+  }
+}
+
 function withTimeout<T>(promise: Promise<T>, ms: number) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), ms);
-  // Nota: OpenAI SDK já aceita signal em várias chamadas; aqui mantemos simples:
   return Promise.race([
-    promise.finally(() => clearTimeout(timeout)),
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error("TIMEOUT")), ms)
-    ),
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error("TIMEOUT")), ms)),
   ]);
 }
 
@@ -53,6 +74,7 @@ export async function POST(req: Request) {
   try {
     const json = await req.json().catch(() => null);
     const body = BodySchema.safeParse(json);
+
     if (!body.success) {
       return NextResponse.json(
         { ok: false, requestId, error: "INVALID_INPUT", details: body.error.flatten() },
@@ -62,10 +84,16 @@ export async function POST(req: Request) {
 
     const { campaign_id, force } = body.data;
 
-    // 1) Busca campanha
+    // 1) Busca campanha (fonte da verdade)
     const { data: campaign, error: campaignErr } = await supabaseAdmin
       .from("campaigns")
-      .select("id, store_id, product_name, price, audience, objective, ai_caption, ai_text, ai_cta, ai_hashtags, reels_generated_at, reels_hook, reels_script, reels_shotlist, reels_on_screen_text, reels_audio_suggestion, reels_duration_seconds, reels_caption, reels_cta, reels_hashtags")
+      .select(
+        `
+        id, store_id, product_name, price, audience, objective, product_positioning,
+        reels_generated_at, reels_hook, reels_script, reels_shotlist, reels_on_screen_text,
+        reels_audio_suggestion, reels_duration_seconds, reels_caption, reels_cta, reels_hashtags
+      `
+      )
       .eq("id", campaign_id)
       .single();
 
@@ -96,8 +124,29 @@ export async function POST(req: Request) {
       });
     }
 
-    // 3) Prompt “com contexto” usando o que já existe na campanha
-const prompt = `
+    // 3) Validação mínima (evita “dados insuficientes”)
+    if (
+      !campaign.product_name ||
+      !String(campaign.product_name).trim() ||
+      !campaign.audience ||
+      !String(campaign.audience).trim() ||
+      !campaign.objective ||
+      !String(campaign.objective).trim()
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          requestId,
+          error: "INSUFFICIENT_DATA",
+          details:
+            "Campanha incompleta: preencha Produto, Público e Objetivo antes de gerar o Reels.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // 4) Prompt (com regras)
+    const prompt = `
 Você é um roteirista especialista em Reels/Instagram para vendas locais.
 
 Gere UM roteiro de Reels em PORTUGUÊS-BR e responda SOMENTE com JSON válido.
@@ -106,20 +155,21 @@ NÃO inclua markdown, comentários, texto antes/depois do JSON.
 DADOS DA CAMPANHA:
 - Produto: ${campaign.product_name}
 - Preço: ${campaign.price ?? "não informado"}
-- Público: ${campaign.audience ?? "não informado"}
-- Objetivo: ${campaign.objective ?? "não informado"}
+- Público: ${campaign.audience}
+- Objetivo: ${campaign.objective}
+- Perfil do produto: ${campaign.product_positioning ?? "não informado"}
 
 REGRAS:
 - duration_seconds entre 15 e 45
-- "on_screen_text" deve ser array de frases curtas
-- "shotlist" deve ser array com 3 a 8 itens, cada item contendo scene, camera, action, dialogue
-- Preencha TODOS os campos abaixo (NENHUM pode faltar)
+- on_screen_text: array de frases curtas
+- shotlist: 3 a 8 itens, cada item com scene, camera, action, dialogue
+- Preencha TODOS os campos abaixo (nenhum pode faltar)
 
-FORMATO OBRIGATÓRIO (exemplo):
+FORMATO OBRIGATÓRIO:
 {
   "hook": "frase curta e forte",
   "duration_seconds": 25,
-  "audio_suggestion": "um estilo de áudio (ex: funk leve / trend X / pop animado)",
+  "audio_suggestion": "um estilo de áudio (ex: funk leve / pop animado)",
   "on_screen_text": ["frase 1", "frase 2", "frase 3"],
   "shotlist": [
     { "scene": 1, "camera": "close no produto", "action": "mostrar o produto", "dialogue": "fala curta" },
@@ -131,15 +181,15 @@ FORMATO OBRIGATÓRIO (exemplo):
   "cta": "chamada para ação (ex: peça no WhatsApp)",
   "hashtags": "#tag1 #tag2 #tag3"
 }
-
-AGORA gere o JSON para a campanha acima.
 `;
 
-    // 4) Chamada OpenAI com parse robusto (via JSON “puro”)
-    const ai = await withTimeout(
+    // 5) Chamada OpenAI (forçando JSON)
+    const ai1 = await withTimeout(
       openai.chat.completions.create({
         model: "gpt-4o-mini",
-        temperature: 0.7,
+        temperature: 0.6,
+        // ✅ força JSON (reduz MUITO "Unexpected non-whitespace...")
+        response_format: { type: "json_object" } as any,
         messages: [
           { role: "system", content: "Responda somente com JSON válido." },
           { role: "user", content: prompt },
@@ -148,63 +198,48 @@ AGORA gere o JSON para a campanha acima.
       20000
     );
 
-    const raw = ai.choices?.[0]?.message?.content ?? "";
-    let parsed: unknown;
+    const raw1 = ai1.choices?.[0]?.message?.content ?? "";
+    const parsed1 = parseJsonLoose(raw1);
 
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      // tentativa simples de “extrair JSON” se vier lixo antes/depois
-      const first = raw.indexOf("{");
-      const last = raw.lastIndexOf("}");
-      if (first >= 0 && last > first) {
-        parsed = JSON.parse(raw.slice(first, last + 1));
-      } else {
-        throw new Error("AI_RETURNED_NON_JSON");
-      }
-    }
+    let reels: z.infer<typeof ReelsSchema>;
 
-let reels;
-try {
-  reels = ReelsSchema.parse(parsed);
-} catch (zerr: any) {
-  // Retry: pedir para o modelo corrigir o JSON exatamente no schema
-  const fixPrompt = `
-O JSON abaixo está INVALIDO e NÃO bate com o schema obrigatório.
+    // 6) Validar e, se falhar, pedir correção
+    const firstTry = ReelsSchema.safeParse(parsed1);
+    if (firstTry.success) {
+      reels = firstTry.data;
+    } else {
+      const fixPrompt = `
+O JSON abaixo está INVÁLIDO e não bate com o schema obrigatório.
 Corrija e devolva SOMENTE o JSON válido no formato exigido.
+Não inclua texto antes/depois do JSON.
 
 ERROS:
-${JSON.stringify(zerr?.issues ?? zerr, null, 2)}
+${safeStringify(firstTry.error.issues)}
 
 JSON PARA CORRIGIR:
-${JSON.stringify(parsed, null, 2)}
+${safeStringify(parsed1)}
 `;
 
-  const ai2 = await openai.chat.completions.create({
-    model: "gpt-4o-mini", // ou o mesmo que você usa em campaign
-    temperature: 0.2,
-    messages: [
-      { role: "system", content: "Responda somente com JSON válido." },
-      { role: "user", content: fixPrompt },
-    ],
-  });
+      const ai2 = await withTimeout(
+        openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          temperature: 0.2,
+          response_format: { type: "json_object" } as any,
+          messages: [
+            { role: "system", content: "Responda somente com JSON válido." },
+            { role: "user", content: fixPrompt },
+          ],
+        }),
+        20000
+      );
 
-  const raw2 = ai2.choices?.[0]?.message?.content ?? "";
-  let parsed2: unknown;
+      const raw2 = ai2.choices?.[0]?.message?.content ?? "";
+      const parsed2 = parseJsonLoose(raw2);
 
-  try {
-    parsed2 = JSON.parse(raw2);
-  } catch {
-    const first = raw2.indexOf("{");
-    const last = raw2.lastIndexOf("}");
-    if (first >= 0 && last > first) parsed2 = JSON.parse(raw2.slice(first, last + 1));
-    else throw new Error("AI_RETURNED_NON_JSON_AFTER_FIX");
-  }
+      reels = ReelsSchema.parse(parsed2);
+    }
 
-  reels = ReelsSchema.parse(parsed2);
-}
-
-    // 5) Salvar no banco
+    // 7) Salvar no banco
     const { error: upErr } = await supabaseAdmin
       .from("campaigns")
       .update({
@@ -229,13 +264,12 @@ ${JSON.stringify(parsed, null, 2)}
     }
 
     return NextResponse.json({ ok: true, requestId, reused: false, reels });
-
-} catch (err: any) {
-  const msg = typeof err?.message === "string" ? err.message : "UNKNOWN_ERROR";
-  console.error("[generate/reels] error:", msg, err?.stack ?? err);
-  return NextResponse.json(
-    { ok: false, error: "UNHANDLED", details: msg },
-    { status: 500 }
-  );
-}
+  } catch (err: any) {
+    const msg = typeof err?.message === "string" ? err.message : "UNKNOWN_ERROR";
+    console.error("[generate/reels] error:", msg, err?.stack ?? err);
+    return NextResponse.json(
+      { ok: false, requestId, error: "UNHANDLED", details: msg },
+      { status: 500 }
+    );
+  }
 }
