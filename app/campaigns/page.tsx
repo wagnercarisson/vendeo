@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
@@ -10,7 +10,6 @@ type Store = {
   city: string | null;
   state: string | null;
 
-  // novos campos
   brand_positioning: string | null;
   main_segment: string | null;
   tone_of_voice: string | null;
@@ -40,7 +39,6 @@ type Campaign = {
   objective: string;
   image_url: string | null;
 
-  // novo campo da campanha
   product_positioning: string | null;
 
   ai_caption: string | null;
@@ -48,7 +46,6 @@ type Campaign = {
   ai_cta: string | null;
   ai_hashtags: string | null;
 
-  // Reels
   reels_hook: string | null;
   reels_script: string | null;
   reels_shotlist: ReelsShot[] | null;
@@ -82,6 +79,15 @@ function safeToString(v: any) {
 
 function onlyDigits(v: string) {
   return (v || "").replace(/\D/g, "");
+}
+
+function buildContactLine(store?: Store | null) {
+  const wpp = store?.whatsapp ? onlyDigits(store.whatsapp) : "";
+  const ig = store?.instagram ? store.instagram : "";
+  if (wpp && ig) return `WhatsApp: ${wpp} · IG: ${ig}`;
+  if (wpp) return `WhatsApp: ${wpp}`;
+  if (ig) return `IG: ${ig}`;
+  return "—";
 }
 
 export default function CampaignsPage() {
@@ -156,10 +162,8 @@ export default function CampaignsPage() {
           audience: campaign.audience,
           objective: campaign.objective,
 
-          // novo: perfil do produto (pode ser null)
           product_positioning: campaign.product_positioning,
 
-          // contexto da loja
           store_name: campaign.stores?.name,
           city: campaign.stores?.city,
           state: campaign.stores?.state,
@@ -167,12 +171,10 @@ export default function CampaignsPage() {
           main_segment: campaign.stores?.main_segment,
           tone_of_voice: campaign.stores?.tone_of_voice,
 
-          // contatos (pra CTA)
           whatsapp: campaign.stores?.whatsapp,
           phone: campaign.stores?.phone,
           instagram: campaign.stores?.instagram,
 
-          // identidade
           primary_color: campaign.stores?.primary_color,
           secondary_color: campaign.stores?.secondary_color,
         }),
@@ -214,10 +216,8 @@ export default function CampaignsPage() {
           campaign_id: campaign.id,
           force,
 
-          // novo: perfil do produto/campanha
           product_positioning: campaign.product_positioning,
 
-          // contexto útil (se você quiser usar no prompt do backend)
           store_name: campaign.stores?.name,
           city: campaign.stores?.city,
           state: campaign.stores?.state,
@@ -302,14 +302,6 @@ export default function CampaignsPage() {
     return lines.join("\n");
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%",
-    padding: "10px 12px",
-    border: "1px solid #ddd",
-    borderRadius: 10,
-    fontSize: 14,
-  };
-
   return (
     <main style={{ padding: 24, fontFamily: "system-ui, Arial" }}>
       <h1>Campanhas</h1>
@@ -331,15 +323,7 @@ export default function CampaignsPage() {
 
           const positioningLabel = labelPositioning(c.product_positioning);
           const storeDefault = labelPositioning(c.stores?.brand_positioning ?? null);
-
-          const contactLine = useMemo(() => {
-            const wpp = c.stores?.whatsapp ? onlyDigits(c.stores.whatsapp) : "";
-            const ig = c.stores?.instagram ? c.stores.instagram : "";
-            if (wpp && ig) return `WhatsApp: ${wpp} · IG: ${ig}`;
-            if (wpp) return `WhatsApp: ${wpp}`;
-            if (ig) return `IG: ${ig}`;
-            return "—";
-          }, [c.stores?.whatsapp, c.stores?.instagram]);
+          const contactLine = buildContactLine(c.stores);
 
           return (
             <div
@@ -368,10 +352,12 @@ export default function CampaignsPage() {
                   <div>
                     <strong>Loja:</strong> {c.stores?.name ?? "—"}
                   </div>
+
                   <div style={{ marginTop: 6, fontSize: 13, color: "#444" }}>
                     <strong>Perfil do produto:</strong> {positioningLabel}{" "}
                     {c.product_positioning ? "" : `(padrão loja: ${storeDefault})`}
                   </div>
+
                   <div style={{ fontSize: 13, color: "#444" }}>
                     <strong>Contato:</strong> {contactLine}
                   </div>
@@ -408,7 +394,6 @@ export default function CampaignsPage() {
               </div>
 
               <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-                {/* TEXTO */}
                 <button onClick={() => generateAndSaveText(c, false)} disabled={generatingTextId === c.id}>
                   {generatingTextId === c.id ? "Gerando texto..." : "Gerar texto com IA"}
                 </button>
@@ -419,7 +404,6 @@ export default function CampaignsPage() {
                   </button>
                 )}
 
-                {/* REELS */}
                 <button onClick={() => generateAndSaveReels(c, false)} disabled={generatingReelsId === c.id}>
                   {generatingReelsId === c.id
                     ? "Gerando Reels..."
@@ -435,7 +419,6 @@ export default function CampaignsPage() {
                 )}
               </div>
 
-              {/* TEXTO GERADO */}
               {hasAi && (
                 <div style={{ marginTop: 14 }}>
                   <div>
@@ -458,7 +441,6 @@ export default function CampaignsPage() {
                 </div>
               )}
 
-              {/* REELS GERADO */}
               {hasReels && (
                 <div style={{ marginTop: 14, borderTop: "1px solid #eee", paddingTop: 14 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
@@ -466,8 +448,7 @@ export default function CampaignsPage() {
                       <strong>Reels Hook:</strong> {safeToString(c.reels_hook)}
                     </div>
                     <div>
-                      <strong>Duração:</strong>{" "}
-                      {c.reels_duration_seconds ? `${c.reels_duration_seconds}s` : "—"}
+                      <strong>Duração:</strong> {c.reels_duration_seconds ? `${c.reels_duration_seconds}s` : "—"}
                     </div>
                     <div>
                       <strong>Áudio:</strong> {safeToString(c.reels_audio_suggestion)}
