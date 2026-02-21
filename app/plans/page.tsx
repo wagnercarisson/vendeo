@@ -12,6 +12,13 @@ type Store = {
   main_segment: string | null;
   brand_positioning: string | null;
   tone_of_voice: string | null;
+
+  whatsapp: string | null;
+  instagram: string | null;
+  phone: string | null;
+
+  primary_color: string | null;
+  secondary_color: string | null;
 };
 
 type Plan = {
@@ -43,6 +50,10 @@ type Campaign = {
   audience: string;
   objective: string;
   product_positioning: string | null;
+
+  ai_caption?: string | null;
+  reels_generated_at?: string | null;
+
   created_at: string;
 };
 
@@ -70,6 +81,10 @@ function dayLabel(d: number) {
   return map[d] ?? `Dia ${d}`;
 }
 
+function onlyDigits(v: string) {
+  return (v || "").replace(/\D/g, "");
+}
+
 export default function PlansPage() {
   const [stores, setStores] = useState<Store[]>([]);
   const [loadingStores, setLoadingStores] = useState(true);
@@ -82,8 +97,12 @@ export default function PlansPage() {
   const [items, setItems] = useState<PlanItem[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
 
-  const [generating, setGenerating] = useState(false);
+  const [generatingPlan, setGeneratingPlan] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // geração por campanha (para travar clique)
+  const [generatingTextId, setGeneratingTextId] = useState<string | null>(null);
+  const [generatingReelsId, setGeneratingReelsId] = useState<string | null>(null);
 
   useEffect(() => {
     loadStores();
@@ -94,7 +113,9 @@ export default function PlansPage() {
     setLoadingStores(true);
     const { data, error } = await supabase
       .from("stores")
-      .select("id, name, city, state, main_segment, brand_positioning, tone_of_voice")
+      .select(
+        "id, name, city, state, main_segment, brand_positioning, tone_of_voice, whatsapp, instagram, phone, primary_color, secondary_color"
+      )
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -159,7 +180,7 @@ export default function PlansPage() {
       if (!ok) return;
     }
 
-    setGenerating(true);
+    setGeneratingPlan(true);
     try {
       const res = await fetch("/api/generate/weekly-plan", {
         method: "POST",
@@ -183,7 +204,7 @@ export default function PlansPage() {
     } catch (e: any) {
       setError(e?.message ?? "Erro ao gerar plano");
     } finally {
-      setGenerating(false);
+      setGeneratingPlan(false);
     }
   }
 
@@ -192,6 +213,95 @@ export default function PlansPage() {
     for (const c of campaigns) m.set(c.id, c);
     return m;
   }, [campaigns]);
+
+  async function generateTextForCampaign(camp: Campaign, force = false) {
+    if (generatingTextId === camp.id) return;
+
+    setGeneratingTextId(camp.id);
+    try {
+      const res = await fetch("/api/generate/campaign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          campaign_id: camp.id,
+          force,
+
+          product_name: camp.product_name,
+          price: camp.price ?? 0,
+          audience: camp.audience,
+          objective: camp.objective,
+          product_positioning: camp.product_positioning,
+
+          // contexto da loja
+          store_name: selectedStore?.name,
+          city: selectedStore?.city,
+          state: selectedStore?.state,
+          brand_positioning: selectedStore?.brand_positioning,
+          main_segment: selectedStore?.main_segment,
+          tone_of_voice: selectedStore?.tone_of_voice,
+
+          whatsapp: selectedStore?.whatsapp,
+          phone: selectedStore?.phone,
+          instagram: selectedStore?.instagram,
+          primary_color: selectedStore?.primary_color,
+          secondary_color: selectedStore?.secondary_color,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        throw new Error(data?.details ?? data?.error ?? "Falha ao gerar texto");
+      }
+
+      await loadPlan(); // atualiza status do camp na tela
+      alert(force ? "Texto regenerado!" : "Texto gerado!");
+    } catch (e: any) {
+      alert(e?.message ?? "Erro ao gerar texto");
+      console.error(e);
+    } finally {
+      setGeneratingTextId(null);
+    }
+  }
+
+  async function generateReelsForCampaign(camp: Campaign, force = false) {
+    if (generatingReelsId === camp.id) return;
+
+    setGeneratingReelsId(camp.id);
+    try {
+      const res = await fetch("/api/generate/reels", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          campaign_id: camp.id,
+          force,
+
+          product_positioning: camp.product_positioning,
+
+          // contexto (opcional)
+          store_name: selectedStore?.name,
+          city: selectedStore?.city,
+          state: selectedStore?.state,
+          brand_positioning: selectedStore?.brand_positioning,
+          main_segment: selectedStore?.main_segment,
+          tone_of_voice: selectedStore?.tone_of_voice,
+          whatsapp: selectedStore?.whatsapp,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        throw new Error(data?.details ?? data?.error ?? "Falha ao gerar Reels");
+      }
+
+      await loadPlan();
+      alert(force ? "Reels regenerado!" : "Reels gerado!");
+    } catch (e: any) {
+      alert(e?.message ?? "Erro ao gerar Reels");
+      console.error(e);
+    } finally {
+      setGeneratingReelsId(null);
+    }
+  }
 
   const cardStyle: React.CSSProperties = {
     border: "1px solid #e5e7eb",
@@ -218,10 +328,10 @@ export default function PlansPage() {
       </div>
 
       <p style={{ color: "#555", marginTop: 8 }}>
-        Gere 4 campanhas sugeridas para a semana (estratégia por segmento). Depois você pode gerar texto e Reels em cada campanha.
+        Gere 4 campanhas sugeridas para a semana. Depois, gere texto e/ou Reels diretamente aqui.
       </p>
 
-      <section style={{ ...cardStyle, maxWidth: 900 }}>
+      <section style={{ ...cardStyle, maxWidth: 980 }}>
         {error && (
           <div style={{ marginBottom: 12, color: "crimson" }}>
             <strong>Erro:</strong> {error}
@@ -252,7 +362,10 @@ export default function PlansPage() {
                 <div style={{ fontSize: 12, color: "#666", marginTop: 8 }}>
                   <strong>Segmento:</strong> {selectedStore.main_segment ?? "—"} ·{" "}
                   <strong>Posicionamento:</strong> {selectedStore.brand_positioning ?? "—"} ·{" "}
-                  <strong>Tom:</strong> {selectedStore.tone_of_voice ?? "—"}
+                  <strong>Tom:</strong> {selectedStore.tone_of_voice ?? "—"} ·{" "}
+                  <strong>Contato:</strong>{" "}
+                  {selectedStore.whatsapp ? `WhatsApp ${onlyDigits(selectedStore.whatsapp)}` : selectedStore.phone ? `Tel ${onlyDigits(selectedStore.phone)}` : "—"}
+                  {selectedStore.instagram ? ` · IG ${selectedStore.instagram}` : ""}
                 </div>
               )}
             </div>
@@ -265,16 +378,14 @@ export default function PlansPage() {
                 value={weekStart}
                 onChange={(e) => setWeekStart(e.target.value)}
               />
-              <div style={{ fontSize: 12, color: "#666", marginTop: 6 }}>
-                Use a segunda-feira como início.
-              </div>
+              <div style={{ fontSize: 12, color: "#666", marginTop: 6 }}>Use a segunda-feira como início.</div>
             </div>
           </div>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button
               onClick={() => loadPlan()}
-              disabled={!storeId || loadingPlan || generating}
+              disabled={!storeId || loadingPlan || generatingPlan}
               style={{
                 padding: "10px 14px",
                 borderRadius: 12,
@@ -288,30 +399,30 @@ export default function PlansPage() {
 
             <button
               onClick={() => generatePlan(false)}
-              disabled={!storeId || generating}
+              disabled={!storeId || generatingPlan}
               style={{
                 padding: "10px 14px",
                 borderRadius: 12,
                 border: "1px solid #111",
-                background: generating ? "#eee" : "#111",
-                color: generating ? "#111" : "white",
-                cursor: generating ? "not-allowed" : "pointer",
+                background: generatingPlan ? "#eee" : "#111",
+                color: generatingPlan ? "#111" : "white",
+                cursor: generatingPlan ? "not-allowed" : "pointer",
                 fontWeight: 700,
               }}
             >
-              {generating ? "Gerando..." : plan ? "Gerar (já existe)" : "Gerar plano da semana"}
+              {generatingPlan ? "Gerando..." : plan ? "Gerar (já existe)" : "Gerar plano da semana"}
             </button>
 
             {plan && (
               <button
                 onClick={() => generatePlan(true)}
-                disabled={!storeId || generating}
+                disabled={!storeId || generatingPlan}
                 style={{
                   padding: "10px 14px",
                   borderRadius: 12,
                   border: "1px solid #111",
                   background: "white",
-                  cursor: generating ? "not-allowed" : "pointer",
+                  cursor: generatingPlan ? "not-allowed" : "pointer",
                   fontWeight: 600,
                 }}
               >
@@ -327,7 +438,7 @@ export default function PlansPage() {
       {!plan ? (
         <p style={{ color: "#555" }}>Nenhum plano encontrado para esta semana.</p>
       ) : (
-        <div style={{ display: "grid", gap: 16, maxWidth: 900 }}>
+        <div style={{ display: "grid", gap: 16, maxWidth: 980 }}>
           <section style={cardStyle}>
             <h2 style={{ marginTop: 0, fontSize: 16 }}>Estratégia</h2>
             <div style={{ whiteSpace: "pre-wrap", color: "#333" }}>
@@ -347,6 +458,9 @@ export default function PlansPage() {
                   .sort((a, b) => a.day_of_week - b.day_of_week)
                   .map((it) => {
                     const camp = it.campaign_id ? campaignsById.get(it.campaign_id) : undefined;
+
+                    const hasText = !!(camp?.ai_caption && String(camp.ai_caption).trim().length > 0);
+                    const hasReels = !!camp?.reels_generated_at;
 
                     return (
                       <div
@@ -371,11 +485,55 @@ export default function PlansPage() {
                             </div>
                           </div>
 
-                          {camp?.id ? (
+                          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                            {camp?.id ? (
+                              <>
+                                <button
+                                  onClick={() => generateTextForCampaign(camp, false)}
+                                  disabled={generatingTextId === camp.id}
+                                >
+                                  {generatingTextId === camp.id
+                                    ? "Gerando texto..."
+                                    : hasText
+                                    ? "Gerar texto (já existe)"
+                                    : "Gerar texto"}
+                                </button>
+
+                                {hasText && (
+                                  <button
+                                    onClick={() => generateTextForCampaign(camp, true)}
+                                    disabled={generatingTextId === camp.id}
+                                  >
+                                    Regenerar texto
+                                  </button>
+                                )}
+
+                                <button
+                                  onClick={() => generateReelsForCampaign(camp, false)}
+                                  disabled={generatingReelsId === camp.id}
+                                >
+                                  {generatingReelsId === camp.id
+                                    ? "Gerando Reels..."
+                                    : hasReels
+                                    ? "Gerar Reels (já existe)"
+                                    : "Gerar Reels"}
+                                </button>
+
+                                {hasReels && (
+                                  <button
+                                    onClick={() => generateReelsForCampaign(camp, true)}
+                                    disabled={generatingReelsId === camp.id}
+                                  >
+                                    Regenerar Reels
+                                  </button>
+                                )}
+                              </>
+                            ) : null}
+
                             <Link href="/campaigns" style={{ fontSize: 13 }}>
-                              Ver na lista →
+                              Ver campanhas →
                             </Link>
-                          ) : null}
+                          </div>
                         </div>
 
                         <div style={{ marginTop: 8 }}>
@@ -400,6 +558,12 @@ export default function PlansPage() {
                               </div>
                             </div>
                           )}
+                        </div>
+
+                        <div style={{ marginTop: 10, fontSize: 12, color: "#666" }}>
+                          Status:{" "}
+                          <span>{hasText ? "Texto ✅" : "Texto —"}</span>{" "}
+                          · <span>{hasReels ? "Reels ✅" : "Reels —"}</span>
                         </div>
                       </div>
                     );
