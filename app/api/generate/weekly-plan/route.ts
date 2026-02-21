@@ -35,7 +35,7 @@ const AIItemSchema = z.object({
     product_positioning: z.string().optional().nullable(), // popular|medio|premium|jovem|familia...
   }),
   brief: z.object({
-    angle: z.string().min(3), // ângulo/ideia
+    angle: z.string().min(3),
     hook_hint: z.string().min(3),
     cta_hint: z.string().min(3),
   }),
@@ -53,11 +53,11 @@ function toISODate(d: Date) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-// Week start = Monday (Segunda). We compute in UTC; good enough for MVP.
+// Week start = Monday (Segunda) in UTC (MVP ok)
 function getWeekStartMondayISO(today = new Date()) {
   const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
   const jsDay = d.getUTCDay(); // 0=Sun..6=Sat
-  const diffToMonday = (jsDay + 6) % 7; // Monday->0, Tuesday->1, Sunday->6
+  const diffToMonday = (jsDay + 6) % 7; // Monday->0 ... Sunday->6
   d.setUTCDate(d.getUTCDate() - diffToMonday);
   return toISODate(d);
 }
@@ -73,6 +73,14 @@ function parseJsonLoose(raw: string) {
   }
 }
 
+function safeStringify(v: any) {
+  try {
+    return JSON.stringify(v, null, 2);
+  } catch {
+    return String(v);
+  }
+}
+
 function uniqueByDay(items: any[]) {
   const seen = new Set<number>();
   for (const it of items) {
@@ -82,16 +90,13 @@ function uniqueByDay(items: any[]) {
   return true;
 }
 
+/**
+ * Busca plano + itens + campaigns completas (base + ai + reels)
+ */
 async function fetchPlan(store_id: string, week_start: string) {
   const { data: plan, error: planErr } = await supabaseAdmin
     .from("weekly_plans")
-    .select(`
-      id, store_id, product_name, price, audience, objective, product_positioning, created_at,
-      ai_caption, ai_text, ai_cta, ai_hashtags,
-      reels_hook, reels_script, reels_shotlist, reels_on_screen_text,
-      reels_audio_suggestion, reels_duration_seconds,
-      reels_caption, reels_cta, reels_hashtags, reels_generated_at
-    `)
+    .select("id, store_id, week_start, status, strategy, created_at")
     .eq("store_id", store_id)
     .eq("week_start", week_start)
     .maybeSingle();
@@ -107,13 +112,19 @@ async function fetchPlan(store_id: string, week_start: string) {
 
   if (itemsErr) throw new Error(itemsErr.message);
 
-  // opcional: carregar campaigns vinculadas
   const campaignIds = (items ?? []).map((i: any) => i.campaign_id).filter(Boolean);
+
   let campaigns: any[] = [];
   if (campaignIds.length) {
     const { data: cData, error: cErr } = await supabaseAdmin
       .from("campaigns")
-      .select("id, store_id, product_name, price, audience, objective, product_positioning, created_at")
+      .select(`
+        id, store_id, product_name, price, audience, objective, product_positioning, created_at,
+        ai_caption, ai_text, ai_cta, ai_hashtags,
+        reels_hook, reels_script, reels_shotlist, reels_on_screen_text,
+        reels_audio_suggestion, reels_duration_seconds,
+        reels_caption, reels_cta, reels_hashtags, reels_generated_at
+      `)
       .in("id", campaignIds);
 
     if (cErr) throw new Error(cErr.message);
@@ -125,10 +136,11 @@ async function fetchPlan(store_id: string, week_start: string) {
 
 export async function GET(req: Request) {
   const requestId = crypto.randomUUID();
+
   try {
     const url = new URL(req.url);
     const store_id = url.searchParams.get("store_id") ?? "";
-    const week_start = url.searchParams.get("week_start") ?? getWeekStartMondayISO();
+    const week_start = (url.searchParams.get("week_start") ?? getWeekStartMondayISO()).trim();
 
     const q = QuerySchema.safeParse({ store_id, week_start });
     if (!q.success) {
@@ -139,11 +151,19 @@ export async function GET(req: Request) {
     }
 
     const result = await fetchPlan(q.data.store_id, q.data.week_start!);
-    return NextResponse.json({ ok: true, requestId, exists: !!result, ...result });
+
+    return NextResponse.json({
+      ok: true,
+      requestId,
+      exists: !!result,
+      plan: result?.plan ?? null,
+      items: result?.items ?? [],
+      campaigns: result?.campaigns ?? [],
+    });
   } catch (err: any) {
     const msg = typeof err?.message === "string" ? err.message : "UNKNOWN_ERROR";
     console.error("[weekly-plan][GET] error:", msg, err?.stack ?? err);
-    return NextResponse.json({ ok: false, error: "UNHANDLED", details: msg }, { status: 500 });
+    return NextResponse.json({ ok: false, requestId, error: "UNHANDLED", details: msg }, { status: 500 });
   }
 }
 
@@ -185,7 +205,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 2) Idempotência: se já existe e não for force, retorna
+    // 2) Idempotência
     const existing = await fetchPlan(store_id, week_start);
     if (existing && !force) {
       return NextResponse.json({
@@ -198,8 +218,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // 3) Se force e existe: limpar itens e campanhas vinculadas (somente as campanhas criadas por este plano)
-    // MVP: vamos deletar itens e manter campaigns (não deletar campaigns antigas para evitar acidente)
+    // 3) Se force e existe: limpar itens (não deletar campanhas por segurança)
     if (existing && force) {
       const { error: delItemsErr } = await supabaseAdmin
         .from("weekly_plan_items")
@@ -209,16 +228,11 @@ export async function POST(req: Request) {
       if (delItemsErr) throw new Error(delItemsErr.message);
     }
 
-    // 4) Criar/Upsert do plano (garante 1 por semana)
+    // 4) Upsert do plano (garante 1 por loja/semana)
     const { data: upPlan, error: upPlanErr } = await supabaseAdmin
       .from("weekly_plans")
       .upsert(
-        {
-          store_id,
-          week_start,
-          status: "generated",
-          // strategy preenchida depois
-        },
+        { store_id, week_start, status: "generated" },
         { onConflict: "store_id,week_start" }
       )
       .select("id, store_id, week_start, status, strategy, created_at")
@@ -226,7 +240,7 @@ export async function POST(req: Request) {
 
     if (upPlanErr || !upPlan) throw new Error(upPlanErr?.message ?? "FAILED_UPSERT_PLAN");
 
-    // 5) Gerar plano via IA (4 itens)
+    // 5) IA cria 4 itens
     const prompt = `
 Você é um estrategista de marketing para comércios locais.
 Crie um PLANO SEMANAL de 4 conteúdos para a loja abaixo (foco em vendas e recorrência).
@@ -243,14 +257,10 @@ REGRAS:
 - Gere exatamente 4 itens em "items".
 - Cada item deve ter day_of_week (1=Seg ... 7=Dom), e deve ser ÚNICO (não repetir dia).
 - content_type: "post" ou "reels".
-- recommended_time: use formato "HH:MM" (24h).
+- recommended_time: formato "HH:MM" (24h).
 - theme: curto (ex: "Promoção relâmpago", "Produto destaque", "Engajamento", "Combo do fim de semana").
-- Em campaign, preencha SEMPRE:
-  product_name, audience, objective
-  price pode ser null.
-  product_positioning pode ser null (ou "popular"/"premium"/"jovem"/"medio"/"familia").
-- Em brief: preencha angle, hook_hint, cta_hint.
-- A estratégia deve considerar o segmento (ex: bebidas: quinta/sexta/sábado mais forte, horário noturno; boutiques: horários e temas diferentes).
+- Em campaign, preencha SEMPRE: product_name, audience, objective. price pode ser null.
+- Em brief: angle, hook_hint, cta_hint.
 
 FORMATO OBRIGATÓRIO:
 {
@@ -313,11 +323,9 @@ ${safeStringify(parsed1)}
 
       const raw2 = ai2.choices?.[0]?.message?.content ?? "";
       const parsed2 = parseJsonLoose(raw2);
-      planAI = AIResponseSchema.parse(parsed2);
 
-      if (!uniqueByDay(planAI.items)) {
-        throw new Error("DUPLICATE_DAY_OF_WEEK_AFTER_FIX");
-      }
+      planAI = AIResponseSchema.parse(parsed2);
+      if (!uniqueByDay(planAI.items)) throw new Error("DUPLICATE_DAY_OF_WEEK_AFTER_FIX");
     }
 
     // 6) Salvar strategy no plano
@@ -340,12 +348,8 @@ ${safeStringify(parsed1)}
 
     if (updPlanErr) throw new Error(updPlanErr.message);
 
-    // 7) Criar campaigns + items
-    const createdCampaigns: any[] = [];
-    const createdItems: any[] = [];
-
+    // 7) Criar campaigns + itens
     for (const it of planAI.items) {
-      // campaign row
       const { data: cRow, error: cErr } = await supabaseAdmin
         .from("campaigns")
         .insert({
@@ -358,7 +362,7 @@ ${safeStringify(parsed1)}
         })
         .select(`
           id, store_id, product_name, price, audience, objective, product_positioning, created_at,
-          ai_caption, ai_text, ai_cta, ai_hashtags,  
+          ai_caption, ai_text, ai_cta, ai_hashtags,
           reels_hook, reels_script, reels_shotlist, reels_on_screen_text,
           reels_audio_suggestion, reels_duration_seconds,
           reels_caption, reels_cta, reels_hashtags, reels_generated_at
@@ -366,28 +370,21 @@ ${safeStringify(parsed1)}
         .single();
 
       if (cErr || !cRow) throw new Error(cErr?.message ?? "FAILED_CREATE_CAMPAIGN");
-      createdCampaigns.push(cRow);
 
-      // plan item row
-      const { data: iRow, error: iErr } = await supabaseAdmin
-        .from("weekly_plan_items")
-        .insert({
-          plan_id: upPlan.id,
-          day_of_week: it.day_of_week,
-          content_type: it.content_type,
-          theme: it.theme,
-          recommended_time: it.recommended_time,
-          campaign_id: cRow.id,
-          brief: it.brief,
-        })
-        .select("id, plan_id, day_of_week, content_type, theme, recommended_time, campaign_id, brief, created_at")
-        .single();
+      const { error: iErr } = await supabaseAdmin.from("weekly_plan_items").insert({
+        plan_id: upPlan.id,
+        day_of_week: it.day_of_week,
+        content_type: it.content_type,
+        theme: it.theme,
+        recommended_time: it.recommended_time,
+        campaign_id: cRow.id,
+        brief: it.brief,
+      });
 
-      if (iErr || !iRow) throw new Error(iErr?.message ?? "FAILED_CREATE_ITEM");
-      createdItems.push(iRow);
+      if (iErr) throw new Error(iErr.message);
     }
 
-    // 8) Retornar plano completo
+    // 8) Retornar plano completo (com campaigns completas)
     const final = await fetchPlan(store_id, week_start);
 
     return NextResponse.json({
@@ -395,20 +392,12 @@ ${safeStringify(parsed1)}
       requestId,
       reused: false,
       plan: final?.plan ?? upPlan,
-      items: final?.items ?? createdItems,
-      campaigns: final?.campaigns ?? createdCampaigns,
+      items: final?.items ?? [],
+      campaigns: final?.campaigns ?? [],
     });
   } catch (err: any) {
     const msg = typeof err?.message === "string" ? err.message : "UNKNOWN_ERROR";
     console.error("[weekly-plan][POST] error:", msg, err?.stack ?? err);
-    return NextResponse.json({ ok: false, error: "UNHANDLED", details: msg }, { status: 500 });
-  }
-}
-
-function safeStringify(v: any) {
-  try {
-    return JSON.stringify(v, null, 2);
-  } catch {
-    return String(v);
+    return NextResponse.json({ ok: false, requestId, error: "UNHANDLED", details: msg }, { status: 500 });
   }
 }
