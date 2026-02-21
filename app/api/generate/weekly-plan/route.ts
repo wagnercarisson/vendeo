@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
+import { getUserStoreIdOrThrow } from "@/lib/store/getUserStoreId";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -11,14 +12,14 @@ const supabaseAdmin = createClient(
   { auth: { persistSession: false } }
 );
 
+// ✅ Removido store_id do body (vem do usuário logado)
 const PostBodySchema = z.object({
-  store_id: z.string().uuid(),
   week_start: z.string().optional(), // YYYY-MM-DD
   force: z.boolean().optional().default(false),
 });
 
+// ✅ Removido store_id da query (vem do usuário logado)
 const QuerySchema = z.object({
-  store_id: z.string().uuid(),
   week_start: z.string().optional(), // YYYY-MM-DD
 });
 
@@ -27,7 +28,6 @@ const AIItemSchema = z.object({
   content_type: z.enum(["post", "reels"]),
   theme: z.string().min(3),
   recommended_time: z.string().min(3), // "19:30"
-  // aqui a IA sugere, mas o lojista pode editar depois
   campaign: z.object({
     product_name: z.string().min(3),
     price: z.number().nonnegative().optional().nullable(),
@@ -90,11 +90,11 @@ function uniqueByDay(items: any[]) {
   return true;
 }
 
-async function fetchPlan(store_id: string, week_start: string) {
+async function fetchPlan(storeId: string, week_start: string) {
   const { data: plan, error: planErr } = await supabaseAdmin
     .from("weekly_plans")
     .select("id, store_id, week_start, status, strategy, created_at")
-    .eq("store_id", store_id)
+    .eq("store_id", storeId)
     .eq("week_start", week_start)
     .maybeSingle();
 
@@ -136,12 +136,23 @@ async function fetchPlan(store_id: string, week_start: string) {
 export async function GET(req: Request) {
   const requestId = crypto.randomUUID();
 
+  // ✅ storeId vem do usuário logado
+  let storeId: string;
+  try {
+    ({ storeId } = await getUserStoreIdOrThrow());
+  } catch (e: any) {
+    const msg = String(e?.message || "");
+    if (msg === "not_authenticated") {
+      return NextResponse.json({ ok: false, requestId, error: "NOT_AUTHENTICATED" }, { status: 401 });
+    }
+    return NextResponse.json({ ok: false, requestId, error: "STORE_NOT_FOUND" }, { status: 403 });
+  }
+
   try {
     const url = new URL(req.url);
-    const store_id = url.searchParams.get("store_id") ?? "";
     const week_start = (url.searchParams.get("week_start") ?? getWeekStartMondayISO()).trim();
 
-    const q = QuerySchema.safeParse({ store_id, week_start });
+    const q = QuerySchema.safeParse({ week_start });
     if (!q.success) {
       return NextResponse.json(
         { ok: false, requestId, error: "INVALID_QUERY", details: q.error.flatten() },
@@ -149,7 +160,7 @@ export async function GET(req: Request) {
       );
     }
 
-    const result = await fetchPlan(q.data.store_id, q.data.week_start!);
+    const result = await fetchPlan(storeId, q.data.week_start ?? getWeekStartMondayISO());
 
     return NextResponse.json({
       ok: true,
@@ -162,12 +173,27 @@ export async function GET(req: Request) {
   } catch (err: any) {
     const msg = typeof err?.message === "string" ? err.message : "UNKNOWN_ERROR";
     console.error("[weekly-plan][GET] error:", msg, err?.stack ?? err);
-    return NextResponse.json({ ok: false, requestId, error: "UNHANDLED", details: msg }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, requestId, error: "UNHANDLED", details: msg },
+      { status: 500 }
+    );
   }
 }
 
 export async function POST(req: Request) {
   const requestId = crypto.randomUUID();
+
+  // ✅ storeId vem do usuário logado
+  let storeId: string;
+  try {
+    ({ storeId } = await getUserStoreIdOrThrow());
+  } catch (e: any) {
+    const msg = String(e?.message || "");
+    if (msg === "not_authenticated") {
+      return NextResponse.json({ ok: false, requestId, error: "NOT_AUTHENTICATED" }, { status: 401 });
+    }
+    return NextResponse.json({ ok: false, requestId, error: "STORE_NOT_FOUND" }, { status: 403 });
+  }
 
   try {
     const json = await req.json().catch(() => null);
@@ -180,10 +206,10 @@ export async function POST(req: Request) {
       );
     }
 
-    const { store_id, force } = body.data;
+    const { force } = body.data;
     const week_start = (body.data.week_start ?? getWeekStartMondayISO()).trim();
 
-    // loja (contexto)
+    // ✅ loja (contexto) — sempre a loja do usuário logado
     const { data: store, error: sErr } = await supabaseAdmin
       .from("stores")
       .select(
@@ -194,7 +220,7 @@ export async function POST(req: Request) {
         primary_color, secondary_color, logo_url
       `
       )
-      .eq("id", store_id)
+      .eq("id", storeId)
       .single();
 
     if (sErr || !store) {
@@ -204,8 +230,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // idempotência
-    const existing = await fetchPlan(store_id, week_start);
+    // ✅ idempotência (por loja do usuário)
+    const existing = await fetchPlan(storeId, week_start);
     if (existing && !force) {
       return NextResponse.json({
         ok: true,
@@ -227,11 +253,11 @@ export async function POST(req: Request) {
       if (delItemsErr) throw new Error(delItemsErr.message);
     }
 
-    // upsert do plano
+    // ✅ upsert do plano (por loja do usuário)
     const { data: upPlan, error: upPlanErr } = await supabaseAdmin
       .from("weekly_plans")
       .upsert(
-        { store_id, week_start, status: "generated" },
+        { store_id: storeId, week_start, status: "generated" },
         { onConflict: "store_id,week_start" }
       )
       .select("id, store_id, week_start, status, strategy, created_at")
@@ -346,12 +372,12 @@ ${safeStringify(parsed1)}
 
     if (updPlanErr) throw new Error(updPlanErr.message);
 
-    // criar campaigns + itens (sempre cria campaign_id)
+    // ✅ criar campaigns + itens sempre na loja do usuário (storeId)
     for (const it of planAI.items) {
       const { data: cRow, error: cErr } = await supabaseAdmin
         .from("campaigns")
         .insert({
-          store_id: store_id,
+          store_id: storeId,
           product_name: it.campaign.product_name,
           price: typeof it.campaign.price === "number" ? it.campaign.price : null,
           audience: it.campaign.audience,
@@ -376,7 +402,7 @@ ${safeStringify(parsed1)}
       if (iErr) throw new Error(iErr.message);
     }
 
-    const final = await fetchPlan(store_id, week_start);
+    const final = await fetchPlan(storeId, week_start);
 
     return NextResponse.json({
       ok: true,
@@ -389,6 +415,9 @@ ${safeStringify(parsed1)}
   } catch (err: any) {
     const msg = typeof err?.message === "string" ? err.message : "UNKNOWN_ERROR";
     console.error("[weekly-plan][POST] error:", msg, err?.stack ?? err);
-    return NextResponse.json({ ok: false, requestId, error: "UNHANDLED", details: msg }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, requestId, error: "UNHANDLED", details: msg },
+      { status: 500 }
+    );
   }
 }
