@@ -25,7 +25,7 @@ export default function AppEntryPage() {
         .maybeSingle();
 
       if (error) {
-        console.error(error);
+        console.error("Erro ao buscar store:", error);
         router.replace("/login?redirect=%2Fapp");
         return;
       }
