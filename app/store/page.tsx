@@ -151,9 +151,19 @@ export default function StorePage() {
       return;
     }
 
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    throw new Error("Você precisa estar logado para cadastrar a loja.");
+  }    
+
     setSaving(true);
     try {
       const payload = {
+        owner_user_id: user.id, // 👈 ESSENCIAL com RLS
         name: name.trim(),
         city: city.trim(),
         state: stateUf.trim().toUpperCase(),
@@ -175,7 +185,12 @@ export default function StorePage() {
         secondary_color: secondaryColor || null,
       };
 
-      const { error } = await supabase.from("stores").insert(payload);
+      //const { error } = await supabase.from("stores").insert(payload);
+
+      const { data, error } = await supabase.from("stores").insert(payload).select().single();
+      if (error) throw new Error(error.message);
+
+      console.log("Store criada:", data);
 
       if (error) {
         console.error(error);
