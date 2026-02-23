@@ -1,6 +1,9 @@
 import Link from "next/link";
 
 export default function HomePage() {
+  const loginToApp = "/login?redirect=%2Fapp";
+  const loginToPlans = "/login?redirect=%2Fplans";
+
   return (
     <div className="min-h-screen bg-vendeo-bg">
       {/* Topbar */}
@@ -18,13 +21,13 @@ export default function HomePage() {
 
           <nav className="flex items-center gap-3">
             <Link
-              href="/login"
+              href={loginToApp}
               className="rounded-xl px-4 py-2 text-sm font-medium text-vendeo-text hover:bg-slate-100"
             >
               Entrar
             </Link>
             <Link
-              href="/app"
+              href={loginToApp}
               className="rounded-xl bg-vendeo-green px-4 py-2 text-sm font-semibold text-white hover:bg-vendeo-greenLight"
             >
               Acessar painel
@@ -54,13 +57,13 @@ export default function HomePage() {
 
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
-                href="/app"
+                href={loginToApp}
                 className="rounded-xl bg-vendeo-green px-5 py-3 text-sm font-semibold text-white hover:bg-vendeo-greenLight shadow-soft"
               >
                 Criar minha primeira campanha
               </Link>
               <Link
-                href="/plans"
+                href={loginToPlans}
                 className="rounded-xl border border-vendeo-border bg-white px-5 py-3 text-sm font-semibold text-vendeo-text hover:bg-slate-50"
               >
                 Ver plano da semana
