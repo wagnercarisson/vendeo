@@ -11,7 +11,7 @@ function isProtectedPath(pathname: string) {
 }
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
 
   if (!isProtectedPath(pathname)) {
     return NextResponse.next();
@@ -36,12 +36,20 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const { data } = await supabase.auth.getUser();
+  const { data, error } = await supabase.auth.getUser();
+
+  if (error) {
+    // se der algum erro de auth/cookie, força login
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.searchParams.set("redirect", encodeURIComponent(pathname + search));
+    return NextResponse.redirect(url);
+  }
 
   if (!data?.user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.searchParams.set("redirect", pathname);
+    url.searchParams.set("redirect", encodeURIComponent(pathname + search));
     return NextResponse.redirect(url);
   }
 
