@@ -1,12 +1,68 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 function onlyDigits(v: string) {
   return v.replace(/\D/g, "");
 }
+
+function formatBRPhone(value: string) {
+  const digits = onlyDigits(value).slice(0, 11);
+
+  const ddd = digits.slice(0, 2);
+  const rest = digits.slice(2);
+
+  if (digits.length === 0) return "";
+  if (digits.length < 2) return `(${ddd}`;
+  if (digits.length === 2) return `(${ddd})`;
+
+  // 10 dígitos: (11) 2345-6789
+  // 11 dígitos: (11) 92345-6789
+  if (digits.length <= 10) {
+    const p1 = rest.slice(0, 4);
+    const p2 = rest.slice(4, 8);
+    if (rest.length <= 4) return `(${ddd}) ${p1}`;
+    return `(${ddd}) ${p1}-${p2}`;
+  } else {
+    const p1 = rest.slice(0, 5);
+    const p2 = rest.slice(5, 9);
+    if (rest.length <= 5) return `(${ddd}) ${p1}`;
+    return `(${ddd}) ${p1}-${p2}`;
+  }
+}
+
+const UF_OPTIONS = [
+  "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG",
+  "PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO",
+];
+
+const SEGMENT_OPTIONS = [
+  "Mercado / Mercearia",
+  "Moda / Boutique",
+  "Farmácia",
+  "Restaurante / Lanchonete",
+  "Pet shop",
+  "Materiais de construção",
+  "Salão / Estética",
+  "Eletrônicos",
+  "Casa & Decoração",
+  "Academia",
+  "Oficina / Auto",
+  "Outro",
+] as const;
+
+const TONE_OPTIONS = [
+  "Amigável",
+  "Direto",
+  "Promocional",
+  "Premium",
+  "Divertido",
+  "Técnico",
+  "Próximo (de bairro)",
+  "Outro",
+] as const;
 
 export default function StorePage() {
   const router = useRouter();
@@ -20,11 +76,14 @@ export default function StorePage() {
   const [stateUf, setStateUf] = useState("");
 
   // branding/posicionamento
-  const [mainSegment, setMainSegment] = useState("");
-  const [brandPositioning, setBrandPositioning] = useState("");
-  const [toneOfVoice, setToneOfVoice] = useState("");
+  const [segmentChoice, setSegmentChoice] = useState<(typeof SEGMENT_OPTIONS)[number] | "">("");
+  const [segmentOther, setSegmentOther] = useState("");
+  const [toneChoice, setToneChoice] = useState<(typeof TONE_OPTIONS)[number] | "">("");
+  const [toneOther, setToneOther] = useState("");
 
-  // contato/endereço (seus campos extras)
+  const [brandPositioning, setBrandPositioning] = useState("");
+
+  // contato/endereço
   const [address, setAddress] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
   const [phone, setPhone] = useState("");
@@ -33,8 +92,20 @@ export default function StorePage() {
   const [logoUrl, setLogoUrl] = useState("");
 
   // cores
-  const [primaryColor, setPrimaryColor] = useState("#16a34a"); // verde
-  const [secondaryColor, setSecondaryColor] = useState("#0f172a"); // slate
+  const [primaryColor, setPrimaryColor] = useState("#16a34a");
+  const [secondaryColor, setSecondaryColor] = useState("#0f172a");
+
+  const mainSegment = useMemo(() => {
+    if (!segmentChoice) return "";
+    if (segmentChoice === "Outro") return segmentOther.trim();
+    return segmentChoice;
+  }, [segmentChoice, segmentOther]);
+
+  const toneOfVoice = useMemo(() => {
+    if (!toneChoice) return "";
+    if (toneChoice === "Outro") return toneOther.trim();
+    return toneChoice;
+  }, [toneChoice, toneOther]);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -59,13 +130,14 @@ export default function StorePage() {
         state: stateUf.trim().toUpperCase() || null,
         logo_url: logoUrl.trim() || null,
 
-        main_segment: mainSegment.trim() || null,
+        main_segment: mainSegment || null,
         brand_positioning: brandPositioning.trim() || null,
-        tone_of_voice: toneOfVoice.trim() || null,
+        tone_of_voice: toneOfVoice || null,
 
         address: address.trim() || null,
         neighborhood: neighborhood.trim() || null,
 
+        // salva só dígitos no banco
         phone: onlyDigits(phone) || null,
         whatsapp: onlyDigits(whatsapp) || null,
         instagram: instagram.trim() || null,
@@ -99,7 +171,7 @@ export default function StorePage() {
 
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
           <form onSubmit={handleSave} className="grid gap-6">
-            {/* básicos */}
+            {/* Informações básicas */}
             <section className="grid gap-3">
               <div className="text-sm font-semibold">Informações básicas</div>
 
@@ -121,19 +193,24 @@ export default function StorePage() {
                     className="h-11 rounded-xl border border-zinc-200 px-3 outline-none focus:ring-2 focus:ring-emerald-200"
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
-                    placeholder="Ex.: Ibirama"
+                    placeholder="Ex.: São Paulo"
                   />
                 </div>
 
                 <div className="grid gap-1">
                   <label className="text-sm font-medium">Estado (UF)</label>
-                  <input
-                    className="h-11 rounded-xl border border-zinc-200 px-3 outline-none focus:ring-2 focus:ring-emerald-200"
+                  <select
+                    className="h-11 rounded-xl border border-zinc-200 bg-white px-3 outline-none focus:ring-2 focus:ring-emerald-200"
                     value={stateUf}
                     onChange={(e) => setStateUf(e.target.value)}
-                    placeholder="Ex.: SC"
-                    maxLength={2}
-                  />
+                  >
+                    <option value="">Selecione</option>
+                    {UF_OPTIONS.map((uf) => (
+                      <option key={uf} value={uf}>
+                        {uf}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="grid gap-1 sm:col-span-2">
@@ -148,44 +225,76 @@ export default function StorePage() {
               </div>
             </section>
 
-            {/* posicionamento */}
+            {/* Posicionamento */}
             <section className="grid gap-3">
               <div className="text-sm font-semibold">Posicionamento</div>
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="grid gap-1">
                   <label className="text-sm font-medium">Segmento principal</label>
-                  <input
-                    className="h-11 rounded-xl border border-zinc-200 px-3 outline-none focus:ring-2 focus:ring-emerald-200"
-                    value={mainSegment}
-                    onChange={(e) => setMainSegment(e.target.value)}
-                    placeholder="Ex.: Mercado / Moda / Farmácia"
-                  />
+                  <select
+                    className="h-11 rounded-xl border border-zinc-200 bg-white px-3 outline-none focus:ring-2 focus:ring-emerald-200"
+                    value={segmentChoice}
+                    onChange={(e) =>
+                      setSegmentChoice(e.target.value as (typeof SEGMENT_OPTIONS)[number])
+                    }
+                  >
+                    <option value="">Selecione</option>
+                    {SEGMENT_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                  {segmentChoice === "Outro" && (
+                    <input
+                      className="mt-2 h-11 rounded-xl border border-zinc-200 px-3 outline-none focus:ring-2 focus:ring-emerald-200"
+                      value={segmentOther}
+                      onChange={(e) => setSegmentOther(e.target.value)}
+                      placeholder="Digite seu segmento"
+                    />
+                  )}
                 </div>
 
                 <div className="grid gap-1">
                   <label className="text-sm font-medium">Tom de voz</label>
-                  <input
-                    className="h-11 rounded-xl border border-zinc-200 px-3 outline-none focus:ring-2 focus:ring-emerald-200"
-                    value={toneOfVoice}
-                    onChange={(e) => setToneOfVoice(e.target.value)}
-                    placeholder="Ex.: amigável, direto, premium"
-                  />
+                  <select
+                    className="h-11 rounded-xl border border-zinc-200 bg-white px-3 outline-none focus:ring-2 focus:ring-emerald-200"
+                    value={toneChoice}
+                    onChange={(e) =>
+                      setToneChoice(e.target.value as (typeof TONE_OPTIONS)[number])
+                    }
+                  >
+                    <option value="">Selecione</option>
+                    {TONE_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                  {toneChoice === "Outro" && (
+                    <input
+                      className="mt-2 h-11 rounded-xl border border-zinc-200 px-3 outline-none focus:ring-2 focus:ring-emerald-200"
+                      value={toneOther}
+                      onChange={(e) => setToneOther(e.target.value)}
+                      placeholder="Digite o tom de voz"
+                    />
+                  )}
                 </div>
 
                 <div className="grid gap-1 sm:col-span-2">
-                  <label className="text-sm font-medium">Posicionamento</label>
+                  <label className="text-sm font-medium">Diferencial da loja</label>
                   <input
                     className="h-11 rounded-xl border border-zinc-200 px-3 outline-none focus:ring-2 focus:ring-emerald-200"
                     value={brandPositioning}
                     onChange={(e) => setBrandPositioning(e.target.value)}
-                    placeholder="Ex.: o mais barato do bairro / qualidade premium / entrega rápida"
+                    placeholder="Ex.: mais barato do bairro / qualidade premium / entrega rápida"
                   />
                 </div>
               </div>
             </section>
 
-            {/* contato */}
+            {/* Contato e endereço */}
             <section className="grid gap-3">
               <div className="text-sm font-semibold">Contato e endereço (opcional)</div>
 
@@ -225,8 +334,9 @@ export default function StorePage() {
                   <input
                     className="h-11 rounded-xl border border-zinc-200 px-3 outline-none focus:ring-2 focus:ring-emerald-200"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="(xx) xxxx-xxxx"
+                    onChange={(e) => setPhone(formatBRPhone(e.target.value))}
+                    placeholder="(xx) xxxxx-xxxx"
+                    inputMode="numeric"
                   />
                 </div>
 
@@ -235,14 +345,15 @@ export default function StorePage() {
                   <input
                     className="h-11 rounded-xl border border-zinc-200 px-3 outline-none focus:ring-2 focus:ring-emerald-200"
                     value={whatsapp}
-                    onChange={(e) => setWhatsapp(e.target.value)}
+                    onChange={(e) => setWhatsapp(formatBRPhone(e.target.value))}
                     placeholder="(xx) xxxxx-xxxx"
+                    inputMode="numeric"
                   />
                 </div>
               </div>
             </section>
 
-            {/* cores */}
+            {/* Identidade visual */}
             <section className="grid gap-3">
               <div className="text-sm font-semibold">Identidade visual</div>
 
@@ -269,7 +380,7 @@ export default function StorePage() {
 
                 <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-700 sm:col-span-2">
                   <div className="font-medium text-zinc-900">Prévia rápida</div>
-                  <div className="mt-2 flex items-center gap-3">
+                  <div className="mt-2 flex flex-wrap items-center gap-3">
                     <div
                       className="h-10 w-10 rounded-xl"
                       style={{ backgroundColor: primaryColor }}
@@ -303,7 +414,7 @@ export default function StorePage() {
             <div className="flex items-center justify-between gap-3">
               <button
                 type="button"
-                onClick={() => router.push("/login")}
+                onClick={() => router.push("/login?redirect=%2Fapp")}
                 className="rounded-xl border border-zinc-200 px-4 py-2 text-sm font-medium hover:bg-zinc-50"
                 disabled={saving}
               >
@@ -318,9 +429,4 @@ export default function StorePage() {
                 {saving ? "Salvando..." : "Salvar e continuar"}
               </button>
             </div>
-          </form>
-        </div>
-      </div>
-    </main>
-  );
-}
+          </form
