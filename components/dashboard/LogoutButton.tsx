@@ -1,23 +1,20 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function LogoutButton() {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  async function onLogout() {
+  async function handleLogout() {
     setLoading(true);
-    // chama a rota server-side que faz signOut e redireciona
     window.location.href = "/logout";
   }
 
   return (
     <button
-      onClick={onLogout}
+      onClick={handleLogout}
       disabled={loading}
-      className="block w-full text-left py-1 hover:text-gray-900 disabled:opacity-60"
+      className="w-full text-left"
     >
       {loading ? "Saindo..." : "Sair"}
     </button>

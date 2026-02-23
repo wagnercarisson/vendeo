@@ -8,10 +8,13 @@ export default function LoginClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const rawRedirect = searchParams.get("redirect") ?? "/app";
-  const redirectTo = rawRedirect.startsWith("%2F")
-    ? decodeURIComponent(rawRedirect)
-    : rawRedirect;
+  // aceita next (novo) e redirect (legado). fallback agora é /dashboard
+  const rawNext =
+    searchParams.get("next") ?? searchParams.get("redirect") ?? "/dashboard";
+
+  const redirectTo = rawNext.startsWith("%2F")
+    ? decodeURIComponent(rawNext)
+    : rawNext;
 
   const [mode, setMode] = useState<"signup" | "login">("signup");
   const [email, setEmail] = useState("");
@@ -43,6 +46,7 @@ export default function LoginClient() {
         if (signInError) throw signInError;
 
         router.push(redirectTo);
+        router.refresh();
         return;
       }
 
@@ -53,6 +57,7 @@ export default function LoginClient() {
       if (loginError) throw loginError;
 
       router.push(redirectTo);
+      router.refresh();
     } catch (err: any) {
       setError(err?.message ?? "Erro inesperado.");
     } finally {
@@ -70,9 +75,7 @@ export default function LoginClient() {
               <div className="h-10 w-10 rounded-xl bg-emerald-600" />
               <div>
                 <div className="text-lg font-semibold">Vendeo</div>
-                <div className="text-sm text-zinc-600">
-                  Postou, vendeo!
-                </div>
+                <div className="text-sm text-zinc-600">Postou, vendeo!</div>
               </div>
             </div>
 
@@ -80,7 +83,8 @@ export default function LoginClient() {
               Conteúdo pronto para lojas físicas venderem mais.
             </div>
             <div className="mt-3 text-zinc-600">
-              Gere posts, roteiros de reels e um plano semanal com foco em conversão local.
+              Gere posts, roteiros de reels e um plano semanal com foco em
+              conversão local.
             </div>
           </div>
 
@@ -92,7 +96,9 @@ export default function LoginClient() {
                   {mode === "signup" ? "Criar conta" : "Entrar"}
                 </div>
                 <h1 className="text-2xl font-semibold">
-                  {mode === "signup" ? "Começar no Vendeo" : "Bem-vindo de volta"}
+                  {mode === "signup"
+                    ? "Começar no Vendeo"
+                    : "Bem-vindo de volta"}
                 </h1>
               </div>
 
@@ -119,7 +125,9 @@ export default function LoginClient() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                    autoComplete={
+                      mode === "signup" ? "new-password" : "current-password"
+                    }
                   />
                 </div>
 
@@ -128,7 +136,11 @@ export default function LoginClient() {
                   disabled={loading}
                   className="mt-2 h-11 rounded-xl bg-emerald-600 font-medium text-white disabled:opacity-60"
                 >
-                  {loading ? "Processando..." : mode === "signup" ? "Criar conta" : "Entrar"}
+                  {loading
+                    ? "Processando..."
+                    : mode === "signup"
+                    ? "Criar conta"
+                    : "Entrar"}
                 </button>
 
                 {error && (
