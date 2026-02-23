@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
@@ -9,33 +9,22 @@ function onlyDigits(v: string) {
 }
 
 function formatBRPhone(value: string) {
-  const digits = onlyDigits(value).slice(0, 11);
-
+  const digits = value.replace(/\D/g, "").slice(0, 11);
   const ddd = digits.slice(0, 2);
   const rest = digits.slice(2);
 
   if (digits.length === 0) return "";
-  if (digits.length < 2) return `(${ddd}`;
-  if (digits.length === 2) return `(${ddd})`;
+  if (digits.length < 3) return `(${ddd}`;
+  if (digits.length < 8) return `(${ddd}) ${rest}`;
 
-  // 10 dígitos: (11) 2345-6789
-  // 11 dígitos: (11) 92345-6789
-  if (digits.length <= 10) {
-    const p1 = rest.slice(0, 4);
-    const p2 = rest.slice(4, 8);
-    if (rest.length <= 4) return `(${ddd}) ${p1}`;
-    return `(${ddd}) ${p1}-${p2}`;
-  } else {
-    const p1 = rest.slice(0, 5);
-    const p2 = rest.slice(5, 9);
-    if (rest.length <= 5) return `(${ddd}) ${p1}`;
-    return `(${ddd}) ${p1}-${p2}`;
-  }
+  const part1 = rest.slice(0, 5);
+  const part2 = rest.slice(5, 9);
+  return `(${ddd}) ${part1}${part2 ? `-${part2}` : ""}`;
 }
 
 const UF_OPTIONS = [
-  "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG",
-  "PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO",
+  "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR",
+  "PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO",
 ];
 
 const SEGMENT_OPTIONS = [
@@ -49,9 +38,8 @@ const SEGMENT_OPTIONS = [
   "Eletrônicos",
   "Casa & Decoração",
   "Academia",
-  "Oficina / Auto",
-  "Outro",
-] as const;
+  "Outro…",
+];
 
 const TONE_OPTIONS = [
   "Amigável",
@@ -60,9 +48,9 @@ const TONE_OPTIONS = [
   "Premium",
   "Divertido",
   "Técnico",
-  "Próximo (de bairro)",
-  "Outro",
-] as const;
+  "Próximo / “de bairro”",
+  "Outro…",
+];
 
 export default function StorePage() {
   const router = useRouter();
@@ -75,12 +63,11 @@ export default function StorePage() {
   const [city, setCity] = useState("");
   const [stateUf, setStateUf] = useState("");
 
-  // branding/posicionamento
-  const [segmentChoice, setSegmentChoice] = useState<(typeof SEGMENT_OPTIONS)[number] | "">("");
-  const [segmentOther, setSegmentOther] = useState("");
-  const [toneChoice, setToneChoice] = useState<(typeof TONE_OPTIONS)[number] | "">("");
-  const [toneOther, setToneOther] = useState("");
-
+  // posicionamento
+  const [segmentChoice, setSegmentChoice] = useState("");
+  const [mainSegmentCustom, setMainSegmentCustom] = useState("");
+  const [toneChoice, setToneChoice] = useState("");
+  const [toneCustom, setToneCustom] = useState("");
   const [brandPositioning, setBrandPositioning] = useState("");
 
   // contato/endereço
@@ -95,19 +82,13 @@ export default function StorePage() {
   const [primaryColor, setPrimaryColor] = useState("#16a34a");
   const [secondaryColor, setSecondaryColor] = useState("#0f172a");
 
-  const mainSegment = useMemo(() => {
-    if (!segmentChoice) return "";
-    if (segmentChoice === "Outro") return segmentOther.trim();
-    return segmentChoice;
-  }, [segmentChoice, segmentOther]);
+  const mainSegment =
+    segmentChoice === "Outro…" ? mainSegmentCustom.trim() : segmentChoice.trim();
 
-  const toneOfVoice = useMemo(() => {
-    if (!toneChoice) return "";
-    if (toneChoice === "Outro") return toneOther.trim();
-    return toneChoice;
-  }, [toneChoice, toneOther]);
+  const toneOfVoice =
+    toneChoice === "Outro…" ? toneCustom.trim() : toneChoice.trim();
 
-  async function handleSave(e: React.FormEvent) {
+  async function handleSave(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSaving(true);
     setError(null);
@@ -137,7 +118,6 @@ export default function StorePage() {
         address: address.trim() || null,
         neighborhood: neighborhood.trim() || null,
 
-        // salva só dígitos no banco
         phone: onlyDigits(phone) || null,
         whatsapp: onlyDigits(whatsapp) || null,
         instagram: instagram.trim() || null,
@@ -146,9 +126,9 @@ export default function StorePage() {
         secondary_color: secondaryColor || null,
       };
 
-      const { error } = await supabase.from("stores").insert(payload);
+      const { error: insertError } = await supabase.from("stores").insert(payload);
 
-      if (error) throw new Error(error.message);
+      if (insertError) throw new Error(insertError.message);
 
       router.push("/app");
     } catch (err: any) {
@@ -235,9 +215,7 @@ export default function StorePage() {
                   <select
                     className="h-11 rounded-xl border border-zinc-200 bg-white px-3 outline-none focus:ring-2 focus:ring-emerald-200"
                     value={segmentChoice}
-                    onChange={(e) =>
-                      setSegmentChoice(e.target.value as (typeof SEGMENT_OPTIONS)[number])
-                    }
+                    onChange={(e) => setSegmentChoice(e.target.value)}
                   >
                     <option value="">Selecione</option>
                     {SEGMENT_OPTIONS.map((opt) => (
@@ -246,12 +224,13 @@ export default function StorePage() {
                       </option>
                     ))}
                   </select>
-                  {segmentChoice === "Outro" && (
+
+                  {segmentChoice === "Outro…" && (
                     <input
-                      className="mt-2 h-11 rounded-xl border border-zinc-200 px-3 outline-none focus:ring-2 focus:ring-emerald-200"
-                      value={segmentOther}
-                      onChange={(e) => setSegmentOther(e.target.value)}
-                      placeholder="Digite seu segmento"
+                      className="h-11 rounded-xl border border-zinc-200 px-3 outline-none focus:ring-2 focus:ring-emerald-200"
+                      value={mainSegmentCustom}
+                      onChange={(e) => setMainSegmentCustom(e.target.value)}
+                      placeholder="Digite o segmento"
                     />
                   )}
                 </div>
@@ -261,9 +240,7 @@ export default function StorePage() {
                   <select
                     className="h-11 rounded-xl border border-zinc-200 bg-white px-3 outline-none focus:ring-2 focus:ring-emerald-200"
                     value={toneChoice}
-                    onChange={(e) =>
-                      setToneChoice(e.target.value as (typeof TONE_OPTIONS)[number])
-                    }
+                    onChange={(e) => setToneChoice(e.target.value)}
                   >
                     <option value="">Selecione</option>
                     {TONE_OPTIONS.map((opt) => (
@@ -272,11 +249,12 @@ export default function StorePage() {
                       </option>
                     ))}
                   </select>
-                  {toneChoice === "Outro" && (
+
+                  {toneChoice === "Outro…" && (
                     <input
-                      className="mt-2 h-11 rounded-xl border border-zinc-200 px-3 outline-none focus:ring-2 focus:ring-emerald-200"
-                      value={toneOther}
-                      onChange={(e) => setToneOther(e.target.value)}
+                      className="h-11 rounded-xl border border-zinc-200 px-3 outline-none focus:ring-2 focus:ring-emerald-200"
+                      value={toneCustom}
+                      onChange={(e) => setToneCustom(e.target.value)}
                       placeholder="Digite o tom de voz"
                     />
                   )}
@@ -294,7 +272,7 @@ export default function StorePage() {
               </div>
             </section>
 
-            {/* Contato e endereço */}
+            {/* Contato */}
             <section className="grid gap-3">
               <div className="text-sm font-semibold">Contato e endereço (opcional)</div>
 
@@ -335,7 +313,7 @@ export default function StorePage() {
                     className="h-11 rounded-xl border border-zinc-200 px-3 outline-none focus:ring-2 focus:ring-emerald-200"
                     value={phone}
                     onChange={(e) => setPhone(formatBRPhone(e.target.value))}
-                    placeholder="(xx) xxxxx-xxxx"
+                    placeholder="(11) 99999-9999"
                     inputMode="numeric"
                   />
                 </div>
@@ -346,7 +324,7 @@ export default function StorePage() {
                     className="h-11 rounded-xl border border-zinc-200 px-3 outline-none focus:ring-2 focus:ring-emerald-200"
                     value={whatsapp}
                     onChange={(e) => setWhatsapp(formatBRPhone(e.target.value))}
-                    placeholder="(xx) xxxxx-xxxx"
+                    placeholder="(11) 99999-9999"
                     inputMode="numeric"
                   />
                 </div>
@@ -380,23 +358,14 @@ export default function StorePage() {
 
                 <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-700 sm:col-span-2">
                   <div className="font-medium text-zinc-900">Prévia rápida</div>
-                  <div className="mt-2 flex flex-wrap items-center gap-3">
-                    <div
-                      className="h-10 w-10 rounded-xl"
-                      style={{ backgroundColor: primaryColor }}
-                    />
-                    <div
-                      className="rounded-xl px-4 py-2 text-white"
-                      style={{ backgroundColor: primaryColor }}
-                    >
+                  <div className="mt-2 flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl" style={{ backgroundColor: primaryColor }} />
+                    <div className="rounded-xl px-4 py-2 text-white" style={{ backgroundColor: primaryColor }}>
                       Botão primário
                     </div>
                     <div
                       className="rounded-xl px-4 py-2"
-                      style={{
-                        border: `1px solid ${secondaryColor}`,
-                        color: secondaryColor,
-                      }}
+                      style={{ border: `1px solid ${secondaryColor}`, color: secondaryColor }}
                     >
                       Destaque
                     </div>
@@ -429,4 +398,9 @@ export default function StorePage() {
                 {saving ? "Salvando..." : "Salvar e continuar"}
               </button>
             </div>
-          </form
+          </form>
+        </div>
+      </div>
+    </main>
+  );
+}
