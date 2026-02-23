@@ -10,13 +10,25 @@ function onlyDigits(v: string) {
 
 function formatBRPhone(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 11);
+
+  if (digits.length === 0) return "";
+
   const ddd = digits.slice(0, 2);
   const rest = digits.slice(2);
 
-  if (digits.length === 0) return "";
-  if (digits.length < 3) return `(${ddd}`;
-  if (digits.length < 8) return `(${ddd}) ${rest}`;
+  // Ainda digitando DDD
+  if (digits.length < 3) {
+    return `(${ddd}`;
+  }
 
+  // Se for telefone fixo (até 10 dígitos)
+  if (digits.length <= 10) {
+    const part1 = rest.slice(0, 4);
+    const part2 = rest.slice(4, 8);
+    return `(${ddd}) ${part1}${part2 ? `-${part2}` : ""}`;
+  }
+
+  // Se for celular (11 dígitos)
   const part1 = rest.slice(0, 5);
   const part2 = rest.slice(5, 9);
   return `(${ddd}) ${part1}${part2 ? `-${part2}` : ""}`;
@@ -29,6 +41,7 @@ const UF_OPTIONS = [
 
 const SEGMENT_OPTIONS = [
   "Mercado / Mercearia",
+  "Loja de Bebidas",
   "Moda / Boutique",
   "Farmácia",
   "Restaurante / Lanchonete",
