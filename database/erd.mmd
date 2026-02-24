@@ -1,0 +1,86 @@
+erDiagram
+  STORES {
+    uuid id PK
+    text name
+    text city
+    text state
+    text logo_url
+    timestamp created_at
+    text brand_positioning
+    text main_segment
+    text tone_of_voice
+    text address
+    text neighborhood
+    text phone
+    text whatsapp
+    text instagram
+    text primary_color
+    text secondary_color
+    uuid owner_user_id
+  }
+
+  CAMPAIGNS {
+    uuid id PK
+    uuid store_id FK
+    text product_name
+    numeric price
+    text audience
+    text objective
+    text image_url
+    text headline
+    text body_text
+    text cta
+    text status
+    timestamp created_at
+    text ai_text
+    text ai_caption
+    text ai_hashtags
+    text ai_cta
+    timestamptz ai_generated_at
+    text reels_hook
+    text reels_script
+    jsonb reels_shotlist
+    jsonb reels_on_screen_text
+    text reels_audio_suggestion
+    int reels_duration_seconds
+    text reels_caption
+    text reels_cta
+    text reels_hashtags
+    timestamptz reels_generated_at
+    text product_positioning
+  }
+
+  WEEKLY_PLANS {
+    uuid id PK
+    uuid store_id FK
+    date week_start
+    text status
+    jsonb strategy
+    timestamptz created_at
+  }
+
+  WEEKLY_PLAN_ITEMS {
+    uuid id PK
+    uuid plan_id FK
+    int day_of_week
+    text content_type
+    text theme
+    text recommended_time
+    uuid campaign_id FK
+    jsonb brief
+    timestamptz created_at
+  }
+
+  STORE_MEMBERS {
+    uuid id PK
+    uuid store_id FK
+    uuid user_id FK
+    text role
+    timestamptz created_at
+  }
+
+  STORES ||--o{ CAMPAIGNS : "store_id"
+  STORES ||--o{ WEEKLY_PLANS : "store_id"
+  WEEKLY_PLANS ||--o{ WEEKLY_PLAN_ITEMS : "plan_id"
+  CAMPAIGNS ||--o{ WEEKLY_PLAN_ITEMS : "campaign_id (optional)"
+  STORES ||--o{ STORE_MEMBERS : "store_id"
