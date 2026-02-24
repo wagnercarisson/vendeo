@@ -8,14 +8,14 @@ export async function getUserStoreIdOrThrow() {
   if (!user) throw new Error("not_authenticated");
 
   const { data, error } = await supabase
-    .from("store_members")
-    .select("store_id")
-    .eq("user_id", user.id)
+    .from("stores")
+    .select("id")
+    .eq("owner_user_id", user.id)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
 
-  if (error || !data?.store_id) throw new Error("store_not_found");
+  if (error || !data?.id) throw new Error("store_not_found");
 
-  return { user, storeId: data.store_id as string };
+  return { userId: user.id, storeId: data.id as string };
 }

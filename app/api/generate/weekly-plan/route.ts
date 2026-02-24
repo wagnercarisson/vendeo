@@ -1,25 +1,39 @@
+// src/app/api/generate/weekly-plan/route.ts
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
 import { getUserStoreIdOrThrow } from "@/lib/store/getUserStoreId";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+/**
+ * ✅ Env guard (evita HTML 500 e facilita debug)
+ */
+function requireEnv(name: string) {
+  const value = process.env[name];
+  if (!value) throw new Error(`MISSING_ENV:${name}`);
+  return value;
+}
+
+const openai = new OpenAI({ apiKey: requireEnv("OPENAI_API_KEY") });
 
 const supabaseAdmin = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  requireEnv("SUPABASE_URL"),
+  requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
   { auth: { persistSession: false } }
 );
 
-// ✅ Removido store_id do body (vem do usuário logado)
+/**
+ * ✅ Agora suportamos multi-loja: client manda store_id (GET/POST),
+ * e o server valida owner_user_id contra o user logado.
+ */
 const PostBodySchema = z.object({
+  store_id: z.string().uuid(),
   week_start: z.string().optional(), // YYYY-MM-DD
   force: z.boolean().optional().default(false),
 });
 
-// ✅ Removido store_id da query (vem do usuário logado)
 const QuerySchema = z.object({
+  store_id: z.string().uuid(),
   week_start: z.string().optional(), // YYYY-MM-DD
 });
 
@@ -55,7 +69,9 @@ function toISODate(d: Date) {
 }
 
 function getWeekStartMondayISO(today = new Date()) {
-  const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+  const d = new Date(
+    Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
+  );
   const jsDay = d.getUTCDay(); // 0..6
   const diffToMonday = (jsDay + 6) % 7;
   d.setUTCDate(d.getUTCDate() - diffToMonday);
@@ -133,26 +149,62 @@ async function fetchPlan(storeId: string, week_start: string) {
   return { plan, items: items ?? [], campaigns };
 }
 
+/**
+ * 🔐 Valida se store_id pertence ao user logado.
+ * Requer que getUserStoreIdOrThrow retorne { userId: string, storeId?: string } (ou ao menos userId).
+ */
+async function assertStoreOwnershipOr403(opts: {
+  requestId: string;
+  storeId: string;
+}) {
+  const { requestId, storeId } = opts;
+
+  const auth = await getUserStoreIdOrThrow();
+  const userId = (auth as any).userId as string | undefined;
+
+  if (!userId) {
+    // Se seu helper ainda não retorna userId, você PRECISA ajustá-lo.
+    // Deixo aqui explícito com erro claro.
+    return {
+      ok: false as const,
+      response: NextResponse.json(
+        { ok: false, requestId, error: "AUTH_HELPER_MUST_RETURN_USER_ID" },
+        { status: 500 }
+      ),
+    };
+  }
+
+  const { data: owned, error: ownErr } = await supabaseAdmin
+    .from("stores")
+    .select("id")
+    .eq("id", storeId)
+    .eq("owner_user_id", userId)
+    .maybeSingle();
+
+  if (ownErr) throw new Error(ownErr.message);
+
+  if (!owned) {
+    return {
+      ok: false as const,
+      response: NextResponse.json(
+        { ok: false, requestId, error: "STORE_NOT_FOUND" },
+        { status: 403 }
+      ),
+    };
+  }
+
+  return { ok: true as const, userId };
+}
+
 export async function GET(req: Request) {
   const requestId = crypto.randomUUID();
-
-  // ✅ storeId vem do usuário logado
-  let storeId: string;
-  try {
-    ({ storeId } = await getUserStoreIdOrThrow());
-  } catch (e: any) {
-    const msg = String(e?.message || "");
-    if (msg === "not_authenticated") {
-      return NextResponse.json({ ok: false, requestId, error: "NOT_AUTHENTICATED" }, { status: 401 });
-    }
-    return NextResponse.json({ ok: false, requestId, error: "STORE_NOT_FOUND" }, { status: 403 });
-  }
 
   try {
     const url = new URL(req.url);
     const week_start = (url.searchParams.get("week_start") ?? getWeekStartMondayISO()).trim();
+    const store_id = (url.searchParams.get("store_id") ?? "").trim();
 
-    const q = QuerySchema.safeParse({ week_start });
+    const q = QuerySchema.safeParse({ store_id, week_start });
     if (!q.success) {
       return NextResponse.json(
         { ok: false, requestId, error: "INVALID_QUERY", details: q.error.flatten() },
@@ -160,7 +212,14 @@ export async function GET(req: Request) {
       );
     }
 
-    const result = await fetchPlan(storeId, q.data.week_start ?? getWeekStartMondayISO());
+    // valida ownership
+    const own = await assertStoreOwnershipOr403({ requestId, storeId: q.data.store_id });
+    if (!own.ok) return own.response;
+
+    const result = await fetchPlan(
+      q.data.store_id,
+      q.data.week_start ?? getWeekStartMondayISO()
+    );
 
     return NextResponse.json({
       ok: true,
@@ -183,18 +242,6 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const requestId = crypto.randomUUID();
 
-  // ✅ storeId vem do usuário logado
-  let storeId: string;
-  try {
-    ({ storeId } = await getUserStoreIdOrThrow());
-  } catch (e: any) {
-    const msg = String(e?.message || "");
-    if (msg === "not_authenticated") {
-      return NextResponse.json({ ok: false, requestId, error: "NOT_AUTHENTICATED" }, { status: 401 });
-    }
-    return NextResponse.json({ ok: false, requestId, error: "STORE_NOT_FOUND" }, { status: 403 });
-  }
-
   try {
     const json = await req.json().catch(() => null);
     const body = PostBodySchema.safeParse(json);
@@ -206,10 +253,16 @@ export async function POST(req: Request) {
       );
     }
 
-    const { force } = body.data;
+    const { force, store_id } = body.data;
     const week_start = (body.data.week_start ?? getWeekStartMondayISO()).trim();
 
-    // ✅ loja (contexto) — sempre a loja do usuário logado
+    // valida ownership
+    const own = await assertStoreOwnershipOr403({ requestId, storeId: store_id });
+    if (!own.ok) return own.response;
+
+    const storeId = store_id;
+
+    // ✅ loja (contexto)
     const { data: store, error: sErr } = await supabaseAdmin
       .from("stores")
       .select(
@@ -230,7 +283,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ idempotência (por loja do usuário)
+    // ✅ idempotência
     const existing = await fetchPlan(storeId, week_start);
     if (existing && !force) {
       return NextResponse.json({
@@ -243,7 +296,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // se force e existe: limpar itens (não deletar campaigns para segurança)
+    // se force e existe: limpar itens
     if (existing && force) {
       const { error: delItemsErr } = await supabaseAdmin
         .from("weekly_plan_items")
@@ -253,7 +306,7 @@ export async function POST(req: Request) {
       if (delItemsErr) throw new Error(delItemsErr.message);
     }
 
-    // ✅ upsert do plano (por loja do usuário)
+    // ✅ upsert do plano
     const { data: upPlan, error: upPlanErr } = await supabaseAdmin
       .from("weekly_plans")
       .upsert(
@@ -372,7 +425,7 @@ ${safeStringify(parsed1)}
 
     if (updPlanErr) throw new Error(updPlanErr.message);
 
-    // ✅ criar campaigns + itens sempre na loja do usuário (storeId)
+    // ✅ criar campaigns + itens
     for (const it of planAI.items) {
       const { data: cRow, error: cErr } = await supabaseAdmin
         .from("campaigns")

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-export default function LogoutButton() {
+export default function LogoutButton({ className = "" }: { className?: string }) {
   const [loading, setLoading] = useState(false);
 
   async function handleLogout() {
@@ -11,11 +11,7 @@ export default function LogoutButton() {
   }
 
   return (
-    <button
-      onClick={handleLogout}
-      disabled={loading}
-      className="w-full text-left"
-    >
+    <button onClick={handleLogout} disabled={loading} className={className}>
       {loading ? "Saindo..." : "Sair"}
     </button>
   );

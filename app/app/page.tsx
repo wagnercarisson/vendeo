@@ -14,7 +14,7 @@ export default function AppEntryPage() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        router.replace("/login?redirect=%2Fapp");
+        router.replace("/login?mode=login&next=%2Fdashboard");
         return;
       }
 
@@ -26,16 +26,16 @@ export default function AppEntryPage() {
 
       if (error) {
         console.error("Erro ao buscar store:", error);
-        router.replace("/login?redirect=%2Fapp");
+        router.replace("/login?mode=login&next=%2Fdashboard");
         return;
       }
 
       if (!store) {
-        router.replace("/store");
+        router.replace("/dashboard/store");
         return;
       }
 
-      router.replace("/plans");
+      router.replace("/dashboard/plans");
     }
 
     run();

@@ -1,12 +1,18 @@
 "use client";
 
-import { useState } from "react";
+"use client";
+
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export default function LoginClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  const modeParam = searchParams.get("mode");
+  const initialMode: "signup" | "login" =
+    modeParam === "login" ? "login" : "signup";
 
   // aceita next (novo) e redirect (legado). fallback agora é /dashboard
   const rawNext =
@@ -22,6 +28,11 @@ export default function LoginClient() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMode(initialMode);
+    setError(null);
+  }, [initialMode]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

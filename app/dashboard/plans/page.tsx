@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { fetchJson } from "@/lib/http";
 
 type Store = {
   id: string;
@@ -78,7 +79,9 @@ type Campaign = {
 };
 
 function getWeekStartMondayISO(today = new Date()) {
-  const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+  const d = new Date(
+    Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
+  );
   const jsDay = d.getUTCDay(); // 0..6
   const diffToMonday = (jsDay + 6) % 7;
   d.setUTCDate(d.getUTCDate() - diffToMonday);
@@ -144,7 +147,9 @@ function buildReelsFullText(c: Campaign) {
   const lines: string[] = [];
 
   lines.push(`HOOK: ${c.reels_hook ?? ""}`);
-  lines.push(`DURAÇÃO: ${c.reels_duration_seconds ? c.reels_duration_seconds + "s" : ""}`);
+  lines.push(
+    `DURAÇÃO: ${c.reels_duration_seconds ? c.reels_duration_seconds + "s" : ""}`
+  );
   lines.push(`ÁUDIO: ${c.reels_audio_suggestion ?? ""}`);
   lines.push("");
 
@@ -193,7 +198,9 @@ function buildReelsFullText(c: Campaign) {
 function buildBriefText(it: WeeklyPlanItem) {
   const b = it.brief ?? {};
   const lines: string[] = [];
-  lines.push(`BRIEF — ${dayLabel(it.day_of_week)} (${String(it.content_type).toUpperCase()})`);
+  lines.push(
+    `BRIEF — ${dayLabel(it.day_of_week)} (${String(it.content_type).toUpperCase()})`
+  );
   lines.push(`Tema: ${it.theme ?? ""}`);
   if (it.recommended_time) lines.push(`Horário sugerido: ${it.recommended_time}`);
   lines.push("");
@@ -248,25 +255,42 @@ export default function PlansPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function loadStores() {
-    setLoadingStores(true);
-    const { data, error } = await supabase
-      .from("stores")
-      .select(
-        "id, name, city, state, main_segment, brand_positioning, tone_of_voice, whatsapp, instagram, phone, primary_color, secondary_color"
-      )
-      .order("created_at", { ascending: false });
+async function loadStores() {
+  setLoadingStores(true);
 
-    if (error) {
-      console.error(error);
-      setStores([]);
-    } else {
-      setStores((data as any) ?? []);
-      if ((data as any)?.length && !storeId) setStoreId((data as any)[0].id);
-    }
+  // pega usuário logado
+  const {
+    data: { user },
+    error: userErr,
+  } = await supabase.auth.getUser();
 
+  if (userErr || !user) {
+    setStores([]);
+    setStoreId("");
     setLoadingStores(false);
+    return;
   }
+
+  const { data, error } = await supabase
+    .from("stores")
+    .select(
+      "id, name, city, state, main_segment, brand_positioning, tone_of_voice, whatsapp, instagram, phone, primary_color, secondary_color, owner_user_id"
+    )
+    .eq("owner_user_id", user.id)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error(error);
+    setStores([]);
+    setStoreId("");
+  } else {
+    const rows = (data as any) ?? [];
+    setStores(rows);
+    if (rows.length && !storeId) setStoreId(rows[0].id);
+  }
+
+  setLoadingStores(false);
+}
 
   const selectedStore = useMemo(
     () => stores.find((s) => s.id === storeId) ?? null,
@@ -282,22 +306,30 @@ export default function PlansPage() {
   async function loadPlan() {
     setLoadingPlan(true);
     setError(null);
+
     try {
-      const res = await fetch(
-        `/api/generate/weekly-plan?week_start=${encodeURIComponent(weekStart)}`,
+      const data = await fetchJson<{
+        ok: boolean;
+        plan: Plan | null;
+        items: WeeklyPlanItem[];
+        campaigns: Campaign[];
+        error?: string;
+        details?: string;
+      }>(
+        `/api/generate/weekly-plan?week_start=${encodeURIComponent(weekStart)}&store_id=${encodeURIComponent(
+          storeId
+        )}`,
         { method: "GET" }
       );
 
-      const data = await res.json();
-
-      if (!res.ok || !data?.ok) {
+      if (!data?.ok) {
         throw new Error(data?.details || data?.error || "Erro ao carregar plano");
       }
 
       setPlan(data.plan ?? null);
       setItems((data.items ?? []) as WeeklyPlanItem[]);
       setCampaigns((data.campaigns ?? []) as Campaign[]);
-      setDrafts({}); // limpa drafts ao recarregar
+      setDrafts({});
     } catch (e: any) {
       setError(e?.message ?? "Erro ao carregar plano");
     } finally {
@@ -318,23 +350,32 @@ export default function PlansPage() {
     if (!storeId) return;
 
     if (force && plan) {
-      const ok = confirm("Regenerar o plano desta semana? Isso vai criar novas campanhas.");
+      const ok = confirm(
+        "Regenerar o plano desta semana? Isso vai criar novas campanhas."
+      );
       if (!ok) return;
     }
 
     setGeneratingPlan(true);
     try {
-      const res = await fetch("/api/generate/weekly-plan", {
+      const data = await fetchJson<{
+        ok: boolean;
+        plan: Plan | null;
+        items: WeeklyPlanItem[];
+        campaigns: Campaign[];
+        error?: string;
+        details?: string;
+      }>("/api/generate/weekly-plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          store_id: storeId,
           week_start: weekStart,
           force,
         }),
       });
 
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
+      if (!data?.ok) {
         throw new Error(data?.details ?? data?.error ?? "Falha ao gerar plano");
       }
 
@@ -342,7 +383,6 @@ export default function PlansPage() {
       setItems((data.items ?? []) as WeeklyPlanItem[]);
       setCampaigns((data.campaigns ?? []) as Campaign[]);
       setDrafts({});
-
       setNotice(force ? "Plano regenerado!" : "Plano gerado!");
     } catch (e: any) {
       setError(e?.message ?? "Erro ao gerar plano");
@@ -389,13 +429,20 @@ export default function PlansPage() {
       };
 
       // preço: aceita vazio => null
-      if (merged.price === null || merged.price === undefined || Number.isNaN(merged.price as any)) {
+      if (
+        merged.price === null ||
+        merged.price === undefined ||
+        Number.isNaN(merged.price as any)
+      ) {
         payload.price = null;
       } else {
         payload.price = Number(merged.price);
       }
 
-      const { error } = await supabase.from("campaigns").update(payload).eq("id", campId);
+      const { error } = await supabase
+        .from("campaigns")
+        .update(payload)
+        .eq("id", campId);
       if (error) throw new Error(error.message);
 
       // Atualiza a tela
@@ -421,12 +468,12 @@ export default function PlansPage() {
       const res = await fetch("/api/generate/campaign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // ✅ envia só campaign_id; backend busca no banco
         body: JSON.stringify({ campaign_id: camp.id, force }),
       });
 
       const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.ok) throw new Error(data?.details ?? data?.error ?? "Falha ao gerar texto");
+      if (!res.ok || !data.ok)
+        throw new Error(data?.details ?? data?.error ?? "Falha ao gerar texto");
 
       await loadPlan();
     } finally {
@@ -447,12 +494,12 @@ export default function PlansPage() {
       const res = await fetch("/api/generate/reels", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // ✅ mínimo
         body: JSON.stringify({ campaign_id: camp.id, force }),
       });
 
       const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.ok) throw new Error(data?.details ?? data?.error ?? "Falha ao gerar Reels");
+      if (!res.ok || !data.ok)
+        throw new Error(data?.details ?? data?.error ?? "Falha ao gerar Reels");
 
       await loadPlan();
     } finally {
@@ -508,13 +555,14 @@ export default function PlansPage() {
         const hasText = !!(camp.ai_caption && String(camp.ai_caption).trim().length > 0);
         const hasReels = !!camp.reels_generated_at;
 
-        setAutoCurrent(`${i + 1}/${tasks.length} — ${dayLabel(it.day_of_week)} (${String(it.content_type).toUpperCase()})`);
+        setAutoCurrent(
+          `${i + 1}/${tasks.length} — ${dayLabel(it.day_of_week)} (${String(
+            it.content_type
+          ).toUpperCase()})`
+        );
 
         try {
-          // texto: gera só se não existe
           if (!hasText) await generateTextForCampaign(camp, false);
-
-          // reels: só se o item for reels e não existe
           if (isReels && !hasReels) await generateReelsForCampaign(camp, false);
         } catch (e: any) {
           errors.push(`${dayLabel(it.day_of_week)}: ${e?.message ?? "Erro desconhecido"}`);
@@ -562,7 +610,7 @@ export default function PlansPage() {
     <main style={{ padding: 24, fontFamily: "system-ui, Arial" }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
         <h1 style={{ margin: 0 }}>Plano da Semana</h1>
-        <Link href="/campaigns" style={{ fontSize: 14 }}>
+        <Link href="/dashboard/campaigns" style={{ fontSize: 14 }}>
           ← Voltar para campanhas
         </Link>
       </div>
@@ -573,17 +621,42 @@ export default function PlansPage() {
 
       <section style={{ ...cardStyle, maxWidth: 1120 }}>
         {notice && (
-          <div style={{ marginBottom: 10, padding: 10, background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: 10 }}>
+          <div
+            style={{
+              marginBottom: 10,
+              padding: 10,
+              background: "#ecfdf5",
+              border: "1px solid #a7f3d0",
+              borderRadius: 10,
+            }}
+          >
             ✅ {notice}
           </div>
         )}
         {warn && (
-          <div style={{ marginBottom: 10, padding: 10, background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 10 }}>
+          <div
+            style={{
+              marginBottom: 10,
+              padding: 10,
+              background: "#fffbeb",
+              border: "1px solid #fcd34d",
+              borderRadius: 10,
+            }}
+          >
             ⚠️ {warn}
           </div>
         )}
         {error && (
-          <div style={{ marginBottom: 10, padding: 10, background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, whiteSpace: "pre-wrap" }}>
+          <div
+            style={{
+              marginBottom: 10,
+              padding: 10,
+              background: "#fef2f2",
+              border: "1px solid #fecaca",
+              borderRadius: 10,
+              whiteSpace: "pre-wrap",
+            }}
+          >
             ❌ {error}
           </div>
         )}
@@ -591,15 +664,21 @@ export default function PlansPage() {
         <div style={{ display: "grid", gap: 12 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 220px", gap: 12 }}>
             <div>
-              <label style={{ fontSize: 13, display: "block", marginBottom: 6 }}>Loja</label>
+              <label style={{ fontSize: 13, display: "block", marginBottom: 6 }}>
+                Loja
+              </label>
               {loadingStores ? (
                 <p>Carregando lojas...</p>
               ) : stores.length === 0 ? (
                 <p>
-                  Nenhuma loja cadastrada. <Link href="/store">Cadastre uma loja</Link>.
+                  Nenhuma loja cadastrada. <Link href="/dashboard/store">Cadastre uma loja</Link>.
                 </p>
               ) : (
-                <select style={inputStyle} value={storeId} onChange={(e) => setStoreId(e.target.value)}>
+                <select
+                  style={inputStyle}
+                  value={storeId}
+                  onChange={(e) => setStoreId(e.target.value)}
+                >
                   {stores.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name} — {s.city ?? "—"}/{s.state ?? "—"}
@@ -625,14 +704,26 @@ export default function PlansPage() {
             </div>
 
             <div>
-              <label style={{ fontSize: 13, display: "block", marginBottom: 6 }}>Semana (início)</label>
-              <input style={inputStyle} type="date" value={weekStart} onChange={(e) => setWeekStart(e.target.value)} />
-              <div style={{ fontSize: 12, color: "#666", marginTop: 6 }}>Use a segunda-feira como início.</div>
+              <label style={{ fontSize: 13, display: "block", marginBottom: 6 }}>
+                Semana (início)
+              </label>
+              <input
+                style={inputStyle}
+                type="date"
+                value={weekStart}
+                onChange={(e) => setWeekStart(e.target.value)}
+              />
+              <div style={{ fontSize: 12, color: "#666", marginTop: 6 }}>
+                Use a segunda-feira como início.
+              </div>
             </div>
           </div>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button onClick={() => loadPlan()} disabled={!storeId || loadingPlan || generatingPlan || autoRunning}>
+            <button
+              onClick={() => loadPlan()}
+              disabled={!storeId || loadingPlan || generatingPlan || autoRunning}
+            >
               {loadingPlan ? "Carregando..." : "Recarregar"}
             </button>
 
@@ -653,7 +744,10 @@ export default function PlansPage() {
             </button>
 
             {plan && (
-              <button onClick={() => generatePlan(true)} disabled={!storeId || generatingPlan || autoRunning}>
+              <button
+                onClick={() => generatePlan(true)}
+                disabled={!storeId || generatingPlan || autoRunning}
+              >
                 Regenerar plano
               </button>
             )}
@@ -671,13 +765,16 @@ export default function PlansPage() {
               }}
               title="Gera automaticamente apenas o que não existe (somente itens completos)"
             >
-              {autoRunning ? `Modo automático... (${autoDone}/${autoTotal})` : "Modo automático (Gerar tudo)"}
+              {autoRunning
+                ? `Modo automático... (${autoDone}/${autoTotal})`
+                : "Modo automático (Gerar tudo)"}
             </button>
           </div>
 
           {autoRunning && (
             <div style={{ marginTop: 2, fontSize: 13, color: "#444" }}>
-              <strong>Executando:</strong> {autoCurrent} · <strong>Progresso:</strong> {autoDone}/{autoTotal}
+              <strong>Executando:</strong> {autoCurrent} · <strong>Progresso:</strong>{" "}
+              {autoDone}/{autoTotal}
             </div>
           )}
         </div>
@@ -697,7 +794,9 @@ export default function PlansPage() {
           </section>
 
           <section style={cardStyle}>
-            <h2 style={{ marginTop: 0, fontSize: 16 }}>Itens da semana (edite os produtos antes de gerar)</h2>
+            <h2 style={{ marginTop: 0, fontSize: 16 }}>
+              Itens da semana (edite os produtos antes de gerar)
+            </h2>
 
             {items.length === 0 ? (
               <p>Sem itens ainda.</p>
@@ -707,7 +806,9 @@ export default function PlansPage() {
                   .slice()
                   .sort((a, b) => a.day_of_week - b.day_of_week)
                   .map((it) => {
-                    const camp = it.campaign_id ? campaignsById.get(it.campaign_id) : undefined;
+                    const camp = it.campaign_id
+                      ? campaignsById.get(it.campaign_id)
+                      : undefined;
                     if (!camp) return null;
 
                     const merged = getDraft(camp);
@@ -730,12 +831,22 @@ export default function PlansPage() {
                           background: "white",
                         }}
                       >
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            flexWrap: "wrap",
+                          }}
+                        >
                           <div>
                             <strong>
-                              {dayLabel(it.day_of_week)} — {String(it.content_type).toUpperCase()}
+                              {dayLabel(it.day_of_week)} —{" "}
+                              {String(it.content_type).toUpperCase()}
                             </strong>
-                            {it.recommended_time ? <span style={{ color: "#666" }}> · {it.recommended_time}</span> : null}
+                            {it.recommended_time ? (
+                              <span style={{ color: "#666" }}> · {it.recommended_time}</span>
+                            ) : null}
                             <div style={{ marginTop: 6 }}>
                               <strong>Tema:</strong> {it.theme}
                             </div>
@@ -852,38 +963,57 @@ export default function PlansPage() {
                         </div>
 
                         <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
-                          {/* Form de edição */}
-                          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 10 }}>
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "2fr 1fr 1fr",
+                              gap: 10,
+                            }}
+                          >
                             <div>
-                              <div style={{ fontSize: 12, color: "#666", marginBottom: 6 }}>Produto</div>
+                              <div style={{ fontSize: 12, color: "#666", marginBottom: 6 }}>
+                                Produto
+                              </div>
                               <input
                                 style={smallInputStyle}
                                 value={merged.product_name ?? ""}
-                                onChange={(e) => setDraft(camp.id, { product_name: e.target.value })}
+                                onChange={(e) =>
+                                  setDraft(camp.id, { product_name: e.target.value })
+                                }
                                 placeholder="Ex: Cerveja Antarctica 600ml"
                               />
                             </div>
 
                             <div>
-                              <div style={{ fontSize: 12, color: "#666", marginBottom: 6 }}>Preço (opcional)</div>
+                              <div style={{ fontSize: 12, color: "#666", marginBottom: 6 }}>
+                                Preço (opcional)
+                              </div>
                               <input
                                 style={smallInputStyle}
                                 value={merged.price ?? ""}
                                 onChange={(e) => {
                                   const v = e.target.value;
                                   const n = v === "" ? null : Number(v);
-                                  setDraft(camp.id, { price: Number.isNaN(n as any) ? null : (n as any) });
+                                  setDraft(camp.id, {
+                                    price: Number.isNaN(n as any) ? null : (n as any),
+                                  });
                                 }}
                                 placeholder="Ex: 8.99"
                               />
                             </div>
 
                             <div>
-                              <div style={{ fontSize: 12, color: "#666", marginBottom: 6 }}>Perfil do produto</div>
+                              <div style={{ fontSize: 12, color: "#666", marginBottom: 6 }}>
+                                Perfil do produto
+                              </div>
                               <select
                                 style={smallInputStyle}
                                 value={merged.product_positioning ?? ""}
-                                onChange={(e) => setDraft(camp.id, { product_positioning: e.target.value || null })}
+                                onChange={(e) =>
+                                  setDraft(camp.id, {
+                                    product_positioning: e.target.value || null,
+                                  })
+                                }
                               >
                                 <option value="">—</option>
                                 <option value="popular">popular</option>
@@ -897,7 +1027,9 @@ export default function PlansPage() {
 
                           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                             <div>
-                              <div style={{ fontSize: 12, color: "#666", marginBottom: 6 }}>Público</div>
+                              <div style={{ fontSize: 12, color: "#666", marginBottom: 6 }}>
+                                Público
+                              </div>
                               <input
                                 style={smallInputStyle}
                                 value={merged.audience ?? ""}
@@ -907,7 +1039,9 @@ export default function PlansPage() {
                             </div>
 
                             <div>
-                              <div style={{ fontSize: 12, color: "#666", marginBottom: 6 }}>Objetivo</div>
+                              <div style={{ fontSize: 12, color: "#666", marginBottom: 6 }}>
+                                Objetivo
+                              </div>
                               <input
                                 style={smallInputStyle}
                                 value={merged.objective ?? ""}

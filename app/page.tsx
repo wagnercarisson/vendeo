@@ -1,8 +1,9 @@
 import Link from "next/link";
 
 export default function HomePage() {
-  const loginToApp = "/login?redirect=%2Fapp";
-  const loginToPlans = "/login?redirect=%2Fplans";
+  const loginToDashboard = "/login?mode=login&next=%2Fdashboard";
+  const signupToDashboard = "/login?mode=signup&next=%2Fdashboard";
+  const loginToPlans = "/login?mode=login&next=%2Fdashboard%2Fplans";
 
   return (
     <div className="min-h-screen bg-vendeo-bg">
@@ -21,13 +22,13 @@ export default function HomePage() {
 
           <nav className="flex items-center gap-3">
             <Link
-              href={loginToApp}
+              href={loginToDashboard}
               className="rounded-xl px-4 py-2 text-sm font-medium text-vendeo-text hover:bg-slate-100"
             >
               Entrar
             </Link>
             <Link
-              href={loginToApp}
+              href={loginToDashboard}
               className="rounded-xl bg-vendeo-green px-4 py-2 text-sm font-semibold text-white hover:bg-vendeo-greenLight"
             >
               Acessar painel
@@ -57,7 +58,7 @@ export default function HomePage() {
 
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
-                href={loginToApp}
+                href={signupToDashboard}
                 className="rounded-xl bg-vendeo-green px-5 py-3 text-sm font-semibold text-white hover:bg-vendeo-greenLight shadow-soft"
               >
                 Criar minha primeira campanha

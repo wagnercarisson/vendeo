@@ -17,5 +17,5 @@ export default async function DashboardLayout({
     redirect(`/login?next=${encodeURIComponent("/dashboard")}`);
   }
 
-  return <DashboardShell>{children}</DashboardShell>;
+  return <DashboardShell user={user}>{children}</DashboardShell>;
 }
