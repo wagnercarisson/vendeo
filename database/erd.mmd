@@ -16,7 +16,7 @@ erDiagram
     text instagram
     text primary_color
     text secondary_color
-    uuid owner_user_id
+    uuid owner_user_id  "auth.users.id"
   }
 
   CAMPAIGNS {
@@ -54,7 +54,7 @@ erDiagram
     uuid id PK
     uuid store_id FK
     date week_start
-    text status
+    text status  "default generated"
     jsonb strategy
     timestamptz created_at
   }
@@ -62,7 +62,7 @@ erDiagram
   WEEKLY_PLAN_ITEMS {
     uuid id PK
     uuid plan_id FK
-    int day_of_week
+    int day_of_week  "0-6 or 1-7 (define)"
     text content_type
     text theme
     text recommended_time
@@ -75,7 +75,7 @@ erDiagram
     uuid id PK
     uuid store_id FK
     uuid user_id FK
-    text role
+    text role  "default owner"
     timestamptz created_at
   }
 
