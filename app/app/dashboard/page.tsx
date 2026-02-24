@@ -1,5 +1,5 @@
 import Link from "next/link";
-import LogoutButton from "@/components/LogoutButton";
+import LogoutButton from "@/components/dashboard/LogoutButton";
 
 function ActionCard({
   title,
