@@ -123,7 +123,16 @@ A tabela `store_members` existe para evolução futura (multiusuário por loja),
 **FK opcional:** `campaign_id (uuid NULL)` → `campaigns.id` (ON DELETE SET NULL)
 
 **Campos:**
-- `day_of_week (int NOT NULL)` → esperado 0–6 ou 1–7 (definir padrão)
+- `day_of_week (int NOT NULL)`
+  - **Padrão oficial Vendeo:**
+    - 1 = Segunda
+    - 2 = Terça
+    - 3 = Quarta
+    - 4 = Quinta
+    - 5 = Sexta
+    - 6 = Sábado
+    - 7 = Domingo
+  - Intervalo válido: **1–7**
 - `content_type (text NOT NULL)` → tipo do conteúdo
 - `theme (text NOT NULL)` → tema/gancho
 - `recommended_time (text NULL)` → horário sugerido (ex.: "09:00", "18:30")
