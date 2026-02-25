@@ -1,184 +1,290 @@
 # Modelo de Dados — Vendeo (public)
 
-## Visão geral
-O Vendeo é multi-tenant por loja (**stores**). O isolamento atual é **owner-based** via `stores.owner_user_id`.
-A tabela `store_members` existe para evolução futura (multiusuário por loja), mas o controle principal hoje é por owner.
+## Visão Geral
+
+O Vendeo é um SaaS multi-tenant baseado em **lojas (stores)**.
+
+O isolamento entre usuários é feito via modelo **owner-based**:
+
+- Cada loja possui um `owner_user_id`
+- Todas as entidades dependentes (campaigns, weekly_plans, weekly_plan_items)
+  validam acesso via `stores.owner_user_id = auth.uid()`
+
+A tabela `store_members` está preparada para futura evolução multiusuário,
+mas o controle atual é exclusivamente por owner.
 
 ---
 
-## Convenções gerais
+# Convenções Gerais
 
-### Tipos e padrões
-- IDs: `uuid` com default `gen_random_uuid()`.
-- Timestamps:
-  - Algumas tabelas usam `timestamp without time zone` (ex.: `stores.created_at`, `campaigns.created_at`).
-  - Outras usam `timestamp with time zone` (ex.: `weekly_plans.created_at`, `weekly_plan_items.created_at`, `ai_generated_at`).
-  - **Recomendação (futuro):** padronizar para `timestamptz` em todas.
+## IDs
+- Todas as PKs são `uuid`
+- Default: `gen_random_uuid()`
 
-### Enum/valores esperados (aplicação)
-> Alguns campos são `text` no banco e a validação ocorre na aplicação.
-- `weekly_plans.status`: default `'generated'`. Sugestão de valores válidos na app:
-  - `generated` | `draft` | `approved` | `published` | `archived` (ajuste conforme UI)
-- `campaigns.status`: default `'draft'`. Sugestão:
-  - `draft` | `generated` | `scheduled` | `published` | `archived`
-- `weekly_plan_items.day_of_week`:
-  - esperado: **0–6** (0=Domingo … 6=Sábado) **ou** 1–7 (depende do padrão da sua UI).
-  - **Defina e documente na app** para evitar inconsistência.
-- `weekly_plan_items.content_type`:
-  - esperado: tipos de conteúdo do Vendeo (ex.: `feed_post`, `story`, `reels`, `carousel`, `offer`, etc).
-- `store_members.role`:
-  - default `'owner'`. Sugestão futura:
-  - `owner` | `admin` | `editor` | `viewer`
+## Datas e Horários
+- Uso misto de `timestamp` e `timestamptz`
+- Recomendação futura: padronizar para `timestamptz`
 
----
+## Enum Oficiais do Sistema
 
-## Tabelas
+### weekly_plan_items.day_of_week
+Padrão ISO (segunda-feira como início):
 
-### stores
-**Finalidade:** Loja (tenant).
+| Valor | Dia       |
+|--------|-----------|
+| 1 | Segunda |
+| 2 | Terça |
+| 3 | Quarta |
+| 4 | Quinta |
+| 5 | Sexta |
+| 6 | Sábado |
+| 7 | Domingo |
 
-**PK:** `id (uuid)`
+Constraint no banco:
 
-**Campos:**
-- Identidade: `name` (NOT NULL)
-- Localização: `city`, `state`, `address`, `neighborhood`
-- Contato: `phone`, `whatsapp`, `instagram`
-- Marca/posicionamento: `brand_positioning`, `main_segment`, `tone_of_voice`
-- Visual: `logo_url`, `primary_color`, `secondary_color`
-- Auditoria: `created_at`
-- **Ownership (multi-tenant):** `owner_user_id (uuid NOT NULL)` → `auth.users.id` (FK no Supabase)
+day_of_week between 1 and 7
 
-**Relacionamentos:**
-- `stores (1) -> (N) campaigns` via `campaigns.store_id`
-- `stores (1) -> (N) weekly_plans` via `weekly_plans.store_id`
-- `stores (1) -> (N) store_members` via `store_members.store_id` (futuro)
-
-**Regras de negócio:**
-- Uma loja pertence a um único owner (`owner_user_id`).
-- A UI deve impedir criar loja sem owner (RLS já força `owner_user_id = auth.uid()` no insert).
 
 ---
 
-### campaigns
-**Finalidade:** Campanhas/conteúdos para uma loja (imagem/texto/legenda/hashtags/reels).
+### weekly_plan_items.content_type
 
-**PK:** `id (uuid)`
-**FK:** `store_id (uuid NOT NULL)` → `stores.id`
+Valores oficiais:
 
-**Campos principais:**
-- Produto/oferta: `product_name` (NOT NULL), `price`, `product_positioning`
-- Estratégia: `audience`, `objective`
-- Criativos: `image_url`, `headline`, `body_text`, `cta`
-- Status: `status` (default `'draft'`)
-- Auditoria: `created_at`
 
-**IA (texto):**
-- `ai_text`, `ai_caption`, `ai_hashtags`, `ai_cta`, `ai_generated_at`
+post
+reels
 
-**IA (reels):**
-- `reels_hook`, `reels_script`, `reels_shotlist (jsonb)`, `reels_on_screen_text (jsonb)`
-- `reels_audio_suggestion`, `reels_duration_seconds`
-- `reels_caption`, `reels_cta`, `reels_hashtags`, `reels_generated_at`
 
-**Relacionamentos:**
-- `campaigns (N) -> (1) stores`
-- `campaigns (1) -> (N) weekly_plan_items` via `weekly_plan_items.campaign_id` (opcional)
+Constraint no banco:
 
-**Regras de negócio:**
-- Campanha sempre pertence a uma loja (`store_id`).
-- O app pode “gerar apenas o que falta” (modo automático) preenchendo campos IA nulos.
+content_type in ('post','reels')
+
 
 ---
 
-### weekly_plans
-**Finalidade:** Plano semanal por loja (1 por semana por loja).
+### weekly_plans.week_start
 
-**PK:** `id (uuid)`
-**FK:** `store_id (uuid NOT NULL)` → `stores.id`
+Regra oficial:
+- Sempre deve ser **segunda-feira**
 
-**Campos:**
-- `week_start (date NOT NULL)` → início da semana (padronizar se é sempre segunda-feira, por exemplo)
-- `status (text NOT NULL default 'generated')`
-- `strategy (jsonb NULL)` → estratégia/resumo do plano
-- `created_at (timestamptz NOT NULL)`
+Constraint no banco:
 
-**Índices/restrições:**
-- **Unique:** `(store_id, week_start)` → impede duplicar plano para mesma loja e semana.
+extract(isodow from week_start) = 1
 
-**Relacionamentos:**
-- `weekly_plans (N) -> (1) stores`
-- `weekly_plans (1) -> (N) weekly_plan_items` via `weekly_plan_items.plan_id`
-
-**Regras de negócio:**
-- Criar plano semanal deve respeitar a unicidade (store + week_start).
-- Regeração deve atualizar itens/estratégia sem criar duplicata.
 
 ---
 
-### weekly_plan_items
-**Finalidade:** Itens do plano semanal (dia, tipo, tema, horário recomendado), opcionalmente vinculados a uma campanha.
-
-**PK:** `id (uuid)`
-**FK:** `plan_id (uuid NOT NULL)` → `weekly_plans.id`
-**FK opcional:** `campaign_id (uuid NULL)` → `campaigns.id` (ON DELETE SET NULL)
-
-**Campos:**
-- `day_of_week (int NOT NULL)`
-  - **Padrão oficial Vendeo:**
-    - 1 = Segunda
-    - 2 = Terça
-    - 3 = Quarta
-    - 4 = Quinta
-    - 5 = Sexta
-    - 6 = Sábado
-    - 7 = Domingo
-  - Intervalo válido: **1–7**
-- `content_type (text NOT NULL)` → tipo do conteúdo
-- `theme (text NOT NULL)` → tema/gancho
-- `recommended_time (text NULL)` → horário sugerido (ex.: "09:00", "18:30")
-- `brief (jsonb NULL)` → briefing estruturado (insumos para IA)
-- `created_at (timestamptz NOT NULL)`
-
-**Relacionamentos:**
-- `weekly_plan_items (N) -> (1) weekly_plans`
-- `weekly_plan_items (N) -> (0..1) campaigns`
-
-**Regras de negócio:**
-- Um item deve sempre pertencer a um plano (`plan_id`).
-- `campaign_id` é opcional e pode ser nulo.
-- Se a campanha for apagada, o item mantém-se e `campaign_id` vira null.
+# Tabelas
 
 ---
 
-### store_members (futuro / evolução)
-**Finalidade:** Permitir multiusuário por loja com papéis.
+## stores
 
-**PK:** `id (uuid)`
-**FK:** `store_id (uuid NOT NULL)` → `stores.id`
-**FK:** `user_id (uuid NOT NULL)` → `auth.users.id`
-**Campos:** `role (text NOT NULL default 'owner')`, `created_at (timestamptz NOT NULL)`
+### Finalidade
+Representa uma loja (tenant do sistema).
 
-**Relacionamentos:**
-- `store_members (N) -> (1) stores`
-- `store_members (N) -> (1) auth.users`
+### PK
+`id (uuid)`
 
-**Regras de negócio (futuro):**
-- O owner poderá convidar membros.
-- RLS evolui de “owner-only” para “owner OR member”, com regras por role.
+### Campos
+
+- `name` (text, NOT NULL)
+- `city` (text)
+- `state` (text)
+- `logo_url` (text)
+- `brand_positioning` (text)
+- `main_segment` (text)
+- `tone_of_voice` (text)
+- `address` (text)
+- `neighborhood` (text)
+- `phone` (text)
+- `whatsapp` (text)
+- `instagram` (text)
+- `primary_color` (text)
+- `secondary_color` (text)
+- `created_at` (timestamp)
+- `owner_user_id` (uuid, NOT NULL)
+
+### Regras
+
+- Cada loja pertence a um único usuário.
+- `owner_user_id` referencia `auth.users.id`
+- RLS garante que somente o owner pode acessar sua loja.
+
+### Relacionamentos
+
+- `stores (1) → (N) campaigns`
+- `stores (1) → (N) weekly_plans`
+- `stores (1) → (N) store_members`
 
 ---
 
-## Segurança (RLS) — resumo
-- `stores`: owner-only (`owner_user_id = auth.uid()`)
-- `campaigns`: owner-only via `stores(owner_user_id)`
-- `weekly_plans`: owner-only via `stores(owner_user_id)`
-- `weekly_plan_items`: owner-only via `weekly_plans -> stores(owner_user_id)` e validação extra de `campaign_id` (quando não nulo)
-- `store_members`: owner-only (por enquanto)
+## campaigns
+
+### Finalidade
+Campanhas e conteúdos gerados para uma loja.
+
+### PK
+`id (uuid)`
+
+### FK
+`store_id → stores.id`
+
+### Campos Principais
+
+Produto:
+- `product_name` (NOT NULL)
+- `price`
+- `product_positioning`
+
+Marketing:
+- `audience`
+- `objective`
+- `headline`
+- `body_text`
+- `cta`
+- `status` (default 'draft')
+
+IA:
+- `ai_text`
+- `ai_caption`
+- `ai_hashtags`
+- `ai_cta`
+- `ai_generated_at`
+
+Reels:
+- `reels_hook`
+- `reels_script`
+- `reels_shotlist (jsonb)`
+- `reels_on_screen_text (jsonb)`
+- `reels_audio_suggestion`
+- `reels_duration_seconds`
+- `reels_caption`
+- `reels_cta`
+- `reels_hashtags`
+- `reels_generated_at`
+
+Auditoria:
+- `created_at`
+
+### Regras
+
+- Sempre pertence a uma loja.
+- Pode ou não estar associada a um item de plano semanal.
+- RLS valida via `stores.owner_user_id`.
 
 ---
 
-## Checklist de integridade (aplicação)
-- Definir padrão único para `day_of_week` (0–6 ou 1–7) e validar na API/UI.
-- Validar `recommended_time` (formato HH:mm) na API/UI.
-- Definir enum de `content_type` e `status` na aplicação (Zod).
-- Garantir `owner_user_id` sempre preenchido no create store (RLS + backend).
+## weekly_plans
+
+### Finalidade
+Plano semanal de conteúdos por loja.
+
+### PK
+`id (uuid)`
+
+### FK
+`store_id → stores.id`
+
+### Campos
+
+- `week_start (date, NOT NULL)`
+- `status (text, default 'generated')`
+- `strategy (jsonb)`
+- `created_at (timestamptz)`
+
+### Constraints
+
+- Unique: `(store_id, week_start)`
+- `week_start` deve ser segunda-feira
+
+### Regras
+
+- Uma loja não pode ter dois planos na mesma semana.
+- O plano pode ser regenerado, mas não duplicado.
+
+### Relacionamentos
+
+- `weekly_plans (1) → (N) weekly_plan_items`
+- `weekly_plans (N) → (1) stores`
+
+---
+
+## weekly_plan_items
+
+### Finalidade
+Itens individuais do plano semanal.
+
+### PK
+`id (uuid)`
+
+### FK
+- `plan_id → weekly_plans.id`
+- `campaign_id → campaigns.id` (opcional)
+
+### Campos
+
+- `day_of_week (int, NOT NULL)`
+- `content_type (text, NOT NULL)`
+- `theme (text, NOT NULL)`
+- `recommended_time (text)`
+- `brief (jsonb)`
+- `created_at (timestamptz)`
+
+### Constraints
+
+- `day_of_week between 1 and 7`
+- `content_type in ('post','reels')`
+
+### Regras
+
+- Sempre pertence a um plano semanal.
+- `campaign_id` pode ser null.
+- Se a campanha for deletada, o vínculo é removido.
+
+---
+
+## store_members (futuro)
+
+### Finalidade
+Permitir múltiplos usuários por loja.
+
+### PK
+`id (uuid)`
+
+### FK
+- `store_id → stores.id`
+- `user_id → auth.users.id`
+
+### Campos
+- `role (text, default 'owner')`
+- `created_at`
+
+### Status Atual
+- Ainda não utilizado ativamente.
+- Preparado para evolução futura de permissões.
+
+---
+
+# Segurança (RLS)
+
+Modelo atual: **Owner-Based**
+
+- stores → owner only
+- campaigns → owner via store
+- weekly_plans → owner via store
+- weekly_plan_items → owner via weekly_plans → store
+- store_members → owner only (por enquanto)
+
+---
+
+# Estado Atual do Modelo
+
+✔ Multi-tenant seguro  
+✔ Constraints críticas aplicadas  
+✔ Enum travados no banco  
+✔ Modelo documentado  
+✔ Versionado via migrations  
+
+Vendeo está com base estrutural de SaaS madura.
