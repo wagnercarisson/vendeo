@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -54,29 +55,27 @@ export function DashboardShell({
         {/* Marca */}
         <div className="p-6 border-b border-white/10">
           <div className="flex items-center gap-3">
-            {/* Aqui você pode substituir por um ícone/imagem quando tiver */}
-            <div className="h-11 w-11 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center">
-              <svg
-                viewBox="0 0 24 24"
-                className="h-6 w-6 text-white"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <polyline points="4 14 9 9 13 13 20 6" />
-                <polyline points="16 6 20 6 20 10" />
-              </svg>
+            {/* Ícone gráfico crescimento */}
+            <div className="relative h-9 w-9">
+              <Image
+                src="/brand/vendeo-icon.svg"
+                alt="Vendeo"
+                fill
+                className="object-contain"
+                priority
+              />
             </div>
 
-            <div className="min-w-0">
-              <BrandLogo />
+            {/* Nome Vendeo maior */}
+            <div>
+              <div className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 to-orange-400 bg-clip-text text-transparent">
+                VENDEO
+              </div>
             </div>
           </div>
 
-          <div className="mt-3 text-xs text-white/70 leading-snug">
+          {/* Tagline completa */}
+          <div className="mt-2 text-xs text-white/70 leading-snug">
             Motor de vendas para lojas físicas
           </div>
         </div>
