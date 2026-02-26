@@ -2,49 +2,82 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useMemo, useState } from "react";
 import LogoutButton from "@/components/dashboard/LogoutButton";
+import { BrandLogo } from "@/components/dashboard/BrandLogo";
 
 type Props = {
   children: React.ReactNode;
   user?: { email?: string | null } | null;
+  storeName?: string | null;
+  storeCity?: string | null;
+  storeState?: string | null;
 };
 
-export function DashboardShell({ children, user }: Props) {
+export function DashboardShell({
+  children,
+  user,
+  storeName,
+  storeCity,
+  storeState,
+}: Props) {
   const pathname = usePathname();
+  const [openAccount, setOpenAccount] = useState(false);
 
   const navItemBase =
     "block w-full rounded-xl px-3 py-2 text-sm font-medium transition";
-  const navItemInactive = `${navItemBase} text-vendeo-text hover:bg-slate-100`;
-  const navItemActive = `${navItemBase} bg-vendeo-green text-white shadow-soft`;
 
-  const menu = [
-    { href: "/dashboard", label: "Dashboard" },
-    { href: "/dashboard/store", label: "Lojas" },
-    { href: "/dashboard/campaigns", label: "Campanhas" },
-    { href: "/dashboard/plans", label: "Planos semanais" },
-  ];
+  // Sidebar refinada: hover mais suave + foco/ativo com “pill” branco
+  const navItemInactive = `${navItemBase} text-white/85 hover:bg-white/10 hover:text-white`;
+  const navItemActive = `${navItemBase} bg-white text-[#0B2E22] shadow-soft`;
 
-  const titleMap: Record<string, string> = {
-    "/dashboard": "Dashboard",
-    "/dashboard/store": "Lojas",
-    "/dashboard/campaigns": "Campanhas",
-    "/dashboard/plans": "Planos semanais",
-  };
+  const menu = useMemo(
+    () => [
+      { href: "/dashboard", label: "Dashboard" },
+      { href: "/dashboard/store", label: "Loja" },
+      { href: "/dashboard/campaigns", label: "Campanhas" },
+      { href: "/dashboard/plans", label: "Planos semanais" },
+    ],
+    []
+  );
 
-  const pageTitle = titleMap[pathname] ?? "Painel";
+  const email = user?.email ?? "—";
+  const initial = (user?.email?.charAt(0) || "U").toUpperCase();
+
+  const storeSubtitle =
+    storeCity && storeState ? `${storeCity}, ${storeState}` : "Endereço não informado";
 
   return (
     <div className="min-h-screen flex bg-vendeo-bg text-vendeo-text">
       {/* SIDEBAR */}
-      <aside className="w-64 bg-white border-r border-vendeo-border flex flex-col">
+      <aside className="w-64 bg-[#0B2E22] text-white flex flex-col">
         {/* Marca */}
-        <div className="p-6 border-b border-vendeo-border">
+        <div className="p-6 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-vendeo-green shadow-soft" />
-            <div className="leading-tight">
-              <div className="text-lg font-semibold text-vendeo-text">Vendeo</div>
-              <div className="text-sm text-vendeo-muted">Motor de vendas</div>
+            {/* Aqui você pode substituir por um ícone/imagem quando tiver */}
+            <div className="h-11 w-11 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center">
+              <svg
+                viewBox="0 0 24 24"
+                className="h-6 w-6 text-white"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <polyline points="4 14 9 9 13 13 20 6" />
+                <polyline points="16 6 20 6 20 10" />
+              </svg>
             </div>
+
+            <div className="min-w-0">
+              <BrandLogo />
+            </div>
+          </div>
+
+          <div className="mt-3 text-xs text-white/70 leading-snug">
+            Motor de vendas para lojas físicas
           </div>
         </div>
 
@@ -63,49 +96,71 @@ export function DashboardShell({ children, user }: Props) {
             );
           })}
         </nav>
-
-        {/* Conta */}
-        <div className="p-4 border-t border-vendeo-border space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-full bg-vendeo-green text-white flex items-center justify-center text-sm font-semibold shadow-soft">
-              {(user?.email?.charAt(0) || "U").toUpperCase()}
-            </div>
-            <div className="min-w-0">
-              <div className="text-xs text-vendeo-muted">Conta</div>
-              <div className="text-sm text-vendeo-text truncate">
-                {user?.email ?? "—"}
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-1 text-sm">
-            <Link href="/profile" className={navItemInactive}>
-              Perfil
-            </Link>
-
-            {/* Logout como button, mas com o MESMO estilo do Link */}
-            <LogoutButton className={navItemInactive} />
-          </div>
-        </div>
       </aside>
 
       {/* MAIN */}
       <div className="flex-1 flex flex-col">
-        {/* HEADER */}
-        <header className="h-16 bg-white border-b border-vendeo-border flex items-center justify-between px-6">
-          <div>
-            <div className="text-xs text-vendeo-muted">Painel Vendeo</div>
-            <h2 className="font-semibold text-vendeo-text">{pageTitle}</h2>
+        {/* HEADER (topbar global) */}
+        <header className="h-16 bg-white border-b border-black/5 flex items-center justify-between px-6">
+          {/* Loja (nome grande à esquerda + endereço abaixo) */}
+          <div className="min-w-0">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-vendeo-text truncate leading-tight">
+              {storeName ?? "Minha loja"}
+            </h2>
+
+            <div className="mt-1 text-sm text-vendeo-muted truncate">
+              {storeSubtitle}
+            </div>
           </div>
 
-          {/* CTA contextual */}
-          <div className="flex items-center gap-2">
+          {/* Direita: CTA + Conta */}
+          <div className="flex items-center gap-3">
             <Link
               href="/dashboard/campaigns/new"
-              className="rounded-xl bg-vendeo-green px-4 py-2 text-sm font-semibold text-white hover:bg-vendeo-greenLight shadow-soft"
+              className="rounded-xl bg-orange-500 px-3 py-2 text-sm font-semibold text-white hover:bg-orange-600 transition"
             >
               Nova campanha
             </Link>
+
+            {/* Conta (avatar + dropdown) */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setOpenAccount((v) => !v)}
+                className="flex items-center gap-2 rounded-xl border border-vendeo-border bg-white px-2 py-1.5 hover:bg-slate-50"
+                aria-label="Conta"
+              >
+                <div className="h-9 w-9 rounded-full bg-[#0F3D2E] text-white flex items-center justify-center text-sm font-semibold shadow-soft">
+                  {initial}
+                </div>
+
+                <div className="hidden md:block max-w-[220px] text-left">
+                  <div className="text-xs text-vendeo-muted">Conta</div>
+                  <div className="text-sm text-vendeo-text truncate">{email}</div>
+                </div>
+              </button>
+
+              {openAccount && (
+                <div
+                  className="absolute right-0 mt-2 w-56 rounded-2xl border border-vendeo-border bg-white shadow-soft p-2 z-50"
+                  onMouseLeave={() => setOpenAccount(false)}
+                >
+                  <Link
+                    href="/profile"
+                    className="block rounded-xl px-3 py-2 text-sm text-vendeo-text hover:bg-slate-100"
+                    onClick={() => setOpenAccount(false)}
+                  >
+                    Perfil
+                  </Link>
+
+                  <div className="h-px bg-vendeo-border my-1" />
+
+                  <LogoutButton
+                    className="w-full text-left rounded-xl px-3 py-2 text-sm text-vendeo-text hover:bg-slate-100"
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </header>
 

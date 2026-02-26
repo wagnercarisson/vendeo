@@ -11,3 +11,8 @@ body {
   color: #0F172A;
   font-family: Inter, system-ui, sans-serif;
 }
+
+/* ✅ fora do body (CSS válido) */
+.font-brand {
+  font-family: var(--font-brand);
+}

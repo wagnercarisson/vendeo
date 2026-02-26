@@ -2,12 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 function isProtectedPath(pathname: string) {
-  return (
-    pathname.startsWith("/app") ||
-    pathname.startsWith("/store") ||
-    pathname.startsWith("/campaigns") ||
-    pathname.startsWith("/plans")
-  );
+  // ✅ agora o app “logado” vive em /dashboard
+  return pathname.startsWith("/dashboard");
 }
 
 export async function middleware(request: NextRequest) {
@@ -38,18 +34,12 @@ export async function middleware(request: NextRequest) {
 
   const { data, error } = await supabase.auth.getUser();
 
-  if (error) {
-    // se der algum erro de auth/cookie, força login
+  // qualquer erro de auth/cookie -> login
+  if (error || !data?.user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.searchParams.set("redirect", encodeURIComponent(pathname + search));
-    return NextResponse.redirect(url);
-  }
-
-  if (!data?.user) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("redirect", encodeURIComponent(pathname + search));
+    // ✅ padroniza com o layout: ?next=/dashboard/...
+    url.searchParams.set("next", pathname + search);
     return NextResponse.redirect(url);
   }
 
@@ -57,5 +47,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/app/:path*", "/store/:path*", "/campaigns/:path*", "/plans/:path*"],
+  matcher: ["/dashboard/:path*"],
 };

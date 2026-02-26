@@ -19,9 +19,16 @@ export function createSupabaseServerClient() {
         return cookieStore.getAll();
       },
       setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) => {
-          cookieStore.set(name, value, options);
-        });
+        // ⚠️ Em Server Components o Next NÃO permite modificar cookies.
+        // Isso só funciona em Route Handlers / Server Actions.
+        // Então aqui a gente tenta; se falhar, ignora.
+        try {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options);
+          });
+        } catch {
+          // noop
+        }
       },
     },
   });

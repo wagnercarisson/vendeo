@@ -17,5 +17,23 @@ export default async function DashboardLayout({
     redirect(`/login?next=${encodeURIComponent("/dashboard")}`);
   }
 
-  return <DashboardShell user={user}>{children}</DashboardShell>;
+  // 1 usuário = 1 loja: pega a primeira loja do owner
+  const { data: store } = await supabase
+    .from("stores")
+    .select("name,city,state")
+    .eq("owner_user_id", user.id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  return (
+    <DashboardShell
+      user={user}
+      storeName={store?.name ?? null}
+      storeCity={store?.city ?? null}
+      storeState={store?.state ?? null}
+    >
+      {children}
+    </DashboardShell>
+  );
 }
