@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
 import LogoutButton from "@/components/dashboard/LogoutButton";
-import { BrandLogo } from "@/components/dashboard/BrandLogo";
+import Brand from "@/components/dashboard/BrandLogo";
 
 type Props = {
   children: React.ReactNode;
@@ -46,7 +46,9 @@ export function DashboardShell({
   const initial = (user?.email?.charAt(0) || "U").toUpperCase();
 
   const storeSubtitle =
-    storeCity && storeState ? `${storeCity}, ${storeState}` : "Endereço não informado";
+    storeCity && storeState
+      ? `${storeCity}, ${storeState}`
+      : "Endereço não informado";
 
   return (
     <div className="min-h-screen flex bg-vendeo-bg text-vendeo-text">
@@ -54,31 +56,8 @@ export function DashboardShell({
       <aside className="w-64 bg-[#0B2E22] text-white flex flex-col">
         {/* Marca */}
         <div className="p-6 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            {/* Ícone gráfico crescimento */}
-            <div className="relative h-9 w-9">
-              <Image
-                src="/brand/vendeo-icon.svg"
-                alt="Vendeo"
-                fill
-                className="object-contain"
-                priority
-              />
-            </div>
-
-            {/* Nome Vendeo maior */}
-            <div>
-              <div className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 to-orange-400 bg-clip-text text-transparent">
-                VENDEO
-              </div>
-            </div>
-          </div>
-
-          {/* Tagline completa */}
-          <div className="mt-2 text-xs text-white/70 leading-snug">
-            Motor de vendas para lojas físicas
-          </div>
-        </div>
+  <Brand size="md" align="center" showTagline />
+</div>
 
         {/* Menu */}
         <nav className="flex-1 p-4 space-y-1">
@@ -135,7 +114,9 @@ export function DashboardShell({
 
                 <div className="hidden md:block max-w-[220px] text-left">
                   <div className="text-xs text-vendeo-muted">Conta</div>
-                  <div className="text-sm text-vendeo-text truncate">{email}</div>
+                  <div className="text-sm text-vendeo-text truncate">
+                    {email}
+                  </div>
                 </div>
               </button>
 
@@ -154,9 +135,7 @@ export function DashboardShell({
 
                   <div className="h-px bg-vendeo-border my-1" />
 
-                  <LogoutButton
-                    className="w-full text-left rounded-xl px-3 py-2 text-sm text-vendeo-text hover:bg-slate-100"
-                  />
+                  <LogoutButton className="w-full text-left rounded-xl px-3 py-2 text-sm text-vendeo-text hover:bg-slate-100" />
                 </div>
               )}
             </div>
