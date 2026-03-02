@@ -16,3 +16,77 @@ body {
 .font-brand {
   font-family: var(--font-brand);
 }
+
+/* ===== VENDEO LANDING: Micro animações (seguras) ===== */
+
+@keyframes vendeo-fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes vendeo-glow-breathe {
+  0%, 100% { transform: scale(1); opacity: .35; }
+  50%      { transform: scale(1.06); opacity: .55; }
+}
+
+@keyframes vendeo-shimmer {
+  0% {
+    transform: translateX(-120%);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  85% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateX(220%);
+    opacity: 0;
+  }
+}
+
+.vendeo-shimmer {
+  animation: vendeo-shimmer 4.2s ease-in-out infinite;
+}
+
+@keyframes vendeo-progress {
+  0%   { width: 10%; }
+  50%  { width: 72%; }
+  100% { width: 38%; }
+}
+
+.vendeo-fade-up {
+  animation: vendeo-fade-up .7s ease-out both;
+}
+
+.vendeo-fade-up-delay-1 { animation-delay: .08s; }
+.vendeo-fade-up-delay-2 { animation-delay: .16s; }
+.vendeo-fade-up-delay-3 { animation-delay: .24s; }
+
+.vendeo-glow-breathe {
+  animation: vendeo-glow-breathe 5.5s ease-in-out infinite;
+}
+
+.vendeo-shimmer {
+  animation: vendeo-shimmer 3.8s ease-in-out infinite;
+}
+
+.vendeo-progress {
+  animation: vendeo-progress 3.2s ease-in-out infinite;
+}
+
+@keyframes vendeo-shimmer-strong {
+  0%   { transform: translateX(-140%); opacity: 0; }
+  12%  { opacity: 1; }
+  50%  { opacity: 1; }
+  88%  { opacity: 1; }
+  100% { transform: translateX(240%); opacity: 0; }
+}
+
+.vendeo-shimmer-strong {
+  animation: vendeo-shimmer-strong 3.6s ease-in-out infinite;
+}

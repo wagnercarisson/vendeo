@@ -16,6 +16,7 @@ export default {
         border: "#E2E8F0",
         text: "#0F172A",
         muted: "#64748B",
+        dark: "#0B2E22",
       },
     },
   },
