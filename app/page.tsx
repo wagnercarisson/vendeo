@@ -1,9 +1,61 @@
+"use client";
+
+import React, { useEffect } from "react";
 import Link from "next/link";
 import BrandLogo from "@/components/dashboard/BrandLogo";
 
 function Container({ children }: { children: React.ReactNode }) {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
+      {children}
+    </div>
+  );
+}
+
+function useVendeoScrollReveal() {
+  useEffect(() => {
+    const els = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-vendeo-reveal]")
+    );
+
+    // fallback caso não exista IntersectionObserver
+    if (typeof IntersectionObserver === "undefined") {
+      els.forEach((el) => el.classList.add("vendeo-inview"));
+      return;
+    }
+
+    const obs = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            (e.target as HTMLElement).classList.add("vendeo-inview");
+            obs.unobserve(e.target);
+          }
+        }
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -10% 0px" }
+    );
+
+    els.forEach((el) => obs.observe(el));
+    return () => obs.disconnect();
+  }, []);
+}
+
+function Reveal({
+  children,
+  delay = 0,
+  className = "",
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  className?: string;
+}) {
+  return (
+    <div
+      data-vendeo-reveal
+      className={`vendeo-reveal ${className}`}
+      style={{ ["--vendeo-delay" as any]: `${delay}ms` }}
+    >
       {children}
     </div>
   );
@@ -47,7 +99,7 @@ function PrimaryButton({
   return (
     <Link
       href={href}
-      className="group relative inline-flex items-center justify-center overflow-hidden rounded-xl bg-vendeo-green px-6 py-3 text-sm font-semibold text-white shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-md"
+      className="vendeo-button-glow group relative inline-flex items-center justify-center overflow-hidden rounded-xl bg-vendeo-green px-6 py-3 text-sm font-semibold text-white shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-vendeo-green/40"
     >
       {children}
       {/* brilho sutil */}
@@ -68,7 +120,7 @@ function SecondaryButton({
   return (
     <Link
       href={href}
-      className="inline-flex items-center justify-center rounded-xl border border-black/15 bg-white px-6 py-3 text-sm font-semibold text-black transition hover:-translate-y-0.5 hover:shadow-sm"
+      className="inline-flex items-center justify-center rounded-xl border border-black/15 bg-white px-6 py-3 text-sm font-semibold text-black transition hover:-translate-y-0.5 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-black/20"
     >
       {children}
     </Link>
@@ -85,7 +137,7 @@ function Card({
   icon?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-black/10 bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-md">
+    <div className="vendeo-card-glow min-h-[110px] rounded-2xl border border-black/10 hover:border-black/20 bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-md">
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="text-sm font-semibold text-black">{title}</div>
@@ -93,7 +145,7 @@ function Card({
         </div>
 
         {icon ? (
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100/70 text-emerald-800 shadow-sm ring-1 ring-emerald-500/5">
             {icon}
           </div>
         ) : null}
@@ -111,8 +163,6 @@ function PreviewCard() {
       <div className="rounded-2xl border border-black/10 bg-white p-6 shadow-md">
         <div className="flex items-center justify-between text-sm font-semibold text-black">
           <span>Prévia do painel</span>
-          {/*<span className="text-black/50">Campanha gerada</span>*/}
-
         </div>
 
         <div className="mt-3">
@@ -144,7 +194,6 @@ function PreviewCard() {
             </span>
           </div>
 
-          {/* fio discreto abaixo */}
           <div className="mt-2 h-[2px] w-full rounded-full bg-emerald-500/15" />
         </div>
 
@@ -184,10 +233,7 @@ function PreviewCard() {
         </div>
 
         <div className="relative mt-6 overflow-hidden text-center text-sm font-semibold text-black">
-          <span className="relative z-10">
-            Escolheu → Gerou → Postou → Vendeu
-          </span>
-
+          <span className="relative z-10">Escolheu → Gerou → Postou → Vendeu</span>
           <span
             className="pointer-events-none absolute inset-y-0 left-[-50%] w-[45%] -skew-x-12 bg-gradient-to-r from-transparent via-orange-200/35 to-transparent blur-sm vendeo-shimmer-strong"
             aria-hidden="true"
@@ -198,13 +244,75 @@ function PreviewCard() {
   );
 }
 
+function ScrollToTopFab() {
+  const [visible, setVisible] = React.useState(false);
+
+  React.useEffect(() => {
+    const onScroll = () => {
+      setVisible(window.scrollY > 650); // ajuste fino: 500–800
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const goTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+
+    setTimeout(() => {
+      const cta = document.getElementById("hero-cta");
+      if (cta) {
+        cta.classList.add("vendeo-cta-highlight");
+
+        setTimeout(() => {
+          cta.classList.remove("vendeo-cta-highlight");
+        }, 1000);
+      }
+    }, 500); // espera subir
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={goTop}
+      aria-label="Voltar ao topo"
+      className={[
+        // ✅ lateral, “suspenso”
+        "fixed right-6 top-1/2 -translate-y-1/2 z-[60]",
+        "h-11 w-11 rounded-2xl",
+        "border border-black/10 bg-white/85 backdrop-blur",
+        "shadow-md transition-all duration-300",
+        "hover:shadow-lg hover:-translate-y-[52%]",
+        "focus:outline-none focus:ring-2 focus:ring-vendeo-green/40",
+        visible ? "opacity-100" : "pointer-events-none opacity-0 translate-y-2",
+      ].join(" ")}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        className="mx-auto h-5 w-5 text-black/70"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M12 19V5" />
+        <path d="M6 11l6-6 6 6" />
+      </svg>
+    </button>
+  );
+}
+
 export default function HomePage() {
-  // ✅ links conforme você pediu
+  useVendeoScrollReveal();
+
   const hrefLogin = "/login?mode=login";
   const hrefSignup = "/login?mode=signup";
 
   return (
     <div className="min-h-screen bg-white">
+      <ScrollToTopFab />
       {/* HEADER */}
       <header className="sticky top-0 z-50 bg-emerald-950 text-white">
         <Container>
@@ -245,111 +353,151 @@ export default function HomePage() {
       </header>
 
       <main>
-        {/* HERO */}
+        {/* HERO (mantido; só coloquei reveal nos “pedaços” para ficar premium) */}
         <section className="relative overflow-hidden pt-16 pb-16">
-          {/* fundo com vida (sutil) */}
           <div className="absolute inset-0 -z-10 bg-gradient-to-br from-emerald-50 via-white to-orange-50" />
           <div className="absolute -top-24 right-[-120px] -z-10 h-72 w-72 rounded-full bg-emerald-400/10 blur-3xl" />
           <div className="absolute -bottom-24 left-[-120px] -z-10 h-72 w-72 rounded-full bg-orange-400/10 blur-3xl" />
 
           <Container>
             <div className="grid items-center gap-12 lg:grid-cols-2">
-              <div className="vendeo-fade-up">
-                <div className="inline-flex items-center rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-medium text-black/70">
-                  Conteúdo que vende na loja física
-                </div>
+              <div>
+                <Reveal>
+                  <div className="inline-flex items-center rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-medium text-black/70">
+                    Conteúdo que vende na loja física
+                  </div>
+                </Reveal>
 
-                <h1 className="vendeo-fade-up vendeo-fade-up-delay-1 mt-5 text-4xl font-semibold tracking-tight text-black sm:text-5xl">
-                  Transforme produtos da sua loja em posts que realmente geram
-                  clientes.
-                </h1>
+                <Reveal delay={80}>
+                  <h1 className="mt-5 text-4xl font-semibold tracking-tight text-black sm:text-5xl">
+                    Transforme produtos da sua loja em posts que realmente geram
+                    clientes.
+                  </h1>
+                </Reveal>
 
-                <p className="vendeo-fade-up vendeo-fade-up-delay-2 mt-5 text-lg leading-relaxed text-black/70">
-                  Sem agência. Sem designer. Sem perder tempo.
-                  <br />
-                  Escolha o produto → o Vendeo cria tudo pronto para postar.
-                </p>
+                <Reveal delay={160}>
+                  <p className="mt-5 text-lg leading-relaxed text-black/70">
+                    Sem agência. Sem designer. Sem perder tempo.
+                    <br />
+                    Escolha o produto → o Vendeo cria tudo pronto para postar.
+                  </p>
+                </Reveal>
 
-                <div className="vendeo-fade-up vendeo-fade-up-delay-3 mt-8 flex flex-col gap-4 sm:flex-row">
+                <Reveal delay={240}>
                   <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-                    <PrimaryButton href={hrefSignup}>
-                      Criar minha primeira campanha
-                    </PrimaryButton>
-
+                    <div id="hero-cta">
+                      <PrimaryButton href={hrefSignup}>
+                        Criar minha primeira campanha
+                      </PrimaryButton>
+                    </div>
                     <SecondaryButton href="#como-funciona">
                       Ver como funciona
                     </SecondaryButton>
                   </div>
-                </div>
 
-                <p className="mt-4 text-sm text-black/60">
-                  Teste grátis! Sem cartão. Comece em menos de 2 minutos.
-                </p>
+                  <p className="mt-4 text-sm text-black/60">
+                    Teste grátis! Sem cartão. Comece em menos de 2 minutos.
+                  </p>
 
-                <div className="mt-6 flex flex-wrap gap-3 text-sm font-medium text-black/70">
-                  <span className="rounded-full bg-white px-4 py-2 shadow-sm">
-                    ✔ Arte pronta
-                  </span>
-                  <span className="rounded-full bg-white px-4 py-2 shadow-sm">
-                    ✔ Legenda + CTA
-                  </span>
-                  <span className="rounded-full bg-white px-4 py-2 shadow-sm">
-                    ✔ Reels sugerido
-                  </span>
-                </div>
+                  <div className="mt-6 flex flex-wrap gap-3 text-sm font-medium text-black/70">
+                    <span className="rounded-full bg-white px-4 py-2 shadow-sm">
+                      ✔ Arte pronta
+                    </span>
+                    <span className="rounded-full bg-white px-4 py-2 shadow-sm">
+                      ✔ Legenda + CTA
+                    </span>
+                    <span className="rounded-full bg-white px-4 py-2 shadow-sm">
+                      ✔ Reels sugerido
+                    </span>
+                  </div>
 
-                <div className="mt-10 hidden items-center gap-2 text-sm font-semibold text-black/50 sm:inline-flex">
-                  <span className="inline-block h-8 w-8 rounded-full border border-black/10 bg-white text-center leading-8">
-                    ↓
-                  </span>
-                  Role para ver como funciona
-                </div>
+                  <div className="mt-10 hidden items-center gap-2 text-sm font-semibold text-black/50 sm:inline-flex">
+                    <span className="inline-block h-8 w-8 rounded-full border border-black/10 bg-white text-center leading-8">
+                      ↓
+                    </span>
+                    Role para ver como funciona
+                  </div>
+                </Reveal>
               </div>
 
               <div id="exemplos">
-                <PreviewCard />
+                <Reveal delay={120}>
+                  <PreviewCard />
+                </Reveal>
               </div>
             </div>
           </Container>
         </section>
 
-        {/* DOR */}
-        <section className="bg-black/[0.02] py-14 sm:py-16">
+        {/* DOR (impacto + CTA + glow) */}
+        <section className="vendeo-section-glow bg-black/[0.02] py-14 sm:py-16">
           <Container>
-            <SectionTitle
-              title="Sua loja é muito boa. Mas se você não aparece, você não vende."
-              subtitle="Enquanto você trabalha no balcão, um concorrente aparece no feed do seu cliente, o cliente esquece da sua marca e uma oferta passa despercebida."
-            />
+            <Reveal>
+              <SectionTitle
+                eyebrow="O problema"
+                title="Sua loja tem produto. Mas quem não aparece no feed… não gira estoque."
+                subtitle="Enquanto você atende no balcão, seu concorrente aparece no Instagram. O cliente compra de quem lembra. E lembra de quem aparece."
+              />
+            </Reveal>
 
             <div className="mt-8 grid gap-4 sm:grid-cols-3">
-              <Card
-                title="Concorrente aparece"
-                description="Seu cliente vê outra loja antes da sua."
-              />
-              <Card
-                title="Cliente esquece"
-                description="Sem constância, sua marca some da memória."
-              />
-              <Card
-                title="Oferta passa"
-                description="Promoção boa sem divulgação vira oportunidade perdida."
-              />
+              <Reveal delay={60}>
+                <Card
+                  title="Concorrente aparece"
+                  description="Seu produto é bom. Mas o dele está na tela do cliente."
+                />
+              </Reveal>
+              <Reveal delay={120}>
+                <Card
+                  title="Cliente esquece"
+                  description="Sem constância, sua loja some da memória."
+                />
+              </Reveal>
+              <Reveal delay={180}>
+                <Card
+                  title="Oferta passa"
+                  description="Promoção boa sem divulgação vira estoque parado."
+                />
+              </Reveal>
             </div>
 
-            <div className="mt-8 text-base font-semibold text-black">
-              O problema não é seu produto. É marketing constante.
-            </div>
+            <Reveal delay={160}>
+              <div className="mt-8 rounded-2xl border border-black/10 bg-white p-5 shadow-sm">
+                <p className="vendeo-cutline text-black">
+                  O problema não é seu produto.
+                  <span className="vendeo-break vendeo-highlight">
+                    É marketing constante.
+                  </span>
+                </p>
+              </div>
+            </Reveal>
+
+            <Reveal delay={200}>
+              <div className="mt-8">
+                <PrimaryButton href={hrefSignup}>
+                  Quero fazer minha loja aparecer
+                </PrimaryButton>
+                <p className="mt-3 text-sm font-medium text-black/60">
+                  Teste grátis. Sem cartão. Em menos de 2 minutos.
+                </p>
+              </div>
+            </Reveal>
           </Container>
         </section>
 
         {/* COMO FUNCIONA */}
-        <section id="como-funciona" className="py-14 sm:py-16 bg-gradient-to-b from-white to-emerald-50/30">
+        <section
+          id="como-funciona"
+          className="py-14 sm:py-16 bg-gradient-to-b from-white to-emerald-50/30"
+        >
           <Container>
-            <SectionTitle
-              eyebrow="Como funciona"
-              title="Simples assim."
-              subtitle="Quatro passos para transformar produto em venda."
-            />
+            <Reveal>
+              <SectionTitle
+                eyebrow="Como funciona"
+                title="Simples. Estratégico. Lucrativo."
+                subtitle="O Vendeo transforma produtos de lojas físicas em posts que vendem. Sem agência. Sem designer. Sem enrolação."
+              />
+            </Reveal>
 
             <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[
@@ -357,55 +505,107 @@ export default function HomePage() {
                 { n: "2", t: "Adicione o produto", d: "Nome, preço e oferta do dia." },
                 { n: "3", t: "Escolha o objetivo", d: "Vender, divulgar ou lançar." },
                 { n: "4", t: "Clique em gerar", d: "Post + legenda + CTA na hora." },
-              ].map((s) => (
-                <div
-                  key={s.n}
-                  className="rounded-2xl border border-black/10 bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-md"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-vendeo-green/10 text-sm font-bold text-vendeo-green">
-                      {s.n}
+              ].map((s, idx) => (
+                <Reveal key={s.n} delay={60 * idx}>
+                  <div className="vendeo-card-glow rounded-2xl border border-black/10 bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-md">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-vendeo-green/10 text-sm font-bold text-vendeo-green">
+                        {s.n}
+                      </div>
+                      <div className="text-sm font-semibold text-black">{s.t}</div>
                     </div>
-                    <div className="text-sm font-semibold text-black">{s.t}</div>
+                    <div className="mt-3 text-sm leading-relaxed text-black/60">{s.d}</div>
                   </div>
-                  <div className="mt-3 text-sm leading-relaxed text-black/60">
-                    {s.d}
-                  </div>
-                </div>
+                </Reveal>
               ))}
             </div>
 
-            <div className="mt-10 rounded-2xl border border-black/10 bg-black/[0.02] p-6">
-              <div className="text-sm font-semibold text-black">Você recebe:</div>
-              <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {[
-                  "Arte pronta",
-                  "Copy persuasiva",
-                  "Legenda estratégica",
-                  "Hashtags",
-                  "CTA forte",
-                  "Roteiro completo de Reels",
-                ].map((t) => (
-                  <div
-                    key={t}
-                    className="rounded-xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-black/80"
-                  >
-                    {t}
-                  </div>
-                ))}
+            <Reveal delay={120}>
+              <div className="mt-10 rounded-2xl border border-black/10 bg-black/[0.02] p-6">
+                <div className="text-sm font-semibold text-black">Você recebe:</div>
+                <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {[
+                    "Arte pronta",
+                    "Copy persuasiva",
+                    "Legenda estratégica",
+                    "Hashtags",
+                    "CTA forte",
+                    "Roteiro completo de Reels",
+                  ].map((t) => (
+                    <div
+                      key={t}
+                      className="rounded-xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-black/80"
+                    >
+                      {t}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <PrimaryButton href={hrefSignup}>Criar meu primeiro post agora</PrimaryButton>
+                  <p className="text-sm font-medium text-black/60">
+                    Teste grátis. Sem cartão. Em menos de 2 minutos.
+                  </p>
+                </div>
               </div>
+            </Reveal>
+          </Container>
+        </section>
+
+        {/* O PROBLEMA REAL */}
+        <section className="vendeo-section-glow bg-black/[0.02] py-14 sm:py-16">
+          <Container>
+            <Reveal>
+              <SectionTitle
+                eyebrow="Por que a maioria não vende"
+                title="Postar qualquer coisa é fácil. Postar com estratégia é raro."
+                subtitle="Imagem bonita não vende sozinha. Desconto mal comunicado não converte. Post sem intenção não gera movimento."
+              />
+            </Reveal>
+
+            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+              {[
+                { t: "Você até posta…", d: "Mas não cria motivo real para compra." },
+                { t: "O cliente até vê…", d: "Mas não entende o valor e passa adiante." },
+                { t: "A oferta é boa…", d: "Mas não chama atenção do jeito certo." },
+                { t: "Resultado…", d: "Esforço alto, retorno baixo." },
+              ].map((i, idx) => (
+                <Reveal key={i.t} delay={60 * idx}>
+                  <Card title={i.t} description={i.d} />
+                </Reveal>
+              ))}
             </div>
+
+            <Reveal delay={140}>
+              <div className="mt-8 rounded-2xl border border-black/10 bg-white p-5 shadow-sm">
+                <p className="vendeo-cutline text-black">
+                  Você não precisa de mais conteúdo.
+                  <span className="vendeo-break vendeo-highlight">Você precisa de direção.</span>
+                </p>
+              </div>
+            </Reveal>
+
+            <Reveal delay={200}>
+              <div className="mt-8">
+                <PrimaryButton href={hrefSignup}>Quero postar com estratégia</PrimaryButton>
+                <p className="mt-3 text-sm font-medium text-black/60">
+                  Teste grátis. Sem cartão. Em menos de 2 minutos.
+                </p>
+              </div>
+            </Reveal>
           </Container>
         </section>
 
         {/* DIFERENCIAL */}
-        <section className="bg-black/[0.02] py-14 sm:py-16">
+        <section className="vendeo-section-glow bg-black/[0.02] py-14 sm:py-16">
           <Container>
-            <SectionTitle
-              eyebrow="Diferencial"
-              title="O Vendeo pensa como varejista."
-              subtitle="Ele considera cidade, sazonalidade, datas comerciais, urgência, preço e público do bairro — para criar conteúdo que vende."
-            />
+            <Reveal>
+              <SectionTitle
+                eyebrow="Diferencial"
+                title="O Vendeo pensa como varejista."
+                subtitle="Ele considera cidade, sazonalidade, datas comerciais, urgência, preço e público do bairro — para criar conteúdo que vende."
+              />
+            </Reveal>
 
             <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {[
@@ -467,30 +667,48 @@ export default function HomePage() {
                     </svg>
                   ),
                 },
-              ].map((i) => (
-                <Card key={i.t} title={i.t} description={i.d} icon={i.icon} />
+              ].map((i, idx) => (
+                <Reveal key={i.t} delay={60 * idx}>
+                  <Card title={i.t} description={i.d} icon={i.icon} />
+                </Reveal>
               ))}
             </div>
 
-            <div className="mt-10 rounded-2xl border border-black/10 bg-white p-6 shadow-sm">
-              <div className="text-base font-semibold text-black">
-                Não é um gerador de imagem.
+            <Reveal delay={120}>
+              <div className="mt-10 rounded-2xl border border-black/10 bg-white p-6 shadow-sm">
+                <div className="text-base font-semibold text-black">
+                  Não é um gerador de imagem.
+                </div>
+                <div className="mt-1 text-base font-semibold text-black">
+                  <span className="vendeo-highlight">É um motor de vendas social para lojas.</span>
+                </div>
               </div>
-              <div className="mt-1 text-base font-semibold text-black">
-                É um motor de vendas social para lojas físicas.
+            </Reveal>
+
+            <Reveal delay={180}>
+              <div className="mt-8">
+                <PrimaryButton href={hrefSignup}>Quero conteúdo que realmente vende</PrimaryButton>
+                <p className="mt-3 text-sm font-medium text-black/60">
+                  Teste grátis. Sem cartão. Em menos de 2 minutos.
+                </p>
               </div>
-            </div>
+            </Reveal>
           </Container>
         </section>
 
         {/* PARA QUEM É */}
-        <section id="para-quem-e" className="py-14 sm:py-16 bg-gradient-to-b from-white to-emerald-50/20">
+        <section
+          id="para-quem-e"
+          className="py-14 sm:py-16 bg-gradient-to-b from-white to-emerald-50/20"
+        >
           <Container>
-            <SectionTitle
-              eyebrow="Para quem é"
-              title="Feito para quem vive do movimento da loja."
-              subtitle="Se você depende do cliente entrar na loja, o Vendeo foi feito para você."
-            />
+            <Reveal>
+              <SectionTitle
+                eyebrow="Para quem é"
+                title="Você não é criador de conteúdo. Você é lojista."
+                subtitle="Se você depende do cliente entrar na loja ou chamar no WhatsApp, o Vendeo foi feito para você."
+              />
+            </Reveal>
 
             <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {[
@@ -531,7 +749,7 @@ export default function HomePage() {
                 },
                 {
                   t: "Pet shops",
-                  d: "Banho/tosa, rações e fidelização.",
+                  d: "Banho, tosa e ração precisam virar recorrência.",
                   icon: (
                     <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M7 14c-1.5 0-3 1.3-3 3s1.2 3 3 3c1 0 1.7-.3 2.3-.9" />
@@ -565,58 +783,118 @@ export default function HomePage() {
                     </svg>
                   ),
                 },
-              ].map((i) => (
-                <Card key={i.t} title={i.t} description={i.d} icon={i.icon} />
+              ].map((i, idx) => (
+                <Reveal key={i.t} delay={60 * idx}>
+                  <Card title={i.t} description={i.d} icon={i.icon} />
+                </Reveal>
               ))}
             </div>
+
+            <Reveal delay={140}>
+              <div className="mt-10 rounded-2xl border border-black/10 bg-white p-5 shadow-sm">
+                <p className="vendeo-cutline text-black">
+                  Se você vende{" "}
+                  <span className="vendeo-highlight">produto ou serviço</span>,{" "}
+                  precisa aparecer com estratégia.
+                </p>
+              </div>
+            </Reveal>
+
+            <Reveal delay={200}>
+              <div className="mt-8">
+                <PrimaryButton href={hrefSignup}>Testar na minha loja agora</PrimaryButton>
+                <p className="mt-3 text-sm font-medium text-black/60">
+                  Teste grátis. Sem cartão. Em menos de 2 minutos.
+                </p>
+              </div>
+            </Reveal>
           </Container>
         </section>
 
         {/* PLANO SEMANAL */}
-        <section className="bg-black/[0.02] py-14 sm:py-16">
+        <section className="vendeo-section-glow bg-black/[0.02] py-14 sm:py-16">
           <Container>
             <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
               <div>
-                <SectionTitle
-                  eyebrow="Plano semanal"
-                  title="Nunca mais fique sem saber o que postar."
-                  subtitle="Gere um plano semanal estratégico com sugestões de dias e horários — para manter constância sem esforço."
-                />
+                <Reveal>
+                  <SectionTitle
+                    eyebrow="Plano semanal"
+                    title="Sua loja vende todo dia. Sua estratégia também deveria."
+                    subtitle="Gere um plano semanal estratégico com sugestões de dias e horários — para manter constância sem esforço."
+                  />
+                </Reveal>
 
                 <div className="mt-8 grid gap-4">
-                  <Card title="Constância sem esforço" description="Você posta com regularidade sem precisar inventar." />
-                  <Card title="Campanhas conectadas" description="Uma semana com lógica de vendas, não posts soltos." />
-                  <Card title="Clareza do que postar" description="Ideias prontas e alinhadas ao seu tipo de loja." />
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-black/10 bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-md">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-semibold text-black">
-                    Exemplo: Plano da semana
-                  </div>
-                  <div className="text-xs text-black/50">
-                    Gerado automaticamente
-                  </div>
-                </div>
-
-                <div className="mt-5 grid gap-3">
                   {[
-                    "Segunda — Post (oferta rápida)",
-                    "Terça — Reels (produto destaque)",
-                    "Quarta — Post (benefício do produto)",
-                    "Quinta — Reels (prova / rotina)",
-                    "Sexta — Post (urgência / estoque)",
-                  ].map((t) => (
-                    <div
-                      key={t}
-                      className="rounded-xl border border-black/10 bg-black/[0.02] px-4 py-3 text-sm font-medium text-black/80"
-                    >
-                      {t}
-                    </div>
+                    {
+                      t: "Estratégia de segunda a segunda",
+                      d: "Conteúdo pensado para a rotina real do lojista — inclusive finais de semana.",
+                    },
+                    {
+                      t: "Campanhas conectadas",
+                      d: "Uma semana com lógica de vendas, não posts soltos.",
+                    },
+                    {
+                      t: "Clareza do que postar",
+                      d: "Ideias prontas e alinhadas ao seu tipo de loja.",
+                    },
+                  ].map((i, idx) => (
+                    <Reveal key={i.t} delay={60 * idx}>
+                      <Card title={i.t} description={i.d} />
+                    </Reveal>
                   ))}
                 </div>
+
+                <Reveal delay={160}>
+                  <div className="mt-8 rounded-2xl border border-black/10 bg-white p-5 shadow-sm">
+                    <p className="vendeo-cutline text-black">
+                      Quem posta só quando lembra…
+                      <span className="vendeo-break vendeo-highlight">
+                        vende só quando é lembrado.
+                      </span>
+                    </p>
+                  </div>
+                </Reveal>
+
+                <Reveal delay={220}>
+                  <div className="mt-8">
+                    <PrimaryButton href={hrefSignup}>Criar meu plano gratuito agora</PrimaryButton>
+                    <p className="mt-3 text-sm font-medium text-black/60">
+                      Sem cartão. Sem risco. Em menos de 2 minutos.
+                    </p>
+                  </div>
+                </Reveal>
               </div>
+
+              <Reveal delay={120}>
+                <div className="rounded-2xl border border-black/10 bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-md">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-semibold text-black">
+                      Exemplo: Plano da semana
+                    </div>
+                    <div className="text-xs text-black/50">Gerado automaticamente</div>
+                  </div>
+
+                  <div className="mt-5 grid gap-3">
+                    {[
+                      "Segunda — Post (oferta rápida)",
+                      "Terça — Reels (produto destaque)",
+                      "Quarta — Post (benefício do produto)",
+                      "Quinta — Reels (prova / rotina)",
+                      "Sexta — Post (urgência / estoque)",
+                      "Sábado — Post (combo / oportunidade)",
+                      "Domingo — Post (lembrete / última chance)",
+                    ].map((t) => (
+                      <div
+                        key={t}
+                        className="rounded-xl border border-black/10 bg-black/[0.02] px-4 py-3 text-sm font-medium text-black/80"
+                      >
+                        {t}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </Reveal>
             </div>
           </Container>
         </section>
@@ -624,20 +902,25 @@ export default function HomePage() {
         {/* CTA FINAL */}
         <section className="py-14 sm:py-16 bg-gradient-to-b from-white to-emerald-50/40">
           <Container>
-            <div className="rounded-3xl border border-black/10 bg-white p-8 shadow-sm sm:p-10">
-              <h3 className="text-2xl font-semibold tracking-tight text-black sm:text-3xl">
-                Sua loja já vende no balcão.
-                <br />
-                Agora deixe as redes venderem para você.
-              </h3>
+            <Reveal>
+              <div className="vendeo-cta-animated rounded-3xl border border-black/10 bg-white p-8 shadow-sm sm:p-10">
+                <h3 className="text-2xl font-semibold tracking-tight text-black sm:text-3xl">
+                  Sua loja já vende no balcão.
+                  <br />
+                  Agora deixe o Vendeo ajudar você a vender muito mais.
+                </h3>
 
-              <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <PrimaryButton href={hrefSignup}>Criar campanha grátis</PrimaryButton>
-                <p className="text-sm font-medium text-black/60">
-                  Leva menos de 2 minutos para começar.
-                </p>
+                <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <PrimaryButton href={hrefSignup}>Criar campanha grátis</PrimaryButton>
+                  <p className="text-sm font-medium text-black/60">
+                    Não deixe para amanhã.{" "}
+                    <span className="font-semibold text-black">
+                      Comece hoje e venda muito mais.
+                    </span>
+                  </p>
+                </div>
               </div>
-            </div>
+            </Reveal>
           </Container>
         </section>
       </main>
@@ -646,9 +929,7 @@ export default function HomePage() {
       <footer className="bg-emerald-950 py-10 text-white">
         <Container>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-sm font-semibold">
-              © {new Date().getFullYear()} Vendeo
-            </div>
+            <div className="text-sm font-semibold">© {new Date().getFullYear()} Vendeo</div>
 
             <div className="flex gap-6 text-sm text-white/80">
               <Link href="/terms" className="hover:text-white">

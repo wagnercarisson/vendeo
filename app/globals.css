@@ -2,7 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body {
+html,
+body {
   height: 100%;
 }
 
@@ -20,13 +21,29 @@ body {
 /* ===== VENDEO LANDING: Micro animações (seguras) ===== */
 
 @keyframes vendeo-fade-up {
-  from { opacity: 0; transform: translateY(14px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes vendeo-glow-breathe {
-  0%, 100% { transform: scale(1); opacity: .35; }
-  50%      { transform: scale(1.06); opacity: .55; }
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: .35;
+  }
+
+  50% {
+    transform: scale(1.06);
+    opacity: .55;
+  }
 }
 
 @keyframes vendeo-shimmer {
@@ -34,15 +51,19 @@ body {
     transform: translateX(-120%);
     opacity: 0;
   }
+
   15% {
     opacity: 0.6;
   }
+
   50% {
     opacity: 0.6;
   }
+
   85% {
     opacity: 0.6;
   }
+
   100% {
     transform: translateX(220%);
     opacity: 0;
@@ -54,18 +75,34 @@ body {
 }
 
 @keyframes vendeo-progress {
-  0%   { width: 10%; }
-  50%  { width: 72%; }
-  100% { width: 38%; }
+  0% {
+    width: 10%;
+  }
+
+  50% {
+    width: 72%;
+  }
+
+  100% {
+    width: 38%;
+  }
 }
 
 .vendeo-fade-up {
   animation: vendeo-fade-up .7s ease-out both;
 }
 
-.vendeo-fade-up-delay-1 { animation-delay: .08s; }
-.vendeo-fade-up-delay-2 { animation-delay: .16s; }
-.vendeo-fade-up-delay-3 { animation-delay: .24s; }
+.vendeo-fade-up-delay-1 {
+  animation-delay: .08s;
+}
+
+.vendeo-fade-up-delay-2 {
+  animation-delay: .16s;
+}
+
+.vendeo-fade-up-delay-3 {
+  animation-delay: .24s;
+}
 
 .vendeo-glow-breathe {
   animation: vendeo-glow-breathe 5.5s ease-in-out infinite;
@@ -80,13 +117,248 @@ body {
 }
 
 @keyframes vendeo-shimmer-strong {
-  0%   { transform: translateX(-140%); opacity: 0; }
-  12%  { opacity: 1; }
-  50%  { opacity: 1; }
-  88%  { opacity: 1; }
-  100% { transform: translateX(240%); opacity: 0; }
+  0% {
+    transform: translateX(-140%);
+    opacity: 0;
+  }
+
+  12% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  88% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(240%);
+    opacity: 0;
+  }
 }
 
 .vendeo-shimmer-strong {
   animation: vendeo-shimmer-strong 3.6s ease-in-out infinite;
+}
+
+/* ===================================================== */
+/* 🔥 VENDEO IMPACTO VISUAL — CAMADA PREMIUM           */
+/* ===================================================== */
+
+/* Fundo com leve textura suave (ultra sutil) */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(15, 23, 42, 0.035) 1px, transparent 1px);
+  background-size: 22px 22px;
+  z-index: -1;
+  opacity: 0.4;
+}
+
+/* Gradiente estratégico para seções claras */
+.vendeo-section-glow {
+  position: relative;
+}
+
+.vendeo-section-glow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at top,
+      rgba(16, 185, 129, 0.12),
+      transparent 60%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Linha divisória elegante */
+.vendeo-divider {
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(to right,
+      transparent,
+      rgba(15, 23, 42, 0.15),
+      transparent);
+}
+
+/* Destaque animado para palavras importantes */
+.vendeo-highlight {
+  position: relative;
+  display: inline-block;
+  color: #16a34a;
+}
+
+.vendeo-highlight::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -3px;
+  height: 6px;
+  width: 100%;
+  background: rgba(16, 185, 129, 0.15);
+  border-radius: 6px;
+  z-index: -1;
+}
+
+/* Efeito de borda premium nos cards */
+.vendeo-card-glow {
+  position: relative;
+}
+
+.vendeo-card-glow::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 1rem;
+  background: linear-gradient(135deg,
+      rgba(16, 185, 129, 0.15),
+      rgba(249, 115, 22, 0.12),
+      rgba(16, 185, 129, 0.15));
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.vendeo-card-glow:hover::before {
+  opacity: 1;
+}
+
+/* Botão com leve aura dinâmica */
+.vendeo-button-glow {
+  position: relative;
+}
+
+.vendeo-button-glow::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 1rem;
+  background: radial-gradient(circle,
+      rgba(16, 185, 129, 0.35),
+      transparent 70%);
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.vendeo-button-glow:hover::after {
+  opacity: 1;
+}
+
+/* Frases de corte com impacto */
+.vendeo-cutline {
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+}
+
+/* Ritmo visual para textos estratégicos */
+.vendeo-break {
+  display: block;
+  margin-top: 6px;
+}
+
+/* Gradiente animado muito sutil para CTA final */
+@keyframes vendeo-cta-gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.vendeo-cta-animated {
+  background: linear-gradient(270deg,
+      rgba(16, 185, 129, 0.12),
+      rgba(249, 115, 22, 0.08),
+      rgba(16, 185, 129, 0.12));
+  background-size: 200% 200%;
+  animation: vendeo-cta-gradient 6s ease infinite;
+}
+
+/* Leve zoom ao passar mouse em seções importantes */
+.vendeo-section-hover {
+  transition: transform 0.4s ease;
+}
+
+.vendeo-section-hover:hover {
+  transform: translateY(-2px);
+}
+
+/* Scroll suave */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Responsividade tipográfica mais refinada */
+@media (min-width: 1024px) {
+  h1 {
+    letter-spacing: -0.03em;
+  }
+
+  h2 {
+    letter-spacing: -0.02em;
+  }
+}
+
+/* ===================================================== */
+/* 🔥 VENDEO: Scroll Reveal (micro animações no scroll)  */
+/* ===================================================== */
+
+.vendeo-reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+  transition-delay: var(--vendeo-delay, 0ms);
+  will-change: opacity, transform;
+}
+
+.vendeo-inview {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vendeo-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+/* ===================================== */
+/* 🔥 CTA Highlight Conversão Inteligente */
+/* ===================================== */
+
+@keyframes vendeo-cta-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+    transform: scale(1);
+  }
+
+  40% {
+    box-shadow: 0 0 0 12px rgba(16, 185, 129, 0);
+    transform: scale(1.03);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    transform: scale(1);
+  }
+}
+
+.vendeo-cta-highlight {
+  animation: vendeo-cta-pulse 1s ease-out;
 }
