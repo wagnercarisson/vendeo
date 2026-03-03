@@ -396,7 +396,7 @@ export default function HomePage() {
                   </div>
 
                   <p className="mt-4 text-sm text-black/60">
-                    Teste grátis! Sem cartão. Comece em menos de 2 minutos.
+                    Comece sem compromisso — leva só alguns minutos.
                   </p>
 
                   <div className="mt-6 flex flex-wrap gap-3 text-sm font-medium text-black/70">
@@ -478,7 +478,7 @@ export default function HomePage() {
                   Quero fazer minha loja aparecer
                 </PrimaryButton>
                 <p className="mt-3 text-sm font-medium text-black/60">
-                  Teste grátis. Sem cartão. Em menos de 2 minutos.
+                  Teste gratuito, sem cartão — em poucos minutos você já posta.
                 </p>
               </div>
             </Reveal>
@@ -544,7 +544,7 @@ export default function HomePage() {
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <PrimaryButton href={hrefSignup}>Criar meu primeiro post agora</PrimaryButton>
                   <p className="text-sm font-medium text-black/60">
-                    Teste grátis. Sem cartão. Em menos de 2 minutos.
+                    Comece sem compromisso — leva só alguns minutos.
                   </p>
                 </div>
               </div>
@@ -589,7 +589,7 @@ export default function HomePage() {
               <div className="mt-8">
                 <PrimaryButton href={hrefSignup}>Quero postar com estratégia</PrimaryButton>
                 <p className="mt-3 text-sm font-medium text-black/60">
-                  Teste grátis. Sem cartão. Em menos de 2 minutos.
+                  Rápido de começar. Fácil de testar.
                 </p>
               </div>
             </Reveal>
@@ -689,7 +689,7 @@ export default function HomePage() {
               <div className="mt-8">
                 <PrimaryButton href={hrefSignup}>Quero conteúdo que realmente vende</PrimaryButton>
                 <p className="mt-3 text-sm font-medium text-black/60">
-                  Teste grátis. Sem cartão. Em menos de 2 minutos.
+                  Comece sem compromisso — leva só alguns minutos.
                 </p>
               </div>
             </Reveal>
@@ -804,7 +804,7 @@ export default function HomePage() {
               <div className="mt-8">
                 <PrimaryButton href={hrefSignup}>Testar na minha loja agora</PrimaryButton>
                 <p className="mt-3 text-sm font-medium text-black/60">
-                  Teste grátis. Sem cartão. Em menos de 2 minutos.
+                  Rápido de começar. Fácil de testar.
                 </p>
               </div>
             </Reveal>
@@ -858,9 +858,9 @@ export default function HomePage() {
 
                 <Reveal delay={220}>
                   <div className="mt-8">
-                    <PrimaryButton href={hrefSignup}>Criar meu plano gratuito agora</PrimaryButton>
+                    <PrimaryButton href={hrefSignup}>Criar meu plano gratuito</PrimaryButton>
                     <p className="mt-3 text-sm font-medium text-black/60">
-                      Sem cartão. Sem risco. Em menos de 2 minutos.
+                      Teste gratuito, sem cartão — em poucos minutos você já posta.
                     </p>
                   </div>
                 </Reveal>
@@ -907,15 +907,15 @@ export default function HomePage() {
                 <h3 className="text-2xl font-semibold tracking-tight text-black sm:text-3xl">
                   Sua loja já vende no balcão.
                   <br />
-                  Agora deixe o Vendeo ajudar você a vender muito mais.
+                  Deixe o Vendeo ampliar seus resultados nas redes.
                 </h3>
 
                 <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <PrimaryButton href={hrefSignup}>Criar campanha grátis</PrimaryButton>
+                  <PrimaryButton href={hrefSignup}>Gerar campanha para minha loja</PrimaryButton>
                   <p className="text-sm font-medium text-black/60">
-                    Não deixe para amanhã.{" "}
+                    Em alguns minutos{" "}
                     <span className="font-semibold text-black">
-                      Comece hoje e venda muito mais.
+                      sua próxima campanha estará pronta.
                     </span>
                   </p>
                 </div>
