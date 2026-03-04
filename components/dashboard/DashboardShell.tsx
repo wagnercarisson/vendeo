@@ -161,20 +161,8 @@ export function DashboardShell({
             </div>
           </div>
 
-          {/* Direita: CTA + Conta */}
+          {/* Direita: Conta */}
           <div className="flex items-center gap-3">
-            {/* CTA: se não tem loja, guia para onboarding e desabilita visualmente */}
-            <Link
-              href={hasStore ? "/dashboard/campaigns/new" : "/dashboard/store"}
-              title={hasStore ? undefined : "Cadastre sua loja para criar campanhas"}
-              className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${hasStore
-                ? "bg-orange-500 text-white hover:bg-orange-600"
-                : "bg-orange-500/40 text-white/80"
-                }`}
-              aria-disabled={!hasStore ? true : undefined}
-            >
-              Nova campanha
-            </Link>
 
             {/* Conta (avatar + dropdown) */}
             <div className="relative">

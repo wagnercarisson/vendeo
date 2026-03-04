@@ -4,16 +4,15 @@ export function DashboardActions() {
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       {/* Nova campanha (AÇÃO PRINCIPAL) */}
-      <div className="rounded-2xl border bg-white p-6 shadow-soft transition hover:shadow-md flex flex-col">
+      <div className="rounded-2xl border bg-white p-6 shadow-soft transition-all hover:shadow-md hover:-translate-y-[1px]">
         <div className="text-lg font-semibold text-vendeo-text">
           Nova campanha
         </div>
 
         <p className="mt-1 text-sm text-vendeo-muted">
-          Crie um post que vende em minutos
+          Crie um post pronto para vender em poucos minutos.
         </p>
 
-        {/* wrapper trava o botão sem esticar */}
         <div className="mt-auto pt-5 flex">
           <Link
             href="/dashboard/campaigns/new"
@@ -25,16 +24,13 @@ export function DashboardActions() {
       </div>
 
       {/* Plano semanal (AÇÃO SECUNDÁRIA) */}
-      <div className="rounded-2xl border bg-white p-6 shadow-soft transition hover:shadow-md flex flex-col">
-        <div className="text-lg font-semibold text-vendeo-text">
-          Plano semanal
-        </div>
+      <div className="rounded-2xl border bg-white p-6 shadow-soft transition-all hover:shadow-md hover:-translate-y-[1px]">
+        <div className="text-lg font-semibold text-vendeo-text">Plano semanal</div>
 
         <p className="mt-1 text-sm text-vendeo-muted">
-          Sugestões prontas para cada dia
+          Sugestões prontas para cada dia da semana.
         </p>
 
-        {/* wrapper trava o botão sem esticar */}
         <div className="mt-auto pt-5 flex">
           <Link
             href="/dashboard/plans/new"
