@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 function isProtectedPath(pathname: string) {
-  // ✅ agora o app “logado” vive em /dashboard
+  // ✅ tudo logado vive em /dashboard
   return pathname.startsWith("/dashboard");
 }
 
@@ -34,7 +34,6 @@ export async function middleware(request: NextRequest) {
 
   const { data, error } = await supabase.auth.getUser();
 
-  // qualquer erro de auth/cookie -> login
   if (error || !data?.user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";

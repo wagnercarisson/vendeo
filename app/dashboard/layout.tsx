@@ -9,18 +9,18 @@ export default async function DashboardLayout({
 }) {
   const supabase = createSupabaseServerClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // ✅ Auth guard robusto
+  const { data, error } = await supabase.auth.getUser();
+  const user = data?.user;
 
-  if (!user) {
-    redirect(`/login?next=${encodeURIComponent("/dashboard")}`);
+  if (error || !user) {
+    redirect(`/login?mode=login&next=${encodeURIComponent("/dashboard")}`);
   }
 
-  // 1 usuário = 1 loja: pega a primeira loja do owner
+  // ✅ Loja é opcional no layout (para não criar loop em /dashboard/store)
   const { data: store } = await supabase
     .from("stores")
-    .select("name,city,state")
+    .select("id,name,city,state")
     .eq("owner_user_id", user.id)
     .order("created_at", { ascending: true })
     .limit(1)
@@ -29,6 +29,7 @@ export default async function DashboardLayout({
   return (
     <DashboardShell
       user={user}
+      storeId={store?.id ?? null}
       storeName={store?.name ?? null}
       storeCity={store?.city ?? null}
       storeState={store?.state ?? null}
