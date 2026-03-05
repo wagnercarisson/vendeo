@@ -6,6 +6,8 @@ type BrandProps = {
   showTagline?: boolean;
   /** light = páginas claras (login), dark = fundo escuro (dashboard/hero escuro) */
   variant?: "light" | "dark";
+  /** quando true: renderiza apenas o ícone (ideal para sidebar colapsada) */
+  iconOnly?: boolean;
   className?: string;
 };
 
@@ -14,6 +16,7 @@ export default function BrandLogo({
   align = "left",
   showTagline = true,
   variant = "light",
+  iconOnly = false,
   className = "",
 }: BrandProps) {
   const isCenter = align === "center";
@@ -44,8 +47,26 @@ export default function BrandLogo({
 
   const s = sizes[size];
 
-  const taglineClass =
-    variant === "dark" ? "text-white/90" : "text-zinc-600";
+  const taglineClass = variant === "dark" ? "text-white/90" : "text-zinc-600";
+
+  // Layout: quando iconOnly, não criamos grid (evita qualquer corte)
+  if (iconOnly) {
+    return (
+      <div
+        className={`flex ${isCenter ? "items-center justify-center" : "items-start"} ${className}`}
+      >
+        <div className={`relative ${s.icon}`}>
+          <Image
+            src="/brand/vendeo-icon.svg"
+            alt="Vendeo"
+            fill
+            className="object-contain"
+            priority
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -53,10 +74,7 @@ export default function BrandLogo({
         } ${className}`}
     >
       {/* Grupo ícone + VENDEO com centralização óptica travada */}
-      <div
-        className="grid items-center gap-3"
-        style={{ gridTemplateColumns: `${s.iconPx}px auto` }}
-      >
+      <div className="grid items-center gap-3" style={{ gridTemplateColumns: `${s.iconPx}px auto` }}>
         <div className={`relative shrink-0 ${s.icon}`}>
           <Image
             src="/brand/vendeo-icon.svg"
