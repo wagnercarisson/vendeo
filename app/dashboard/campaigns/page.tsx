@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase";
+import { ArrowRight, AlertTriangle, Sparkles, Video, Wand2, Plus } from "lucide-react";
 
 type Store = {
   id: string;
@@ -60,6 +63,10 @@ type Campaign = {
   stores?: Store | null;
 };
 
+function cx(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(" ");
+}
+
 function labelPositioning(v: string | null | undefined) {
   if (!v) return "Padrão da loja";
   const map: Record<string, string> = {
@@ -90,6 +97,48 @@ function buildContactLine(store?: Store | null) {
   return "—";
 }
 
+function isLikelyUnconfiguredRemote(url: string) {
+  try {
+    const u = new URL(url);
+    if (u.hostname === "ibassets.com.br") return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+function formatBRL(value: number) {
+  try {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(Number(value));
+  } catch {
+    return `R$ ${value}`;
+  }
+}
+
+function Pill({
+  children,
+  tone = "neutral",
+}: {
+  children: React.ReactNode;
+  tone?: "neutral" | "success" | "warning";
+}) {
+  const styles =
+    tone === "success"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : tone === "warning"
+        ? "border-amber-200 bg-amber-50 text-amber-700"
+        : "border-black/10 bg-zinc-50 text-zinc-700";
+
+  return (
+    <span className={cx("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold", styles)}>
+      {children}
+    </span>
+  );
+}
+
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,6 +146,116 @@ export default function CampaignsPage() {
 
   const [generatingTextId, setGeneratingTextId] = useState<string | null>(null);
   const [generatingReelsId, setGeneratingReelsId] = useState<string | null>(null);
+
+  type ConfirmState = {
+    open: boolean;
+    icon?: "ai" | "reels" | "danger";
+    title: string;
+    description?: string;
+    confirmLabel?: string;
+    destructive?: boolean;
+    onConfirm?: () => void;
+  };
+
+  function ConfirmDialog({
+    state,
+    onClose,
+    onConfirm,
+  }: {
+    state: ConfirmState;
+    onClose: () => void;
+    onConfirm: () => void;
+  }) {
+    useEffect(() => {
+      if (!state.open) return;
+
+      function onKeyDown(e: KeyboardEvent) {
+        if (e.key === "Escape") onClose();
+      }
+
+      window.addEventListener("keydown", onKeyDown);
+      return () => window.removeEventListener("keydown", onKeyDown);
+    }, [state.open, onClose]);
+
+    if (!state.open) return null;
+
+    const Icon =
+      state.icon === "ai" ? Sparkles : state.icon === "reels" ? Video : AlertTriangle;
+
+    const iconWrap =
+      state.icon === "ai"
+        ? "bg-emerald-50 text-emerald-700 ring-emerald-200/60"
+        : state.icon === "reels"
+          ? "bg-indigo-50 text-indigo-700 ring-indigo-200/60"
+          : "bg-red-50 text-red-700 ring-red-200/60";
+
+    return (
+      <div
+        className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4 backdrop-blur-[2px]"
+        onMouseDown={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+      >
+        <div className="w-full max-w-md overflow-hidden rounded-2xl border border-black/10 bg-white shadow-xl">
+          <div className="p-5">
+            <div className="flex items-start gap-3">
+              <div className={`mt-0.5 grid h-10 w-10 place-items-center rounded-2xl ring-1 ${iconWrap}`}>
+                <Icon className="h-5 w-5" />
+              </div>
+
+              <div className="min-w-0">
+                <div className="text-base font-semibold text-zinc-900">{state.title}</div>
+                {state.description ? (
+                  <div className="mt-2 text-sm text-zinc-600">{state.description}</div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 border-t border-black/5 bg-zinc-50/70 px-5 py-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-200"
+            >
+              Cancelar
+            </button>
+
+            <button
+              type="button"
+              onClick={onConfirm}
+              className={
+                state.destructive
+                  ? "rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-red-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-red-200"
+                  : "rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-200"
+              }
+            >
+              {state.confirmLabel ?? "Confirmar"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const [confirmState, setConfirmState] = useState<ConfirmState>({
+    open: false,
+    title: "",
+  });
+
+  const openConfirm = useCallback((opts: Omit<ConfirmState, "open">) => {
+    setConfirmState({ open: true, ...opts });
+  }, []);
+
+  const closeConfirm = useCallback(() => {
+    setConfirmState({ open: false, title: "" });
+  }, []);
+
+  const handleConfirm = useCallback(() => {
+    const fn = confirmState.onConfirm;
+    closeConfirm();
+    fn?.();
+  }, [confirmState.onConfirm, closeConfirm]);
 
   useEffect(() => {
     loadCampaigns();
@@ -185,10 +344,8 @@ export default function CampaignsPage() {
         throw new Error(err?.details ?? err?.error ?? `Erro na API: ${res.status}`);
       }
 
-      await res.json();
+      await res.json().catch(() => null);
       await loadCampaigns();
-
-      alert(force ? "Texto regenerado e salvo!" : "Texto gerado e salvo!");
     } catch (e: any) {
       alert(e?.message ?? "Erro ao gerar/salvar texto");
       console.error(e);
@@ -233,10 +390,8 @@ export default function CampaignsPage() {
         throw new Error(err?.details ?? err?.error ?? `Erro na API: ${res.status}`);
       }
 
-      await res.json();
+      await res.json().catch(() => null);
       await loadCampaigns();
-
-      alert(force ? "Roteiro regenerado e salvo!" : "Roteiro gerado e salvo!");
     } catch (e: any) {
       alert(e?.message ?? "Erro ao gerar/salvar Reels");
       console.error(e);
@@ -245,78 +400,62 @@ export default function CampaignsPage() {
     }
   }
 
-  function safeCopy(text: string) {
-    navigator.clipboard.writeText(text).then(
-      () => alert("Copiado!"),
-      () => alert("Falha ao copiar.")
+  function stopLink(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  const headerLinks = useMemo(() => {
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <Link
+          href="/campaigns/new"
+          className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+        >
+          <Plus className="h-4 w-4" />
+          Nova campanha
+        </Link>
+
+        <Link
+          href="/store"
+          className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+        >
+          Configurar loja
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
     );
-  }
-
-  function buildReelsFullText(c: Campaign) {
-    const lines: string[] = [];
-
-    lines.push(`HOOK: ${c.reels_hook ?? ""}`);
-    lines.push(`DURAÇÃO: ${c.reels_duration_seconds ? c.reels_duration_seconds + "s" : ""}`);
-    lines.push(`ÁUDIO: ${c.reels_audio_suggestion ?? ""}`);
-    lines.push("");
-
-    if (Array.isArray(c.reels_on_screen_text) && c.reels_on_screen_text.length) {
-      lines.push("TEXTO NA TELA:");
-      for (const t of c.reels_on_screen_text) lines.push(`- ${t}`);
-      lines.push("");
-    }
-
-    if (Array.isArray(c.reels_shotlist) && c.reels_shotlist.length) {
-      lines.push("SHOTLIST:");
-      for (const s of c.reels_shotlist) {
-        lines.push(`Cena ${s.scene}: ${s.camera}`);
-        lines.push(`Ação: ${s.action}`);
-        lines.push(`Fala: ${s.dialogue}`);
-        lines.push("");
-      }
-    }
-
-    if (c.reels_script) {
-      lines.push("ROTEIRO:");
-      lines.push(c.reels_script);
-      lines.push("");
-    }
-
-    if (c.reels_caption) {
-      lines.push("LEGENDA:");
-      lines.push(c.reels_caption);
-      lines.push("");
-    }
-
-    if (c.reels_cta) {
-      lines.push("CTA:");
-      lines.push(c.reels_cta);
-      lines.push("");
-    }
-
-    if (c.reels_hashtags) {
-      lines.push("HASHTAGS:");
-      lines.push(c.reels_hashtags);
-    }
-
-    return lines.join("\n");
-  }
+  }, []);
 
   return (
-    <main style={{ padding: 24, fontFamily: "system-ui, Arial" }}>
-      <h1>Campanhas</h1>
+    <main className="mx-auto max-w-6xl px-6 py-6">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-zinc-900">Campanhas</h1>
+          <p className="mt-1 text-sm text-zinc-600">
+            Clique em uma campanha para abrir o preview premium e copiar tudo.
+          </p>
+        </div>
+        {headerLinks}
+      </div>
 
-      <p style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-        <Link href="/campaigns/new">+ Nova campanha</Link>
-        <Link href="/store">Cadastro de loja</Link>
-      </p>
+      {error && (
+        <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          Erro: {error.message}
+        </div>
+      )}
 
-      {error && <p style={{ color: "crimson" }}>Erro: {error.message}</p>}
-      {loading && <p>Carregando...</p>}
+      {loading && <p className="text-sm text-zinc-600">Carregando...</p>}
 
-      {!loading && campaigns.length === 0 && <p>Nenhuma campanha ainda.</p>}
+      {!loading && campaigns.length === 0 && (
+        <div className="rounded-2xl border border-black/10 bg-white p-6">
+          <div className="text-sm font-semibold text-zinc-900">Nenhuma campanha ainda.</div>
+          <div className="mt-1 text-sm text-zinc-600">Crie sua primeira campanha para começar.</div>
+          <div className="mt-4">{headerLinks}</div>
+        </div>
+      )}
 
-      <div style={{ display: "grid", gap: 16 }}>
+      <div className="grid gap-4">
         {campaigns.map((c) => {
           const hasAi = (c.ai_caption ?? "").trim().length > 0;
           const hasReels = !!c.reels_generated_at;
@@ -325,232 +464,200 @@ export default function CampaignsPage() {
           const storeDefault = labelPositioning(c.stores?.brand_positioning ?? null);
           const contactLine = buildContactLine(c.stores);
 
+          const storeName = c.stores?.name ?? "—";
+          const location = [c.stores?.city, c.stores?.state].filter(Boolean).join(", ");
+
           return (
-            <div
+            <Link
               key={c.id}
-              style={{
-                border: "1px solid #ddd",
-                borderRadius: 12,
-                padding: 16,
-                background: "white",
-              }}
+              href={`/dashboard/campaigns/${c.id}`}
+              className="group block"
+              style={{ textDecoration: "none" }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                <div>
-                  <div>
-                    <strong>Produto:</strong> {c.product_name}
-                  </div>
-                  <div>
-                    <strong>Preço:</strong> R$ {c.price}
-                  </div>
-                  <div>
-                    <strong>Público:</strong> {c.audience}
-                  </div>
-                  <div>
-                    <strong>Objetivo:</strong> {c.objective}
-                  </div>
-                  <div>
-                    <strong>Loja:</strong> {c.stores?.name ?? "—"}
-                  </div>
-
-                  <div style={{ marginTop: 6, fontSize: 13, color: "#444" }}>
-                    <strong>Perfil do produto:</strong> {positioningLabel}{" "}
-                    {c.product_positioning ? "" : `(padrão loja: ${storeDefault})`}
-                  </div>
-
-                  <div style={{ fontSize: 13, color: "#444" }}>
-                    <strong>Contato:</strong> {contactLine}
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  {c.stores?.primary_color && (
-                    <span
-                      title="Cor primária da loja"
-                      style={{
-                        width: 16,
-                        height: 16,
-                        borderRadius: 5,
-                        background: c.stores.primary_color,
-                        border: "1px solid rgba(0,0,0,0.08)",
-                        display: "inline-block",
-                      }}
-                    />
-                  )}
-                  {c.stores?.secondary_color && (
-                    <span
-                      title="Cor secundária da loja"
-                      style={{
-                        width: 16,
-                        height: 16,
-                        borderRadius: 5,
-                        background: c.stores.secondary_color,
-                        border: "1px solid rgba(0,0,0,0.08)",
-                        display: "inline-block",
-                      }}
-                    />
-                  )}
-                </div>
-              </div>
-
-              <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-                <button onClick={() => generateAndSaveText(c, false)} disabled={generatingTextId === c.id}>
-                  {generatingTextId === c.id ? "Gerando texto..." : "Gerar texto com IA"}
-                </button>
-
-                {hasAi && (
-                  <button onClick={() => generateAndSaveText(c, true)} disabled={generatingTextId === c.id}>
-                    Regenerar texto
-                  </button>
-                )}
-
-                <button onClick={() => generateAndSaveReels(c, false)} disabled={generatingReelsId === c.id}>
-                  {generatingReelsId === c.id
-                    ? "Gerando Reels..."
-                    : hasReels
-                    ? "Gerar Reels (já existe)"
-                    : "Gerar roteiro de Reels"}
-                </button>
-
-                {hasReels && (
-                  <button onClick={() => generateAndSaveReels(c, true)} disabled={generatingReelsId === c.id}>
-                    Regenerar Reels
-                  </button>
-                )}
-              </div>
-
-              {hasAi && (
-                <div style={{ marginTop: 14 }}>
-                  <div>
-                    <strong>Legenda:</strong> {safeToString(c.ai_caption)}
-                  </div>
-                  <div>
-                    <strong>Texto:</strong> {safeToString(c.ai_text)}
-                  </div>
-                  <div>
-                    <strong>CTA:</strong> {safeToString(c.ai_cta)}
-                  </div>
-                  <div>
-                    <strong>Hashtags:</strong> {safeToString(c.ai_hashtags)}
-                  </div>
-
-                  <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-                    {c.ai_text && <button onClick={() => safeCopy(c.ai_text ?? "")}>Copiar texto</button>}
-                    {c.ai_caption && <button onClick={() => safeCopy(c.ai_caption ?? "")}>Copiar legenda</button>}
-                  </div>
-                </div>
-              )}
-
-              {hasReels && (
-                <div style={{ marginTop: 14, borderTop: "1px solid #eee", paddingTop: 14 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                    <div>
-                      <strong>Reels Hook:</strong> {safeToString(c.reels_hook)}
+              <div className="rounded-2xl border border-black/10 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md flex flex-col">
+                {/* BODY */}
+                <div className="p-4 flex-1">
+                  <div className="flex min-w-0 items-start gap-4">
+                    {/* Thumb */}
+                    <div className="relative h-20 w-20 flex-none overflow-hidden rounded-2xl border border-black/5 bg-zinc-50">
+                      {c.image_url ? (
+                        isLikelyUnconfiguredRemote(c.image_url) ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={c.image_url}
+                            alt={c.product_name}
+                            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                          />
+                        ) : (
+                          <Image
+                            src={c.image_url}
+                            alt={c.product_name}
+                            fill
+                            className="object-cover"
+                            sizes="80px"
+                          />
+                        )
+                      ) : (
+                        <div className="grid h-full w-full place-items-center text-[11px] font-semibold text-zinc-500">
+                          sem foto
+                        </div>
+                      )}
                     </div>
-                    <div>
-                      <strong>Duração:</strong> {c.reels_duration_seconds ? `${c.reels_duration_seconds}s` : "—"}
-                    </div>
-                    <div>
-                      <strong>Áudio:</strong> {safeToString(c.reels_audio_suggestion)}
-                    </div>
-                  </div>
 
-                  {Array.isArray(c.reels_on_screen_text) && c.reels_on_screen_text.length > 0 && (
-                    <div style={{ marginTop: 10 }}>
-                      <strong>Texto na tela:</strong>
-                      <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}>
-                        {c.reels_on_screen_text.map((t, idx) => (
-                          <span
-                            key={idx}
-                            style={{
-                              border: "1px solid #ddd",
-                              padding: "4px 8px",
-                              borderRadius: 999,
-                              fontSize: 12,
-                            }}
-                          >
-                            {t}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                    {/* Main */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="truncate text-base font-semibold text-zinc-900">
+                          {c.product_name}
+                        </div>
 
-                  {c.reels_script && (
-                    <div style={{ marginTop: 10 }}>
-                      <strong>Roteiro:</strong>
-                      <div
-                        style={{
-                          marginTop: 6,
-                          whiteSpace: "pre-wrap",
-                          background: "#fafafa",
-                          border: "1px solid #eee",
-                          borderRadius: 8,
-                          padding: 10,
-                        }}
-                      >
-                        {c.reels_script}
-                      </div>
-
-                      <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-                        <button onClick={() => safeCopy(c.reels_script ?? "")}>Copiar roteiro</button>
-                        {c.reels_caption && (
-                          <button onClick={() => safeCopy(c.reels_caption ?? "")}>Copiar legenda do Reels</button>
+                        {hasAi ? (
+                          <Pill tone="success">
+                            <Sparkles className="h-3.5 w-3.5" />
+                            IA pronta
+                          </Pill>
+                        ) : (
+                          <Pill tone="warning">
+                            <Sparkles className="h-3.5 w-3.5" />
+                            IA pendente
+                          </Pill>
                         )}
-                        <button onClick={() => safeCopy(buildReelsFullText(c))}>Copiar tudo (Reels)</button>
-                      </div>
-                    </div>
-                  )}
 
-                  {Array.isArray(c.reels_shotlist) && c.reels_shotlist.length > 0 && (
-                    <div style={{ marginTop: 12 }}>
-                      <strong>Shotlist:</strong>
-                      <div style={{ display: "grid", gap: 10, marginTop: 8 }}>
-                        {c.reels_shotlist.map((s, idx) => (
-                          <div
-                            key={idx}
-                            style={{
-                              border: "1px solid #eee",
-                              borderRadius: 8,
-                              padding: 10,
-                              background: "white",
-                            }}
-                          >
-                            <div>
-                              <strong>Cena {s.scene}:</strong> {safeToString(s.camera)}
-                            </div>
-                            <div>
-                              <strong>Ação:</strong> {safeToString(s.action)}
-                            </div>
-                            <div>
-                              <strong>Fala:</strong> {safeToString(s.dialogue)}
-                            </div>
-                          </div>
-                        ))}
+                        {hasReels ? (
+                          <Pill tone="success">
+                            <Video className="h-3.5 w-3.5" />
+                            Reels pronto
+                          </Pill>
+                        ) : (
+                          <Pill tone="neutral">
+                            <Video className="h-3.5 w-3.5" />
+                            Reels —
+                          </Pill>
+                        )}
                       </div>
-                    </div>
-                  )}
 
-                  {(c.reels_cta || c.reels_hashtags) && (
-                    <div style={{ marginTop: 12 }}>
-                      {c.reels_cta && (
-                        <div>
-                          <strong>CTA Reels:</strong> {safeToString(c.reels_cta)}
+                      <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-zinc-600">
+                        <span className="font-semibold text-zinc-800">{formatBRL(c.price)}</span>
+                        <span>•</span>
+                        <span>{safeToString(c.audience) || "Público —"}</span>
+                        <span>•</span>
+                        <span className="truncate">{safeToString(c.objective) || "Objetivo —"}</span>
+                      </div>
+
+                      <div className="mt-2 text-xs text-zinc-500">
+                        <span className="font-semibold text-zinc-700">{storeName}</span>
+                        {location ? <span> · {location}</span> : null}
+                        <span className="mx-2">•</span>
+                        <span className="text-zinc-600">
+                          Perfil:{" "}
+                          <span className="font-semibold text-zinc-700">
+                            {positioningLabel}
+                          </span>
+                          {!c.product_positioning ? ` (padrão loja: ${storeDefault})` : ""}
+                        </span>
+                        <span className="mx-2">•</span>
+                        <span className="text-zinc-600">{contactLine}</span>
+                      </div>
+
+                      {hasAi && (c.ai_caption || c.ai_text) ? (
+                        <div className="mt-3 line-clamp-2 text-sm text-zinc-700">
+                          {c.ai_caption || c.ai_text}
+                        </div>
+                      ) : (
+                        <div className="mt-3 text-sm text-zinc-500">
+                          Gere o texto com IA para ver a legenda aqui.
                         </div>
                       )}
-                      {c.reels_hashtags && (
-                        <div>
-                          <strong>Hashtags Reels:</strong> {safeToString(c.reels_hashtags)}
-                        </div>
-                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
-              )}
-            </div>
+
+                {/* FOOTER FIXO (ações sempre no mesmo lugar) */}
+                <div className="border-t border-black/5 px-4 py-3 bg-zinc-50/60">
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    {/* TEXTO IA */}
+                    {!hasAi ? (
+                      <button
+                        onClick={(e) => {
+                          stopLink(e);
+                          generateAndSaveText(c, false);
+                        }}
+                        disabled={generatingTextId === c.id}
+                        className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
+                        type="button"
+                      >
+                        <Wand2 className="h-4 w-4" />
+                        {generatingTextId === c.id ? "Gerando..." : "Gerar IA"}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          stopLink(e);
+                          openConfirm({
+                            icon: "ai",
+                            title: "Regenerar conteúdo de IA?",
+                            description:
+                              "Isso vai substituir o texto atual (headline/legenda/CTA/hashtags). Você pode perder um texto bom.",
+                            confirmLabel: "Regenerar IA",
+                            destructive: true,
+                            onConfirm: () => generateAndSaveText(c, true),
+                          });
+                        }}
+                        disabled={generatingTextId === c.id}
+                        className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
+                        type="button"
+                      >
+                        <Wand2 className="h-4 w-4" />
+                        {generatingTextId === c.id ? "Gerando..." : "Regenerar IA"}
+                      </button>
+                    )}
+
+                    {/* REELS */}
+                    {!hasReels ? (
+                      <button
+                        onClick={(e) => {
+                          stopLink(e);
+                          generateAndSaveReels(c, false);
+                        }}
+                        disabled={generatingReelsId === c.id}
+                        className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
+                        type="button"
+                      >
+                        <Video className="h-4 w-4" />
+                        {generatingReelsId === c.id ? "Gerando..." : "Gerar Reels"}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          stopLink(e);
+                          openConfirm({
+                            icon: "reels",
+                            title: "Regenerar roteiro de Reels?",
+                            description:
+                              "Isso vai substituir o roteiro atual (hook, script, shotlist e sugestões).",
+                            confirmLabel: "Regenerar Reels",
+                            destructive: true,
+                            onConfirm: () => generateAndSaveReels(c, true),
+                          });
+                        }}
+                        disabled={generatingReelsId === c.id}
+                        className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
+                        type="button"
+                      >
+                        <Video className="h-4 w-4" />
+                        {generatingReelsId === c.id ? "Gerando..." : "Regenerar Reels"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </Link>
           );
         })}
       </div>
+
+      <ConfirmDialog state={confirmState} onClose={closeConfirm} onConfirm={handleConfirm} />
+
     </main>
   );
 }
