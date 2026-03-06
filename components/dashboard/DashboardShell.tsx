@@ -257,7 +257,7 @@ export function DashboardShell({
         {/* CTA principal (1 linha; subtítulo só no tooltip) */}
         <div className={cx("relative z-10", sidebarCollapsed ? "px-3 pt-4" : "px-4 pt-4")}>
           <FixedTooltip
-            enabled={true}
+            enabled={sidebarCollapsed}
             content={
               <span className="block">
                 <span className="block text-sm font-semibold">Nova campanha</span>
@@ -281,7 +281,7 @@ export function DashboardShell({
               {!sidebarCollapsed && (
                 <>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-white leading-tight whitespace-nowrap">
+                    <div className="truncate whitespace-nowrap text-sm font-semibold leading-tight text-white">
                       Nova campanha
                     </div>
                   </div>

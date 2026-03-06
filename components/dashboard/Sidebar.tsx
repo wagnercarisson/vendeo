@@ -88,7 +88,7 @@ export function Sidebar() {
 
     const widthClass = collapsed ? "w-[76px]" : "w-[280px]";
 
-    // CTA: 1 linha. Subtítulo vai só no tooltip (sempre ativo).
+    // CTA: 1 linha. Tooltip só no modo colapsado.
     const ctaTitle = "Nova campanha";
     const ctaSubtitle = "Gerar post em segundos";
 
@@ -124,43 +124,53 @@ export function Sidebar() {
 
                 {/* CTA */}
                 <div className={cx("px-4", collapsed && "px-3")}>
-                    <Tooltip
-                        // CTA precisa de tooltip mesmo expandida (porque subtítulo fica só aqui)
-                        disabled={false}
-                        content={
-                            <span className="block">
-                                <span className="block font-semibold">{ctaTitle}</span>
-                                <span className="block text-black/60">{ctaSubtitle}</span>
-                            </span>
-                        }
-                    >
+                    {collapsed ? (
+                        <Tooltip
+                            content={
+                                <span className="block">
+                                    <span className="block font-semibold">{ctaTitle}</span>
+                                    <span className="block text-black/60">{ctaSubtitle}</span>
+                                </span>
+                            }
+                        >
+                            <Link
+                                href="/dashboard/campaigns/new"
+                                className={cx(
+                                    "relative flex w-full items-center rounded-xl",
+                                    "border border-black/10 bg-gradient-to-b from-white to-black/[0.02]",
+                                    "shadow-sm transition",
+                                    "active:translate-y-0",
+                                    "h-10 justify-center"
+                                )}
+                            >
+                                <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-sm">
+                                    <Plus className="h-4 w-4" />
+                                </span>
+                            </Link>
+                        </Tooltip>
+                    ) : (
                         <Link
                             href="/dashboard/campaigns/new"
                             className={cx(
-                                "relative flex items-center rounded-xl",
+                                "relative flex h-10 w-full items-center gap-2 rounded-xl px-3",
                                 "border border-black/10 bg-gradient-to-b from-white to-black/[0.02]",
                                 "shadow-sm transition",
-                                "active:translate-y-0",
-                                collapsed ? "h-10 w-full justify-center" : "h-10 w-full px-3 gap-2"
+                                "active:translate-y-0"
                             )}
                         >
                             <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-sm">
                                 <Plus className="h-4 w-4" />
                             </span>
 
-                            {!collapsed && (
-                                <span className="text-sm font-medium text-black whitespace-nowrap">
-                                    {ctaTitle}
-                                </span>
-                            )}
+                            <span className="min-w-0 truncate whitespace-nowrap text-sm font-medium text-black">
+                                {ctaTitle}
+                            </span>
 
-                            {!collapsed && (
-                                <span className="ml-auto inline-flex items-center rounded-md border border-black/10 bg-white px-2 py-1 text-[11px] text-black/60 whitespace-nowrap">
-                                    Ctrl + N
-                                </span>
-                            )}
+                            <span className="ml-auto shrink-0 whitespace-nowrap rounded-md border border-black/10 bg-white px-2 py-1 text-[11px] text-black/60">
+                                Ctrl + N
+                            </span>
                         </Link>
-                    </Tooltip>
+                    )}
 
                     <div className="my-4 h-px bg-black/10" />
                 </div>
