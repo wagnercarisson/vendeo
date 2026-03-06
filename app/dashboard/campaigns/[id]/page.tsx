@@ -16,25 +16,32 @@ export default async function CampaignPreviewPage({
         .from("campaigns")
         .select(
             `
-    id, store_id, product_name, price, audience, objective,
-    image_url, headline, body_text, cta,
-    ai_caption, ai_text, ai_hashtags, ai_cta, ai_generated_at,
-    reels_hook, reels_script, reels_caption, reels_cta, reels_hashtags, reels_generated_at,
-    reels_shotlist, reels_on_screen_text, reels_audio_suggestion, reels_duration_seconds,
-    product_positioning,
-    stores (
-      id, name, city, state,
-      brand_positioning, main_segment, tone_of_voice,
-      address, neighborhood, phone, whatsapp, instagram,
-      primary_color, secondary_color
-    )
-  `
+        id, store_id, product_name, price, audience, objective,
+        image_url, headline, body_text, cta,
+        ai_caption, ai_text, ai_hashtags, ai_cta, ai_generated_at,
+        reels_hook, reels_script, reels_caption, reels_cta, reels_hashtags, reels_generated_at,
+        reels_shotlist, reels_on_screen_text, reels_audio_suggestion, reels_duration_seconds,
+        product_positioning,
+        stores (
+          id, name, city, state,
+          brand_positioning, main_segment, tone_of_voice,
+          address, neighborhood, phone, whatsapp, instagram,
+          primary_color, secondary_color
+        )
+      `
         )
         .eq("id", params.id)
         .eq("store_id", storeId)
         .maybeSingle();
 
     if (error || !campaign) return notFound();
+
+    const normalizedCampaign = {
+        ...campaign,
+        stores: Array.isArray(campaign.stores)
+            ? campaign.stores[0] ?? null
+            : campaign.stores ?? null,
+    };
 
     return (
         <div className="space-y-6">
@@ -49,7 +56,7 @@ export default async function CampaignPreviewPage({
                 </div>
             </div>
 
-            <CampaignPreviewClient campaign={campaign} />
+            <CampaignPreviewClient campaign={normalizedCampaign} />
         </div>
     );
 }
