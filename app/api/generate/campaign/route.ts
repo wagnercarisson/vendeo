@@ -15,11 +15,13 @@ const supabaseAdmin = createClient(
 const BodySchema = z.object({
   campaign_id: z.string().uuid(),
   force: z.boolean().optional().default(false),
+  description: z.string().optional(),
 });
 
 // ⚠️ Mantenha schema “realista”: IA às vezes erra.
 // Vamos validar e aplicar fallback.
 const AISchema = z.object({
+  headline: z.string().optional(),
   caption: z.string().optional(),
   text: z.string().optional(),
   cta: z.string().optional(),
@@ -106,7 +108,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { campaign_id, force } = body.data;
+    const { campaign_id, force, description: bodyDescription } = body.data;
 
     //alteração
     let storeId: string;
@@ -126,7 +128,7 @@ export async function POST(req: Request) {
       .from("campaigns")
       .select(`
         id, store_id, product_name, price, audience, objective, product_positioning,
-        ai_caption, ai_text, ai_cta, ai_hashtags
+        headline, ai_caption, ai_text, ai_cta, ai_hashtags
       `)
       .eq("id", campaign_id)
       .eq("store_id", storeId)
@@ -184,32 +186,42 @@ export async function POST(req: Request) {
 
     // 5) Prompt
     const prompt = `
-Você é especialista em marketing de comércio local.
-Crie conteúdo para INSTAGRAM para vender um produto.
-
-Responda SOMENTE com JSON válido (sem markdown, sem texto fora do JSON).
+Você é um REDATOR DE VAREJO. Seu objetivo é criar conteúdo que faça o cliente comprar AGORA.
+Nada de papo furado ou termos técnicos. Seja direto, persuasivo e "uau".
 
 DADOS DA LOJA:
 - Nome: ${store.name}
-- Cidade/UF: ${store.city ?? ""}/${store.state ?? ""}
 - Segmento: ${store.main_segment ?? "—"}
-- Posicionamento: ${store.brand_positioning ?? "—"}
+- Cidade/UF: ${store.city ?? ""}/${store.state ?? ""}
 - Tom: ${store.tone_of_voice ?? "—"}
 - Contato: ${store.whatsapp ?? store.phone ?? "—"}
-- Instagram: ${store.instagram ?? "—"}
 
-DADOS DA CAMPANHA:
+DIRETRIZES DE AGÊNCIA (COPYWRITING DE ALTO IMPACTO):
+1. PROIBIDO CLICHÊS: Evite frases como "Aproveite a melhor...", "O melhor preço...", "Venha conferir...". Seja criativo e específico.
+2. FOCO NO MOOD: Se o público é "Jovens/Festa", use um tom vibrante e social. Se o posicionamento é "Premium", use sofisticação e exclusividade.
+3. REGRA DE OURO: NÃO INVENTE ATRIBUTOS (como "gelada" ou "fresquinho") se não estiverem nos dados.
+4. HEADLINE (Impacto): Máximo 30 caracteres. Em vez de "Heineken em oferta", use "SUA FESTA PEDE HEINEKEN" ou "O SABOR QUE VOCÊ MERECE".
+5. TEXT (Desejo): Máximo 90 caracteres. Conecte o produto ao momento de uso. Use gatilhos de exclusividade, sabor ou conveniência.
+6. CTA (Ação): Máximo 15 caracteres. Fuja do "Compre agora". Use "Garantir a Minha", "Reservar Pedido", "Ver no Cardápio".
+
+DADOS ESTRATÉGICOS (MUITO IMPORTANTE):
 - Produto: ${campaign.product_name}
 - Preço: ${campaign.price ?? "não informado"}
-- Público: ${campaign.audience}
-- Objetivo: ${campaign.objective}
-- Perfil do produto: ${campaign.product_positioning ?? "—"}
+- Público-alvo: ${campaign.audience} (Adapte o vocabulário para eles)
+- Objetivo: ${campaign.objective} (Lançamento? Oferta? Giro de Estoque?)
+- Posicionamento: ${campaign.product_positioning ?? "—"} (Premium? Econômico? Social?)
+- Contexto Extra: ${bodyDescription || "não informado"}
 
-FORMATO OBRIGATÓRIO:
+DADOS DA LOJA:
+- Nome: ${store.name}
+- Tom de Voz: ${store.tone_of_voice ?? "Profissional"} - Respeite isso rigorosamente.
+
+FORMATO OBRIGATÓRIO (JSON PURO):
 {
-  "caption": "Legenda curta com emojis (se combinar)",
-  "text": "Texto principal (pode ser um pouco maior)",
-  "cta": "Chamada para ação",
+  "headline": "O TÍTULO IMPACTANTE",
+  "text": "O texto que convence o cliente sobre o produto.",
+  "caption": "Legenda curta para o Instagram com emojis.",
+  "cta": "Chamada para ação direta",
   "hashtags": "#tag1 #tag2 #tag3"
 }
 `;
@@ -268,6 +280,7 @@ ${safeStringify(parsed1)}
     }
 
     // 8) Fallbacks (NUNCA quebra por campo ausente)
+    const headline = (aiData.headline ?? "").trim() || campaign.product_name;
     const caption = (aiData.caption ?? "").trim() || `✨ ${campaign.product_name} em destaque!`;
     const text = (aiData.text ?? "").trim() || `Passe na ${store.name} e garanta o seu hoje.`;
     const cta =
@@ -281,6 +294,7 @@ ${safeStringify(parsed1)}
     const { error: upErr } = await supabaseAdmin
       .from("campaigns")
       .update({
+        headline: headline,
         ai_caption: caption,
         ai_text: text,
         ai_cta: cta,

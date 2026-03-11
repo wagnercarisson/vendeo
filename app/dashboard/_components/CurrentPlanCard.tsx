@@ -75,7 +75,7 @@ export function CurrentPlanCard({
           </p>
 
           <Link
-            href="/dashboard/plans/new"
+            href="/dashboard/plans?view=new"
             className="mt-3 inline-flex w-full items-center justify-center rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition"
           >
             Gerar plano agora
@@ -113,7 +113,7 @@ export function CurrentPlanCard({
           </Link>
 
           <Link
-            href="/dashboard/plans/new"
+            href="/dashboard/plans?view=new"
             className="mt-3 inline-flex text-sm text-vendeo-muted underline hover:text-vendeo-text"
           >
             Gerar outro

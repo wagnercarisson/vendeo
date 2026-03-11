@@ -197,7 +197,7 @@ export default function LoginClient() {
             </div>
 
             <div className="mt-3 max-w-md text-zinc-600">
-              Gere posts, roteiros de reels e um plano semanal com foco em conversão
+              Gere posts, roteiros para vídeos curtos e um plano semanal com foco em conversão
               local — do jeito certo para o seu bairro.
             </div>
 

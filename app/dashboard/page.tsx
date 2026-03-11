@@ -7,7 +7,20 @@ import { CurrentPlanCard } from "./_components/CurrentPlanCard";
 import { GettingStarted } from "./_components/GettingStarted";
 import { MetricsRow } from "./_components/MetricsRow";
 import { DashboardHero } from "./_components/DashboardHero";
+import { ContentCalendar } from "./_components/ContentCalendar";
+import { ActivityFeed } from "./_components/ActivityFeed";
+import { AISuggestionCard } from "./_components/AISuggestionCard";
+import { InspiredIdeas } from "./_components/InspiredIdeas";
+import { PendingPlanItems } from "./_components/PendingPlanItems";
+import { Suspense } from "react";
+import {
+  ContentCalendarSkeleton,
+  AISuggestionCardSkeleton,
+  ActivityFeedSkeleton,
+} from "./_components/DashboardSkeletons";
+import { MotionWrapper } from "./_components/MotionWrapper";
 
+// ... (getGreetingBrazil and getStartOfWeekBrazilISO remain the same)
 function getGreetingBrazil() {
   const now = new Date();
 
@@ -158,109 +171,75 @@ export default async function DashboardPage() {
     <div className="space-y-7">
       <div className="rounded-3xl bg-slate-50/60 p-3 md:p-4">
         <div className="space-y-7">
-          <DashboardHero
-            greeting={greeting}
-            storeName={store.name}
-            city={store.city}
-            state={store.state}
-          />
+          <MotionWrapper delay={0}>
+            <DashboardHero
+              greeting={greeting}
+              storeName={store.name}
+              city={store.city}
+              state={store.state}
+            />
+          </MotionWrapper>
 
           {/* MÉTRICAS */}
-          <MetricsRow
-            campaignsWeek={campaignsWeek ?? 0}
-            campaigns30={campaigns30 ?? 0}
-            ai30={ai30 ?? 0}
-            reels30={reels30 ?? 0}
-            hasPlan={hasPlan}
-          />
+          <MotionWrapper delay={0.1}>
+            <MetricsRow
+              campaignsWeek={campaignsWeek ?? 0}
+              campaigns30={campaigns30 ?? 0}
+              ai30={ai30 ?? 0}
+              reels30={reels30 ?? 0}
+              hasPlan={hasPlan}
+            />
+          </MotionWrapper>
 
-          {/* Campanhas recentes + Planos recentes (logo após métricas) */}
+          {/* Calendário da Semana */}
+          <MotionWrapper delay={0.2}>
+            <Suspense fallback={<ContentCalendarSkeleton />}>
+              <ContentCalendar storeId={store.id} />
+            </Suspense>
+          </MotionWrapper>
+
+          {/* Seção Principal de Conteúdo */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2">
+            <MotionWrapper delay={0.3} className="lg:col-span-2 space-y-6">
+              <Suspense fallback={<div className="h-40 rounded-2xl bg-slate-100 animate-pulse" />}>
+                <PendingPlanItems storeId={store.id} />
+              </Suspense>
+
               <RecentCampaigns
                 title="Campanhas recentes"
                 viewAllLabel="Visualizar todas"
                 campaigns={campaigns ?? []}
               />
-            </div>
+              
+              <Suspense fallback={<AISuggestionCardSkeleton />}>
+                <AISuggestionCard storeName={store.name} city={store.city} />
+              </Suspense>
+            </MotionWrapper>
 
-            <div className="lg:col-span-1">
+            <MotionWrapper delay={0.4} className="lg:col-span-1 space-y-6">
               <CurrentPlanCard
-                title="Planos recentes"
+                title="Plano ativo"
                 viewAllLabel="Visualizar todos"
                 plan={currentPlan ?? null}
               />
-            </div>
+              
+              <Suspense fallback={<ActivityFeedSkeleton />}>
+                <ActivityFeed storeId={store.id} />
+              </Suspense>
+            </MotionWrapper>
           </div>
 
-          {/* Ações principais */}
-          <DashboardActions />
-
-          {/* Ideias de Campanhas */}
-          <div>
-            <h2 className="mb-5 text-lg font-semibold tracking-tight text-vendeo-text">
-              ✨ Ideias de Campanhas
-            </h2>
-
-            <div className="grid gap-6 md:grid-cols-3">
-              <div className="rounded-2xl border bg-white p-6 shadow-soft transition-all hover:shadow-md hover:-translate-y-[1px] flex flex-col">
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-red-100">
-                  ⚡
-                </div>
-                <h3 className="font-semibold text-vendeo-text">
-                  Promoção de Fim de Semana
-                </h3>
-                <p className="mt-2 text-sm text-vendeo-muted">
-                  Ideal para movimentar sua loja no sábado e domingo.
-                </p>
-                <Link
-                  href="/dashboard/campaigns/new"
-                  className="mt-4 inline-flex items-center text-emerald-700 hover:text-emerald-800 font-semibold"
-                >
-                  Criar agora <span className="ml-1">→</span>
-                </Link>
-              </div>
-
-              <div className="rounded-2xl border bg-white p-6 shadow-soft transition-all hover:shadow-md hover:-translate-y-[1px] flex flex-col">
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100">
-                  ⭐
-                </div>
-                <h3 className="font-semibold text-vendeo-text">
-                  Lançamento de Produto
-                </h3>
-                <p className="mt-2 text-sm text-vendeo-muted">
-                  Divulgue uma novidade que acabou de chegar.
-                </p>
-                <Link
-                  href="/dashboard/campaigns/new"
-                  className="mt-4 inline-flex items-center text-emerald-700 hover:text-emerald-800 font-semibold"
-                >
-                  Criar agora <span className="ml-1">→</span>
-                </Link>
-              </div>
-
-              <div className="rounded-2xl border bg-white p-6 shadow-soft transition-all hover:shadow-md hover:-translate-y-[1px] flex flex-col">
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100">
-                  🔥
-                </div>
-                <h3 className="font-semibold text-vendeo-text">Oferta Relâmpago</h3>
-                <p className="mt-2 text-sm text-vendeo-muted">
-                  Crie senso de urgência e venda rápido.
-                </p>
-                <Link
-                  href="/dashboard/campaigns/new"
-                  className="mt-4 inline-flex items-center text-emerald-700 hover:text-emerald-800 font-semibold"
-                >
-                  Criar agora <span className="ml-1">→</span>
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {/* Checklist: aparece só se estiver no começo */}
+          {/* Checklist para novos usuários */}
           {(!hasCampaigns || !hasPlan) && (
-            <GettingStarted hasCampaigns={hasCampaigns} hasPlan={hasPlan} />
+            <MotionWrapper delay={0.5}>
+              <GettingStarted hasCampaigns={hasCampaigns} hasPlan={hasPlan} />
+            </MotionWrapper>
           )}
+
+          {/* Rodapé com Ideias Personalizadas */}
+          <MotionWrapper delay={hasCampaigns && hasPlan ? 0.5 : 0.6}>
+            <InspiredIdeas segment={store.main_segment} />
+          </MotionWrapper>
         </div>
       </div>
     </div>

@@ -1,7 +1,6 @@
 // src/app/api/generate/weekly-plan/route.ts
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
 import { getUserStoreIdOrThrow } from "@/lib/store/getUserStoreId";
 
@@ -14,7 +13,7 @@ function requireEnv(name: string) {
   return value;
 }
 
-const openai = new OpenAI({ apiKey: requireEnv("OPENAI_API_KEY") });
+
 
 const supabaseAdmin = createClient(
   requireEnv("SUPABASE_URL"),
@@ -30,6 +29,15 @@ const PostBodySchema = z.object({
   store_id: z.string().uuid(),
   week_start: z.string().optional(), // YYYY-MM-DD
   force: z.boolean().optional().default(false),
+  selected_days: z.array(z.number().int().min(1).max(7)).optional(),
+  approved_strategy: z.array(z.object({
+     day_of_week: z.number().int().min(1).max(7),
+     audience: z.string(),
+     objective: z.string(),
+     positioning: z.string(),
+     content_type: z.enum(["post", "reels"]),
+     reasoning: z.string().optional()
+  })).optional().default([]),
 });
 
 const QuerySchema = z.object({
@@ -37,29 +45,7 @@ const QuerySchema = z.object({
   week_start: z.string().optional(), // YYYY-MM-DD
 });
 
-const AIItemSchema = z.object({
-  day_of_week: z.number().int().min(1).max(7),
-  content_type: z.enum(["post", "reels"]),
-  theme: z.string().min(3),
-  recommended_time: z.string().min(3), // "19:30"
-  campaign: z.object({
-    product_name: z.string().min(3),
-    price: z.number().nonnegative().optional().nullable(),
-    audience: z.string().min(3),
-    objective: z.string().min(3),
-    product_positioning: z.string().optional().nullable(),
-  }),
-  brief: z.object({
-    angle: z.string().min(3),
-    hook_hint: z.string().min(3),
-    cta_hint: z.string().min(3),
-  }),
-});
 
-const AIResponseSchema = z.object({
-  strategy_summary: z.string().min(10),
-  items: z.array(AIItemSchema).length(4),
-});
 
 function toISODate(d: Date) {
   const yyyy = d.getUTCFullYear();
@@ -78,33 +64,7 @@ function getWeekStartMondayISO(today = new Date()) {
   return toISODate(d);
 }
 
-function parseJsonLoose(raw: string) {
-  try {
-    return JSON.parse(raw);
-  } catch {
-    const first = raw.indexOf("{");
-    const last = raw.lastIndexOf("}");
-    if (first >= 0 && last > first) return JSON.parse(raw.slice(first, last + 1));
-    throw new Error("AI_RETURNED_NON_JSON");
-  }
-}
 
-function safeStringify(v: any) {
-  try {
-    return JSON.stringify(v, null, 2);
-  } catch {
-    return String(v);
-  }
-}
-
-function uniqueByDay(items: any[]) {
-  const seen = new Set<number>();
-  for (const it of items) {
-    if (seen.has(it.day_of_week)) return false;
-    seen.add(it.day_of_week);
-  }
-  return true;
-}
 
 async function fetchPlan(storeId: string, week_start: string) {
   const { data: plan, error: planErr } = await supabaseAdmin
@@ -253,7 +213,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { force, store_id } = body.data;
+    const { force, store_id, selected_days, approved_strategy } = body.data;
     const week_start = (body.data.week_start ?? getWeekStartMondayISO()).trim();
 
     // valida ownership
@@ -318,99 +278,18 @@ export async function POST(req: Request) {
 
     if (upPlanErr || !upPlan) throw new Error(upPlanErr?.message ?? "FAILED_UPSERT_PLAN");
 
-    // IA
-    const prompt = `
-Você é um estrategista de marketing para comércios locais.
-Crie um PLANO SEMANAL de 4 conteúdos para a loja abaixo (foco em vendas e recorrência).
-
-LOJA:
-- Nome: ${store.name}
-- Cidade/UF: ${store.city ?? ""}/${store.state ?? ""}
-- Segmento principal: ${store.main_segment ?? "não informado"}
-- Posicionamento padrão: ${store.brand_positioning ?? "não informado"}
-- Tom de voz: ${store.tone_of_voice ?? "não informado"}
-
-REGRAS:
-- Responda SOMENTE com JSON válido (sem markdown).
-- Gere exatamente 4 itens em "items".
-- day_of_week (1=Seg ... 7=Dom) deve ser ÚNICO (não repetir dia).
-- content_type: "post" ou "reels".
-- recommended_time: formato "HH:MM" (24h).
-- theme: curto.
-- Em campaign, preencha SEMPRE: product_name, audience, objective. price pode ser null.
-- Em brief: angle, hook_hint, cta_hint.
-
-FORMATO:
-{
-  "strategy_summary": "...",
-  "items": [
-    {
-      "day_of_week": 1,
-      "content_type": "post",
-      "theme": "...",
-      "recommended_time": "19:30",
-      "campaign": {
-        "product_name": "...",
-        "price": 0,
-        "audience": "...",
-        "objective": "...",
-        "product_positioning": "..."
-      },
-      "brief": { "angle": "...", "hook_hint": "...", "cta_hint": "..." }
-    }
-  ]
-}
-`;
-
-    const ai1 = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      temperature: 0.7,
-      messages: [
-        { role: "system", content: "Responda somente com JSON válido." },
-        { role: "user", content: prompt },
-      ],
-    });
-
-    const raw1 = ai1.choices?.[0]?.message?.content ?? "";
-    const parsed1 = parseJsonLoose(raw1);
-
-    let planAI: z.infer<typeof AIResponseSchema>;
-    try {
-      planAI = AIResponseSchema.parse(parsed1);
-      if (!uniqueByDay(planAI.items)) throw new Error("DUPLICATE_DAY_OF_WEEK");
-    } catch (e: any) {
-      const fixPrompt = `
-O JSON abaixo está inválido ou não atende as regras.
-Corrija e devolva SOMENTE o JSON válido no mesmo formato.
-
-ERRO:
-${safeStringify(e?.issues ?? e?.message ?? e)}
-
-JSON PARA CORRIGIR:
-${safeStringify(parsed1)}
-`;
-      const ai2 = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        temperature: 0.2,
-        messages: [
-          { role: "system", content: "Responda somente com JSON válido." },
-          { role: "user", content: fixPrompt },
-        ],
-      });
-
-      const raw2 = ai2.choices?.[0]?.message?.content ?? "";
-      const parsed2 = parseJsonLoose(raw2);
-
-      planAI = AIResponseSchema.parse(parsed2);
-      if (!uniqueByDay(planAI.items)) throw new Error("DUPLICATE_DAY_OF_WEEK_AFTER_FIX");
-    }
+    // O strategy summary salvamos como um stringified para referência
+    const strategySummaryText = approved_strategy.map((s:any) => 
+       `Dia ${s.day_of_week}: Obj: ${s.objective}, Publ: ${s.audience}`
+    ).join(" | ");
 
     // salvar strategy no plano
     const { error: updPlanErr } = await supabaseAdmin
       .from("weekly_plans")
       .update({
         strategy: {
-          strategy_summary: planAI.strategy_summary,
+          strategy_summary: strategySummaryText || "Estratégia omitida.",
+          items: approved_strategy,
           store_snapshot: {
             name: store.name,
             city: store.city,
@@ -425,31 +304,28 @@ ${safeStringify(parsed1)}
 
     if (updPlanErr) throw new Error(updPlanErr.message);
 
-    // ✅ criar campaigns + itens
-    for (const it of planAI.items) {
-      const { data: cRow, error: cErr } = await supabaseAdmin
-        .from("campaigns")
-        .insert({
-          store_id: storeId,
-          product_name: it.campaign.product_name,
-          price: typeof it.campaign.price === "number" ? it.campaign.price : null,
-          audience: it.campaign.audience,
-          objective: it.campaign.objective,
-          product_positioning: it.campaign.product_positioning ?? null,
-        })
-        .select("id")
-        .single();
-
-      if (cErr || !cRow) throw new Error(cErr?.message ?? "FAILED_CREATE_CAMPAIGN");
+    // ✅ criar itens do plano diretamente da estratégia aprovada
+    for (const st of approved_strategy) {
+      const isEvening = Math.random() > 0.5;
+      const recommendedTime = isEvening ? "18:00" : "12:00";
+      
+      const theme = `Diretriz Prática:\nObjetivo: ${st.objective}\nPúblico: ${st.audience}\nTom: ${st.positioning}`;
 
       const { error: iErr } = await supabaseAdmin.from("weekly_plan_items").insert({
         plan_id: upPlan.id,
-        day_of_week: it.day_of_week,
-        content_type: it.content_type,
-        theme: it.theme,
-        recommended_time: it.recommended_time,
-        campaign_id: cRow.id,
-        brief: it.brief,
+        day_of_week: st.day_of_week,
+        content_type: st.content_type,
+        theme: theme,
+        recommended_time: recommendedTime,
+        campaign_id: null,
+        brief: {
+            angle: `Focar em ${st.reasoning || ""}`,
+            hook_hint: "Atenção inicial focada na estratégia",
+            cta_hint: "Chamada para ação clara",
+            audience: st.audience,
+            objective: st.objective,
+            product_positioning: st.positioning,
+        },
       });
 
       if (iErr) throw new Error(iErr.message);

@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { Copy, Check, Sparkles, ArrowLeft, Wand2, Video, Upload, Loader2 } from "lucide-react";
+import { Copy, Check, Sparkles, ArrowLeft, Wand2, Video, Upload, Loader2, Image as ImageIcon } from "lucide-react";
 
 function cx(...classes: Array<string | false | null | undefined>) {
     return classes.filter(Boolean).join(" ");
@@ -131,7 +131,17 @@ function useCopy() {
         } catch { }
     }
 
-    return { copiedKey, copy };
+    async function copyImage(key: string, url: string) {
+        try {
+            setCopiedKey(key); 
+            // In a better flow we would download and put the Blob in the clipboard 
+            // but sharing the direct link is the most reliable way across browsers for now
+            await navigator.clipboard.writeText(url);
+            window.setTimeout(() => setCopiedKey((prev) => (prev === key ? null : prev)), 1200);
+        } catch {}
+    }
+
+    return { copiedKey, copy, copyImage };
 }
 
 function isLikelyUnconfiguredRemote(url: string) {
@@ -151,7 +161,7 @@ function safeToString(v: any) {
 
 export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
     const router = useRouter();
-    const { copiedKey, copy } = useCopy();
+    const { copiedKey, copy, copyImage } = useCopy();
 
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -159,6 +169,7 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
     const [loadingReels, setLoadingReels] = useState(false);
     const [uploadingImage, setUploadingImage] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [confirmAction, setConfirmAction] = useState<"text" | "reels" | null>(null);
     const [dragOver, setDragOver] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
     const uploadTimerRef = useRef<number | null>(null);
@@ -176,6 +187,8 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
     const bestCTA = campaign.ai_cta || campaign.cta || "";
     const bestCaption = campaign.ai_caption || "";
     const bestHashtags = campaign.ai_hashtags || "";
+
+    const imageUrlClean = campaign.image_url || "";
 
     const priceText = useMemo(() => {
         if (campaign.price === null || campaign.price === undefined) return null;
@@ -430,54 +443,49 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
                 </Link>
 
                 <div className="flex flex-wrap items-center gap-2">
-                    <div className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-xs text-zinc-700">
+                    <div className={cx(
+                        "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium shadow-sm transition",
+                        hasAi 
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-800" 
+                            : "border-black/5 bg-white text-zinc-700"
+                    )}>
                         <Sparkles className="h-4 w-4" />
                         <span>{hasAi ? "Conteúdo gerado por IA" : "Conteúdo ainda não gerado"}</span>
                     </div>
-
-                    <button
-                        type="button"
-                        onClick={() => generateText(false)}
-                        disabled={loadingText}
-                        className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
-                    >
-                        <Wand2 className="h-4 w-4" />
-                        {loadingText ? "Gerando texto..." : "Gerar texto com IA"}
-                    </button>
-
-                    {hasAi && (
-                        <button
-                            type="button"
-                            onClick={() => generateText(true)}
-                            disabled={loadingText}
-                            className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
-                        >
-                            Regenerar texto
-                        </button>
-                    )}
-
-                    <button
-                        type="button"
-                        onClick={() => generateReels(false)}
-                        disabled={loadingReels}
-                        className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
-                    >
-                        <Video className="h-4 w-4" />
-                        {loadingReels ? "Gerando Reels..." : hasReels ? "Gerar Reels (já existe)" : "Gerar Reels"}
-                    </button>
-
-                    {hasReels && (
-                        <button
-                            type="button"
-                            onClick={() => generateReels(true)}
-                            disabled={loadingReels}
-                            className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
-                        >
-                            Regenerar Reels
-                        </button>
-                    )}
                 </div>
             </div>
+
+            {confirmAction && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+                    <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+                        <h3 className="text-lg font-semibold text-zinc-900">
+                            Regerar conteúdo
+                        </h3>
+                        <p className="mt-2 text-sm text-zinc-600">
+                            Já existe um conteúdo criado. Esta ação irá gerar uma nova versão e <strong className="text-zinc-900">consumirá créditos adicionais</strong>. Deseja continuar?
+                        </p>
+                        <div className="mt-6 flex items-center justify-end gap-3">
+                            <button
+                                onClick={() => setConfirmAction(null)}
+                                className="rounded-xl border border-black/5 bg-white px-4 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:bg-zinc-50"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const action = confirmAction;
+                                    setConfirmAction(null);
+                                    if (action === "text") generateText(true);
+                                    else if (action === "reels") generateReels(true);
+                                }}
+                                className="rounded-xl border border-transparent bg-zinc-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800"
+                            >
+                                Continuar e consumir créditos
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {errorMsg ? (
                 <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -485,250 +493,288 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
                 </div>
             ) : null}
 
-            <div className="grid gap-6 lg:grid-cols-12">
-                <div className="lg:col-span-5 space-y-6">
+            {/* HERO SECTION */}
+            <div className="flex flex-col sm:flex-row items-center sm:items-stretch gap-6 rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
+                {/* Imagem do Produto */}
+                <div 
+                    className={cx(
+                        "relative h-40 w-40 shrink-0 overflow-hidden rounded-2xl border bg-zinc-50 transition group",
+                        dragOver ? "border-emerald-400 ring-4 ring-emerald-200/50" : "border-black/5"
+                    )}
+                    onDragOver={onDragOver}
+                    onDragLeave={onDragLeave}
+                    onDrop={onDrop}
+                    onClick={openFilePicker}
+                >
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => onFileSelected(e.target.files?.[0] ?? null)}
+                    />
+                    
+                    {campaign.image_url ? (
+                        <>
+                            {isLikelyUnconfiguredRemote(campaign.image_url) ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                    src={campaign.image_url}
+                                    alt={campaign.product_name || "produto"}
+                                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                                />
+                            ) : (
+                                <Image
+                                    src={campaign.image_url}
+                                    alt={campaign.product_name || "produto"}
+                                    fill
+                                    className="object-cover"
+                                    sizes="(max-width: 1024px) 100vw, 420px"
+                                />
+                            )}
+                            {/* overlay de hover para trocar */}
+                            <div className="absolute inset-0 grid place-items-center bg-black/60 opacity-0 transition-opacity group-hover:opacity-100 cursor-pointer">
+                                <div className="text-center text-white">
+                                    <Upload className="mx-auto h-5 w-5 mb-1" />
+                                    <span className="text-xs font-semibold">Trocar foto base</span>
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="grid h-full w-full place-items-center px-4 text-center cursor-pointer hover:bg-zinc-100 transition">
+                            <div>
+                                <Upload className="mx-auto h-5 w-5 text-zinc-400 mb-2" />
+                                <div className="text-xs font-medium text-zinc-600">Enviar foto</div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* overlay quando enviando */}
+                    {uploadingImage && (
+                        <div className="absolute inset-0 grid place-items-center bg-white/90 backdrop-blur-sm z-10">
+                            <div className="text-center">
+                                <Loader2 className="mx-auto h-5 w-5 animate-spin text-emerald-600 mb-2" />
+                                <div className="text-[10px] font-semibold text-zinc-600">{Math.min(100, Math.max(0, uploadProgress))}%</div>
+                            </div>
+                            <div className="absolute inset-x-0 bottom-0 h-1 bg-zinc-200">
+                                <div 
+                                    className="h-full bg-emerald-500 transition-all duration-200"
+                                    style={{ width: `${Math.min(100, Math.max(0, uploadProgress))}%` }}
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* overlay quando arrastando */}
+                    {dragOver && (
+                        <div className="pointer-events-none absolute inset-0 grid place-items-center bg-emerald-500/10 z-20">
+                            <div className="rounded-xl border border-emerald-200 bg-white/90 px-3 py-1.5 text-xs font-semibold text-emerald-700 shadow-sm">
+                                Solte aqui
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Detalhes do Produto */}
+                <div className="flex flex-1 flex-col justify-center sm:items-start items-center text-center sm:text-left gap-3">
+                    <div>
+                        <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight">{campaign.product_name}</h2>
+                        <div className="mt-1.5 flex flex-wrap items-center justify-center sm:justify-start gap-3">
+                            {priceText && (
+                                <div className="inline-flex items-center gap-1.5 rounded-full border border-black/5 bg-zinc-50 px-2.5 py-1 text-xs font-medium text-zinc-700">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                                    {priceText}
+                                </div>
+                            )}
+                            <div className="inline-flex items-center gap-1.5 rounded-full border border-black/5 bg-zinc-50 px-2.5 py-1 text-xs font-medium text-zinc-700 uppercase tracking-wide">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                <span className="text-[10px] text-zinc-500 mr-0.5 lowercase">objetivo:</span>
+                                {campaign.objective}
+                            </div>
+                            {campaign.audience && (
+                                <div className="inline-flex items-center gap-1.5 rounded-full border border-black/5 bg-zinc-50 px-2.5 py-1 text-xs font-medium text-zinc-700">
+                                    Público: {campaign.audience}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* MAIN GRID */}
+            <div className="grid gap-6 lg:grid-cols-2">
+                {/* COLUNA 1: POST */}
+                <div className="space-y-6">
                     <Card
-                        title="Arte / imagem"
-                        subtitle="Envie a foto do produto direto do seu computador ou celular."
+                        title="Campanha Pronta"
+                        subtitle="Preview do post e legendas prontas para uso."
                         right={
                             <div className="flex items-center gap-2">
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept="image/*"
-                                    className="hidden"
-                                    onChange={(e) => onFileSelected(e.target.files?.[0] ?? null)}
-                                />
+                                {hasAi ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => setConfirmAction("text")}
+                                        disabled={loadingText}
+                                        className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
+                                    >
+                                        <Wand2 className="h-4 w-4" />
+                                        {loadingText ? "Gerando..." : "Regenerar post"}
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() => generateText(false)}
+                                        disabled={loadingText}
+                                        className="inline-flex items-center gap-2 rounded-xl border border-transparent bg-zinc-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50 hover:bg-zinc-800"
+                                    >
+                                        <Wand2 className="h-4 w-4" />
+                                        {loadingText ? "Gerando..." : "Gerar post com IA"}
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => copy("post", [bestHeadline, bestBody, bestCTA].filter(Boolean).join("\n\n"))}
+                                    className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
+                                    type="button"
+                                    disabled={!bestBody && !bestCTA}
+                                >
+                                    {copiedKey === "post" ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
+                                    Copiar tudo
+                                </button>
+                                <button
+                                    onClick={() => copyImage("art", imageUrlClean)}
+                                    className="inline-flex items-center gap-2 rounded-xl border border-transparent bg-zinc-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50 hover:bg-zinc-800"
+                                    type="button"
+                                    disabled={!imageUrlClean}
+                                    title="Copiar Link da Imagem"
+                                >
+                                    {copiedKey === "art" ? <Check className="h-4 w-4" /> : <ImageIcon className="h-4 w-4" />}
+                                    Copiar Link da Arte
+                                </button>
+                            </div>
+                        }
+                    >
+                        {hasAi ? (
+                            <div className="space-y-4">
+                                <div id="campanha-arte" className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-900 shadow-lg max-w-[400px] mx-auto aspect-[4/5]">
+                                    {isLikelyUnconfiguredRemote(imageUrlClean) ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img src={imageUrlClean} alt="Arte da Campanha" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <Image src={imageUrlClean} alt="Arte da Campanha" fill className="object-cover" />
+                                    )}
+                                </div>
+                                
+                                <div className="rounded-xl border border-black/5 bg-zinc-50 px-4 py-3">
+                                    <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Legenda</div>
+                                    <div className="mt-2 text-sm text-zinc-800 whitespace-pre-wrap leading-relaxed">{bestCaption || "Legenda não encontrada"}</div>
+                                    <div className="mt-3 text-xs text-emerald-700 font-medium whitespace-pre-wrap">{bestHashtags}</div>
+                                    <div className="mt-4 flex justify-end">
+                                        <button
+                                            onClick={() => copy("caption", `${bestCaption}\n\n${bestHashtags}`)}
+                                            className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-[11px] font-bold uppercase text-zinc-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                                            type="button"
+                                        >
+                                            {copiedKey === "caption" ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
+                                            Copiar legenda
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-black/10 bg-zinc-50 py-12 px-4 text-center">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 mb-4">
+                                    <Sparkles className="h-6 w-6" />
+                                </div>
+                                <h3 className="text-base font-semibold text-zinc-900">Post não gerado</h3>
+                                <p className="mt-1 mb-6 max-w-sm text-sm text-zinc-500">
+                                    Gere automaticamente o texto do post, legenda e sugestões de hashtags alinhadas com sua estratégia.
+                                </p>
                                 <button
                                     type="button"
-                                    onClick={openFilePicker}
-                                    disabled={uploadingImage}
-                                    className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
+                                    onClick={() => generateText(false)}
+                                    disabled={loadingText}
+                                    className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-md disabled:opacity-50"
                                 >
-                                    {uploadingImage ? (
-                                        <>
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                            Enviando...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Upload className="h-4 w-4" />
-                                            Enviar foto
-                                        </>
-                                    )}
+                                    <Wand2 className="h-4 w-4" />
+                                    {loadingText ? "Gerando post..." : "Gerar post com IA"}
                                 </button>
-                                {uploadingImage && (
-                                    <div className="absolute inset-x-0 bottom-0">
-                                        <div className="px-3 pb-3">
-                                            <div className="rounded-xl border border-black/10 bg-white/90 p-3 shadow-sm backdrop-blur">
-                                                <div className="flex items-center justify-between text-xs font-semibold text-zinc-700">
-                                                    <span>Enviando imagem…</span>
-                                                    <span>{Math.min(100, Math.max(0, uploadProgress))}%</span>
-                                                </div>
+                            </div>
+                        )}
+                    </Card>
+                </div>
 
-                                                <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-zinc-200">
-                                                    <div
-                                                        className="h-full rounded-full bg-emerald-600 transition-[width] duration-200"
-                                                        style={{ width: `${Math.min(100, Math.max(0, uploadProgress))}%` }}
-                                                    />
-                                                </div>
-
-                                                <div className="mt-1 text-[11px] text-zinc-500">
-                                                    Não feche esta página durante o envio.
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                <div className="space-y-6">
+                    <Card 
+                        title="Vídeo Curto" 
+                        subtitle="Hook + roteiro (quando gerado)."
+                        right={
+                            <div className="flex items-center gap-2">
+                                {hasReels ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => setConfirmAction("reels")}
+                                        disabled={loadingReels}
+                                        className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
+                                    >
+                                        <Video className="h-4 w-4" />
+                                        {loadingReels ? "Gerando..." : "Regenerar vídeo"}
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() => generateReels(false)}
+                                        disabled={loadingReels}
+                                        className="inline-flex items-center gap-2 rounded-xl border border-transparent bg-zinc-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50 hover:bg-zinc-800"
+                                    >
+                                        <Video className="h-4 w-4" />
+                                        {loadingReels ? "Gerando..." : "Gerar vídeo curto"}
+                                    </button>
                                 )}
                             </div>
                         }
                     >
-                        <div
-                            className={cx(
-                                "relative overflow-hidden rounded-2xl border bg-zinc-50 transition",
-                                dragOver ? "border-emerald-400 ring-4 ring-emerald-200/50" : "border-black/5"
-                            )}
-                            onDragOver={onDragOver}
-                            onDragLeave={onDragLeave}
-                            onDrop={onDrop}
-                        >
-                            {campaign.image_url ? (
-                                <div className="relative aspect-square">
-                                    {isLikelyUnconfiguredRemote(campaign.image_url) ? (
-                                        // eslint-disable-next-line @next/next/no-img-element
-                                        <img
-                                            src={campaign.image_url}
-                                            alt={campaign.product_name}
-                                            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                                        />
-                                    ) : (
-                                        <Image
-                                            src={campaign.image_url}
-                                            alt={campaign.product_name}
-                                            fill
-                                            className="object-cover"
-                                            sizes="(max-width: 1024px) 100vw, 420px"
-                                        />
-                                    )}
-
-                                    {/* hint discreto no canto */}
-                                    <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/35 to-transparent p-3">
-                                        <div className="text-xs font-semibold text-white/95">
-                                            Arraste uma nova imagem aqui para substituir
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="grid aspect-square place-items-center px-8 text-center">
-                                    <div>
-                                        <div className="text-sm font-semibold text-zinc-800">Arraste e solte a foto aqui</div>
-                                        <div className="mt-1 text-xs text-zinc-500">
-                                            ou clique em <span className="font-semibold">“Enviar foto”</span>.
-                                        </div>
-                                        <div className="mt-4 text-[11px] text-zinc-500">
-                                            Formatos: JPG/PNG/WEBP · Máx: 8MB
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* overlay quando arrastando */}
-                            {dragOver && (
-                                <div className="pointer-events-none absolute inset-0 grid place-items-center bg-emerald-500/10">
-                                    <div className="rounded-2xl border border-emerald-200 bg-white/90 px-4 py-2 text-sm font-semibold text-emerald-700 shadow-sm">
-                                        Solte para enviar
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="mt-4 grid gap-3">
-                            <Field label="Produto" value={campaign.product_name} />
-                            <div className="grid gap-3 sm:grid-cols-2">
-                                <Field label="Preço" value={priceText} />
-                                <Field label="Objetivo" value={campaign.objective} />
-                            </div>
-                            <Field label="Público" value={campaign.audience} />
-                        </div>
-                    </Card>
-                </div>
-
-                <div className="lg:col-span-7 space-y-6">
-                    <Card
-                        title="Texto do post"
-                        subtitle="Headline + corpo + CTA (pronto para usar)."
-                        right={
-                            <button
-                                onClick={() =>
-                                    copy("post", [bestHeadline, "", bestBody, "", bestCTA].filter(Boolean).join("\n"))
-                                }
-                                className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
-                                type="button"
-                                disabled={!bestBody && !bestCTA}
-                            >
-                                {copiedKey === "post" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                                Copiar tudo
-                            </button>
-                        }
-                    >
-                        <div className="space-y-3">
-                            <div className="rounded-xl border border-black/5 bg-zinc-50 px-4 py-3">
-                                <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Headline</div>
-                                <div className="mt-1 text-base font-semibold text-zinc-900">{bestHeadline}</div>
-                            </div>
-
-                            {bestBody ? (
-                                <div className="rounded-xl border border-black/5 bg-white px-4 py-3">
-                                    <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Texto</div>
-                                    <div className="mt-1 text-sm text-zinc-800 whitespace-pre-wrap">{bestBody}</div>
-                                </div>
-                            ) : (
-                                <Empty title="Texto ainda não gerado" hint="Clique em “Gerar texto com IA” acima para preencher automaticamente." />
-                            )}
-
-                            {bestCTA ? (
-                                <div className="rounded-xl border border-black/5 bg-white px-4 py-3">
-                                    <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">CTA</div>
-                                    <div className="mt-1 text-sm font-medium text-zinc-900 whitespace-pre-wrap">{bestCTA}</div>
-                                </div>
-                            ) : (
-                                <Empty title="CTA ainda não gerado" hint="O Vendeo cria uma chamada para ação alinhada ao objetivo." />
-                            )}
-                        </div>
-                    </Card>
-
-                    <div className="grid gap-6 lg:grid-cols-2">
-                        <Card
-                            title="Legenda"
-                            subtitle="Pronta para Instagram/FB."
-                            right={
-                                bestCaption ? (
-                                    <button
-                                        onClick={() => copy("caption", bestCaption)}
-                                        className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                                        type="button"
-                                    >
-                                        {copiedKey === "caption" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                                        Copiar
-                                    </button>
-                                ) : null
-                            }
-                        >
-                            {bestCaption ? (
-                                <div className="text-sm text-zinc-800 whitespace-pre-wrap">{bestCaption}</div>
-                            ) : (
-                                <Empty title="Legenda ainda não gerada" hint="Gere o texto com IA para criar uma legenda pronta para postar." />
-                            )}
-                        </Card>
-
-                        <Card
-                            title="Hashtags"
-                            subtitle="Copie e cole."
-                            right={
-                                bestHashtags ? (
-                                    <button
-                                        onClick={() => copy("hashtags", bestHashtags)}
-                                        className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                                        type="button"
-                                    >
-                                        {copiedKey === "hashtags" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                                        Copiar
-                                    </button>
-                                ) : null
-                            }
-                        >
-                            {bestHashtags ? (
-                                <div className="text-sm text-zinc-800 whitespace-pre-wrap">{bestHashtags}</div>
-                            ) : (
-                                <Empty title="Hashtags ainda não geradas" hint="O Vendeo sugere hashtags locais e de intenção de compra." />
-                            )}
-                        </Card>
-                    </div>
-
-                    {(campaign.reels_hook || campaign.reels_script || hasReels) && (
-                        <Card title="Reels" subtitle="Hook + roteiro (quando gerado).">
+                        {hasReels || campaign.reels_hook || campaign.reels_script ? (
                             <div className="space-y-3">
                                 {campaign.reels_hook ? (
                                     <Field label="Hook" value={safeToString(campaign.reels_hook)} />
                                 ) : (
-                                    <Empty title="Hook ainda não gerado" hint="Clique em “Gerar Reels” acima." />
+                                    <Empty title="Hook ainda não gerado" hint="Clique em “Gerar vídeo curto” acima." />
                                 )}
 
                                 {campaign.reels_script ? (
                                     <Field label="Roteiro" value={safeToString(campaign.reels_script)} />
                                 ) : (
-                                    <Empty title="Roteiro ainda não gerado" hint="Clique em “Gerar Reels” acima." />
+                                    <Empty title="Roteiro ainda não gerado" hint="Clique em “Gerar vídeo curto” acima." />
                                 )}
 
                                 <div className="grid gap-3 sm:grid-cols-2">
-                                    <Field label="Legenda reels" value={safeToString(campaign.reels_caption)} />
-                                    <Field label="CTA reels" value={safeToString(campaign.reels_cta)} />
+                                    <Field label="Legenda (vídeo)" value={safeToString(campaign.reels_caption)} />
+                                    <Field label="CTA (vídeo)" value={safeToString(campaign.reels_cta)} />
                                 </div>
 
-                                <Field label="Hashtags reels" value={safeToString(campaign.reels_hashtags)} />
+                                <Field label="Hashtags (vídeo)" value={safeToString(campaign.reels_hashtags)} />
                             </div>
-                        </Card>
-                    )}
+                        ) : (
+                            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-black/10 bg-zinc-50 py-12 px-4 text-center">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 mb-4">
+                                    <Video className="h-6 w-6" />
+                                </div>
+                                <h3 className="text-base font-semibold text-zinc-900">Vídeo Curto não gerado</h3>
+                                <p className="mt-1 mb-6 max-w-sm text-sm text-zinc-500">
+                                    Gere automaticamente um roteiro e gancho (hook) para gravar vídeos curtos virais (Reels/TikTok).
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => generateReels(false)}
+                                    disabled={loadingReels}
+                                    className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-md disabled:opacity-50"
+                                >
+                                    <Video className="h-4 w-4" />
+                                    {loadingReels ? "Gerando vídeo..." : "Gerar vídeo curto"}
+                                </button>
+                            </div>
+                        )}
+                    </Card>
                 </div>
             </div>
         </div>

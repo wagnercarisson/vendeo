@@ -5,7 +5,10 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase";
-import { ArrowRight, AlertTriangle, Sparkles, Video, Wand2, Plus } from "lucide-react";
+import { ArrowRight, AlertTriangle, Sparkles, Video, Wand2, Plus, Eye } from "lucide-react";
+import { MotionWrapper } from "../_components/MotionWrapper";
+import { CampaignArtViewer } from "./_components/CampaignArtViewer";
+import { PostModal, ReelsModal } from "./_components/CampaignModals";
 
 type Store = {
   id: string;
@@ -41,6 +44,7 @@ type Campaign = {
   audience: string;
   objective: string;
   image_url: string | null;
+  layout: "solid" | "floating" | "split" | null;
 
   product_positioning: string | null;
 
@@ -146,6 +150,9 @@ export default function CampaignsPage() {
 
   const [generatingTextId, setGeneratingTextId] = useState<string | null>(null);
   const [generatingReelsId, setGeneratingReelsId] = useState<string | null>(null);
+
+  const [selectedPostCampaign, setSelectedPostCampaign] = useState<Campaign | null>(null);
+  const [selectedReelsCampaign, setSelectedReelsCampaign] = useState<Campaign | null>(null);
 
   type ConfirmState = {
     open: boolean;
@@ -270,7 +277,7 @@ export default function CampaignsPage() {
       .from("campaigns")
       .select(
         `
-        id, product_name, price, audience, objective, image_url,
+        id, product_name, price, audience, objective, image_url, layout,
         product_positioning,
         ai_caption, ai_text, ai_cta, ai_hashtags,
 
@@ -409,19 +416,11 @@ export default function CampaignsPage() {
     return (
       <div className="flex flex-wrap items-center gap-2">
         <Link
-          href="/campaigns/new"
-          className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+          href="/dashboard/campaigns/new"
+          className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-premium transition hover:-translate-y-0.5 hover:shadow-md"
         >
           <Plus className="h-4 w-4" />
           Nova campanha
-        </Link>
-
-        <Link
-          href="/store"
-          className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-        >
-          Configurar loja
-          <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
     );
@@ -429,15 +428,15 @@ export default function CampaignsPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-6">
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+      <MotionWrapper delay={0.1} className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-zinc-900">Campanhas</h1>
-          <p className="mt-1 text-sm text-zinc-600">
+          <h1 className="text-2xl font-semibold text-slate-900">Campanhas</h1>
+          <p className="mt-1 text-sm text-slate-600">
             Clique em uma campanha para abrir o preview premium e copiar tudo.
           </p>
         </div>
         {headerLinks}
-      </div>
+      </MotionWrapper>
 
       {error && (
         <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -445,17 +444,36 @@ export default function CampaignsPage() {
         </div>
       )}
 
-      {loading && <p className="text-sm text-zinc-600">Carregando...</p>}
-
-      {!loading && campaigns.length === 0 && (
-        <div className="rounded-2xl border border-black/10 bg-white p-6">
-          <div className="text-sm font-semibold text-zinc-900">Nenhuma campanha ainda.</div>
-          <div className="mt-1 text-sm text-zinc-600">Crie sua primeira campanha para começar.</div>
-          <div className="mt-4">{headerLinks}</div>
-        </div>
+      {loading && (
+        <MotionWrapper delay={0.2} className="grid gap-4">
+          {[1, 2, 3].map((i) => (
+             <div key={i} className="flex min-w-0 flex-col items-stretch overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm">
+              <div className="flex-1 p-4 flex gap-4">
+                <div className="h-20 w-20 flex-none animate-pulse rounded-2xl bg-slate-100"></div>
+                <div className="min-w-0 flex-1 space-y-3 py-1">
+                  <div className="h-4 w-1/3 animate-pulse rounded bg-slate-200"></div>
+                  <div className="h-3 w-1/2 animate-pulse rounded bg-slate-100"></div>
+                  <div className="h-3 w-3/4 animate-pulse rounded bg-slate-50"></div>
+                </div>
+              </div>
+              <div className="border-t border-black/5 px-4 py-3 bg-slate-50/60 flex justify-end gap-2">
+                 <div className="h-9 w-24 animate-pulse rounded-xl bg-slate-200"></div>
+                 <div className="h-9 w-24 animate-pulse rounded-xl bg-slate-200"></div>
+              </div>
+            </div>
+          ))}
+        </MotionWrapper>
       )}
 
-      <div className="grid gap-4">
+      {!loading && campaigns.length === 0 && (
+        <MotionWrapper delay={0.2} className="rounded-2xl border border-black/10 bg-white p-6">
+          <div className="text-sm font-semibold text-slate-900">Nenhuma campanha ainda.</div>
+          <div className="mt-1 text-sm text-slate-600">Crie sua primeira campanha para começar.</div>
+          <div className="mt-4">{headerLinks}</div>
+        </MotionWrapper>
+      )}
+
+      <MotionWrapper delay={0.2} className="grid gap-4">
         {campaigns.map((c) => {
           const hasAi = (c.ai_caption ?? "").trim().length > 0;
           const hasReels = !!c.reels_generated_at;
@@ -467,19 +485,21 @@ export default function CampaignsPage() {
           const storeName = c.stores?.name ?? "—";
           const location = [c.stores?.city, c.stores?.state].filter(Boolean).join(", ");
 
+          let parsedAiText = null;
+          if (c.ai_text) {
+              try { parsedAiText = JSON.parse(c.ai_text); } catch {}
+          }
+
           return (
-            <Link
+            <div
               key={c.id}
-              href={`/dashboard/campaigns/${c.id}`}
-              className="group block"
-              style={{ textDecoration: "none" }}
+              className="group block rounded-2xl border border-black/10 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md flex flex-col"
             >
-              <div className="rounded-2xl border border-black/10 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md flex flex-col">
                 {/* BODY */}
                 <div className="p-4 flex-1">
                   <div className="flex min-w-0 items-start gap-4">
                     {/* Thumb */}
-                    <div className="relative h-20 w-20 flex-none overflow-hidden rounded-2xl border border-black/5 bg-zinc-50">
+                    <div className="relative h-[100px] w-[80px] sm:h-[120px] sm:w-[96px] flex-none overflow-hidden rounded-2xl border border-black/5 bg-zinc-50">
                       {c.image_url ? (
                         isLikelyUnconfiguredRemote(c.image_url) ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -494,7 +514,7 @@ export default function CampaignsPage() {
                             alt={c.product_name}
                             fill
                             className="object-cover"
-                            sizes="80px"
+                            sizes="96px"
                           />
                         )
                       ) : (
@@ -579,7 +599,7 @@ export default function CampaignsPage() {
                     {!hasAi ? (
                       <button
                         onClick={(e) => {
-                          stopLink(e);
+                          e.preventDefault();
                           generateAndSaveText(c, false);
                         }}
                         disabled={generatingTextId === c.id}
@@ -587,36 +607,50 @@ export default function CampaignsPage() {
                         type="button"
                       >
                         <Wand2 className="h-4 w-4" />
-                        {generatingTextId === c.id ? "Gerando..." : "Gerar IA"}
+                        {generatingTextId === c.id ? "Gerando..." : "Gerar post com IA"}
                       </button>
                     ) : (
-                      <button
-                        onClick={(e) => {
-                          stopLink(e);
-                          openConfirm({
-                            icon: "ai",
-                            title: "Regenerar conteúdo de IA?",
-                            description:
-                              "Isso vai substituir o texto atual (headline/legenda/CTA/hashtags). Você pode perder um texto bom.",
-                            confirmLabel: "Regenerar IA",
-                            destructive: true,
-                            onConfirm: () => generateAndSaveText(c, true),
-                          });
-                        }}
-                        disabled={generatingTextId === c.id}
-                        className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
-                        type="button"
-                      >
-                        <Wand2 className="h-4 w-4" />
-                        {generatingTextId === c.id ? "Gerando..." : "Regenerar IA"}
-                      </button>
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setSelectedPostCampaign(c);
+                          }}
+                          className="inline-flex items-center gap-2 rounded-xl border border-transparent bg-zinc-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md hover:bg-zinc-800"
+                          type="button"
+                        >
+                          <Eye className="h-4 w-4 text-emerald-400" />
+                          Ver Post
+                        </button>
+
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            openConfirm({
+                              icon: "ai",
+                              title: "Regenerar conteúdo de IA?",
+                              description:
+                                "Isso vai substituir o texto e arte atuais (headline/legenda/CTA/hashtags).",
+                              confirmLabel: "Regenerar IA",
+                              destructive: true,
+                              onConfirm: () => generateAndSaveText(c, true),
+                            });
+                          }}
+                          disabled={generatingTextId === c.id}
+                          className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
+                          type="button"
+                        >
+                          <Wand2 className="h-4 w-4" />
+                          {generatingTextId === c.id ? "Gerando..." : "Regenerar IA"}
+                        </button>
+                      </>
                     )}
 
                     {/* REELS */}
                     {!hasReels ? (
                       <button
                         onClick={(e) => {
-                          stopLink(e);
+                          e.preventDefault();
                           generateAndSaveReels(c, false);
                         }}
                         disabled={generatingReelsId === c.id}
@@ -624,39 +658,60 @@ export default function CampaignsPage() {
                         type="button"
                       >
                         <Video className="h-4 w-4" />
-                        {generatingReelsId === c.id ? "Gerando..." : "Gerar Reels"}
+                        {generatingReelsId === c.id ? "Gerando..." : "Gerar Vídeo Curto"}
                       </button>
                     ) : (
-                      <button
-                        onClick={(e) => {
-                          stopLink(e);
-                          openConfirm({
-                            icon: "reels",
-                            title: "Regenerar roteiro de Reels?",
-                            description:
-                              "Isso vai substituir o roteiro atual (hook, script, shotlist e sugestões).",
-                            confirmLabel: "Regenerar Reels",
-                            destructive: true,
-                            onConfirm: () => generateAndSaveReels(c, true),
-                          });
-                        }}
-                        disabled={generatingReelsId === c.id}
-                        className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
-                        type="button"
-                      >
-                        <Video className="h-4 w-4" />
-                        {generatingReelsId === c.id ? "Gerando..." : "Regenerar Reels"}
-                      </button>
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setSelectedReelsCampaign(c);
+                          }}
+                          className="inline-flex items-center gap-2 rounded-xl border border-transparent bg-zinc-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md hover:bg-zinc-800"
+                          type="button"
+                        >
+                          <Eye className="h-4 w-4 text-indigo-400" />
+                          Ver Vídeo
+                        </button>
+
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            openConfirm({
+                              icon: "reels",
+                              title: "Regenerar roteiro de Reels?",
+                              description:
+                                "Isso vai substituir o roteiro atual (hook, script, shotlist e sugestões).",
+                              confirmLabel: "Regenerar Reels",
+                              destructive: true,
+                              onConfirm: () => generateAndSaveReels(c, true),
+                            });
+                          }}
+                          disabled={generatingReelsId === c.id}
+                          className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
+                          type="button"
+                        >
+                          <Video className="h-4 w-4" />
+                          {generatingReelsId === c.id ? "Gerando..." : "Regenerar Reels"}
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
-              </div>
-            </Link>
+            </div>
           );
         })}
-      </div>
+      </MotionWrapper>
 
       <ConfirmDialog state={confirmState} onClose={closeConfirm} onConfirm={handleConfirm} />
+      
+      {selectedPostCampaign && (
+          <PostModal campaign={selectedPostCampaign} onClose={() => setSelectedPostCampaign(null)} />
+      )}
+
+      {selectedReelsCampaign && (
+          <ReelsModal campaign={selectedReelsCampaign} onClose={() => setSelectedReelsCampaign(null)} />
+      )}
 
     </main>
   );
