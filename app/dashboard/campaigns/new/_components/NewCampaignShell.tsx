@@ -287,7 +287,7 @@ export function NewCampaignShell() {
 
                         // 2) Fazer upload real pro Supabase Storage
                         const { data: uploadData, error: uploadErr } = await supabase.storage
-                            .from("campaigns_arts") // NOTE: the user named it 'campaign_arts' in the SQL script
+                            .from("campaign-images")
                             .upload(fileName, imageBlob, {
                                 contentType: "image/png",
                                 upsert: true,
@@ -297,7 +297,7 @@ export function NewCampaignShell() {
                             console.error("Erro no upload da arte final:", uploadErr);
                         } else {
                             const { data: publicUrlData } = supabase.storage
-                                .from("campaigns_arts")
+                                .from("campaign-images")
                                 .getPublicUrl(fileName);
                             
                             finalImageUrl = publicUrlData.publicUrl;
@@ -319,7 +319,7 @@ export function NewCampaignShell() {
                         ai_caption: preview.caption,
                         ai_hashtags: preview.hashtags,
                         image_url: finalImageUrl,
-                        status: "active",
+                        status: "approved",
                     })
                     .eq("id", campaignId);
 

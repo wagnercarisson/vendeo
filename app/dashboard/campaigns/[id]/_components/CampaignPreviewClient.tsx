@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { Copy, Check, Sparkles, ArrowLeft, Wand2, Video, Upload, Loader2, Image as ImageIcon } from "lucide-react";
+import { Copy, Check, Sparkles, ArrowLeft, Wand2, Video, Upload, Loader2, Image as ImageIcon, Download, Printer } from "lucide-react";
 
 function cx(...classes: Array<string | false | null | undefined>) {
     return classes.filter(Boolean).join(" ");
@@ -46,6 +46,7 @@ type Campaign = {
     price: number | null;
     audience: string | null;
     objective: string | null;
+    status: string | null;
 
     image_url: string | null;
     headline: string | null;
@@ -172,6 +173,8 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
     const [confirmAction, setConfirmAction] = useState<"text" | "reels" | null>(null);
     const [dragOver, setDragOver] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
+    const [artStatus, setArtStatus] = useState<"idle" | "copying" | "copied" | "saving">("idle");
+    const [reelsScriptCopied, setReelsScriptCopied] = useState(false);
     const uploadTimerRef = useRef<number | null>(null);
     const uploadStartRef = useRef<number>(0);
 
@@ -189,6 +192,90 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
     const bestHashtags = campaign.ai_hashtags || "";
 
     const imageUrlClean = campaign.image_url || "";
+    const isApproved = campaign.status === "approved";
+
+    async function handleCopyArt() {
+        if (!imageUrlClean || artStatus !== "idle") return;
+        try {
+            setArtStatus("copying");
+            const res = await fetch(imageUrlClean);
+            const blob = await res.blob();
+            let pngBlob = blob;
+            if (blob.type !== "image/png") {
+                pngBlob = await new Promise<Blob>((resolve, reject) => {
+                    const img = new window.Image();
+                    const url = URL.createObjectURL(blob);
+                    img.onload = () => {
+                        const c = document.createElement("canvas");
+                        c.width = img.width; c.height = img.height;
+                        c.getContext("2d")?.drawImage(img, 0, 0);
+                        c.toBlob((b) => { URL.revokeObjectURL(url); b ? resolve(b) : reject(); }, "image/png");
+                    };
+                    img.onerror = () => { URL.revokeObjectURL(url); reject(); };
+                    img.src = url;
+                });
+            }
+            await (navigator.clipboard as any).write([new ClipboardItem({ "image/png": pngBlob })]);
+            setArtStatus("copied");
+            setTimeout(() => setArtStatus("idle"), 2000);
+        } catch {
+            // fallback: copia o link
+            await navigator.clipboard.writeText(imageUrlClean).catch(() => {});
+            setArtStatus("copied");
+            setTimeout(() => setArtStatus("idle"), 2000);
+        }
+    }
+
+    async function handleSaveArt() {
+        if (!imageUrlClean || artStatus === "saving") return;
+        try {
+            setArtStatus("saving");
+            const res = await fetch(imageUrlClean);
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `arte-${(campaign.product_name || "campanha").replace(/\s+/g, "-").toLowerCase()}.png`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        } finally {
+            setArtStatus("idle");
+        }
+    }
+
+    function buildReelsScriptText() {
+        const parts: string[] = [];
+        if (campaign.reels_hook) parts.push(`HOOK:\n${campaign.reels_hook}`);
+        if (campaign.reels_duration_seconds || campaign.reels_audio_suggestion) {
+            const f = [campaign.reels_duration_seconds ? `⏱️ ${campaign.reels_duration_seconds}s` : null, campaign.reels_audio_suggestion ? `🎵 ${campaign.reels_audio_suggestion}` : null].filter(Boolean).join(" · ");
+            parts.push(`FOCO DO VÍDEO:\n${f}`);
+        }
+        if ((campaign.reels_on_screen_text as any)?.length) parts.push(`TEXTO NA TELA:\n${(campaign.reels_on_screen_text as string[]).map((t) => `"${t}"`).join(" · ")}`);
+        if (campaign.reels_script) parts.push(`ROTEIRO:\n${campaign.reels_script}`);
+        if ((campaign.reels_shotlist as any)?.length) parts.push(`CENAS:\n${(campaign.reels_shotlist as any[]).map((s) => `Cena ${s.scene} [${s.camera}]\nAção: ${s.action}\n"${s.dialogue}"`).join("\n\n")}`);
+        if (campaign.reels_caption) parts.push(`LEGENDA:\n${campaign.reels_caption}`);
+        if (campaign.reels_cta) parts.push(`CTA:\n${campaign.reels_cta}`);
+        if (campaign.reels_hashtags) parts.push(`HASHTAGS:\n${campaign.reels_hashtags}`);
+        return parts.join("\n\n");
+    }
+
+    async function handleCopyReelsScript() {
+        await navigator.clipboard.writeText(buildReelsScriptText()).catch(() => {});
+        setReelsScriptCopied(true);
+        setTimeout(() => setReelsScriptCopied(false), 2000);
+    }
+
+    function handlePrintReels() {
+        const name = campaign.product_name || "Campanha";
+        const w = window.open("", "_blank");
+        if (!w) return;
+        w.document.write(`<html><head><title>Roteiro — ${name}</title><style>body{font-family:Georgia,serif;max-width:700px;margin:40px auto;color:#18181b;line-height:1.6}h1{font-size:18px;border-bottom:2px solid #18181b;padding-bottom:8px;margin-bottom:24px}section{margin-bottom:24px}.label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#71717a;margin-bottom:4px}.content{white-space:pre-wrap;font-size:14px}.scene{border-left:3px solid #18181b;padding:8px 12px;margin:8px 0;font-size:13px}.scene-num{font-weight:700;font-size:11px;text-transform:uppercase}@media print{body{margin:20px}}</style></head><body><h1>Roteiro de Vídeo Curto — ${name}</h1>${campaign.reels_hook?`<section><div class="label">🎯 Hook (Gancho Vital)</div><div class="content" style="font-weight:700;font-style:italic;font-size:16px">${campaign.reels_hook}</div></section>`:""} ${campaign.reels_duration_seconds||campaign.reels_audio_suggestion?`<section><div class="label">📽️ Foco do Vídeo</div><div class="content">${campaign.reels_duration_seconds?`⏱️ ${campaign.reels_duration_seconds}s`:""} ${campaign.reels_audio_suggestion?`🎵 ${campaign.reels_audio_suggestion}`:""}</div></section>`:""} ${(campaign.reels_on_screen_text as any)?.length?`<section><div class="label">📝 Texto na Tela</div><div class="content">${(campaign.reels_on_screen_text as string[]).map(t=>`• "${t}"`).join("<br>")}</div></section>`:""} ${campaign.reels_script?`<section><div class="label">🎬 Roteiro Sugerido</div><div class="content">${campaign.reels_script.replace(/\n/g,"<br>")}</div></section>`:""} ${(campaign.reels_shotlist as any)?.length?`<section><div class="label">📋 Cenas Sugeridas</div>${(campaign.reels_shotlist as any[]).map(s=>`<div class="scene"><div class="scene-num">Cena ${s.scene} — ${s.camera}</div><div>Ação: ${s.action}</div><div style="color:#52525b;font-style:italic">"${s.dialogue}"</div></div>`).join("")}</section>`:""} ${campaign.reels_caption?`<section><div class="label">💬 Legenda</div><div class="content">${campaign.reels_caption}</div></section>`:""} ${campaign.reels_cta?`<section><div class="label">📣 CTA</div><div class="content" style="font-weight:700">${campaign.reels_cta}</div></section>`:""} ${campaign.reels_hashtags?`<section><div class="label">#️⃣ Hashtags</div><div class="content" style="color:#52525b">${campaign.reels_hashtags}</div></section>`:""}</body></html>`);
+        w.document.close();
+        w.focus();
+        w.print();
+    }
 
     const priceText = useMemo(() => {
         if (campaign.price === null || campaign.price === undefined) return null;
@@ -499,12 +586,13 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
                 <div 
                     className={cx(
                         "relative h-40 w-40 shrink-0 overflow-hidden rounded-2xl border bg-zinc-50 transition group",
-                        dragOver ? "border-emerald-400 ring-4 ring-emerald-200/50" : "border-black/5"
+                        dragOver ? "border-emerald-400 ring-4 ring-emerald-200/50" : "border-black/5",
+                        !isApproved && "cursor-pointer"
                     )}
-                    onDragOver={onDragOver}
-                    onDragLeave={onDragLeave}
-                    onDrop={onDrop}
-                    onClick={openFilePicker}
+                    onDragOver={!isApproved ? onDragOver : undefined}
+                    onDragLeave={!isApproved ? onDragLeave : undefined}
+                    onDrop={!isApproved ? onDrop : undefined}
+                    onClick={!isApproved ? openFilePicker : undefined}
                 >
                     <input
                         ref={fileInputRef}
@@ -532,13 +620,15 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
                                     sizes="(max-width: 1024px) 100vw, 420px"
                                 />
                             )}
-                            {/* overlay de hover para trocar */}
-                            <div className="absolute inset-0 grid place-items-center bg-black/60 opacity-0 transition-opacity group-hover:opacity-100 cursor-pointer">
-                                <div className="text-center text-white">
-                                    <Upload className="mx-auto h-5 w-5 mb-1" />
-                                    <span className="text-xs font-semibold">Trocar foto base</span>
+                            {/* overlay de hover para trocar — só aparece se não aprovado */}
+                            {!isApproved && (
+                                <div className="absolute inset-0 grid place-items-center bg-black/60 opacity-0 transition-opacity group-hover:opacity-100 cursor-pointer">
+                                    <div className="text-center text-white">
+                                        <Upload className="mx-auto h-5 w-5 mb-1" />
+                                        <span className="text-xs font-semibold">Trocar foto base</span>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </>
                     ) : (
                         <div className="grid h-full w-full place-items-center px-4 text-center cursor-pointer hover:bg-zinc-100 transition">
@@ -601,60 +691,93 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
                 </div>
             </div>
 
-            {/* MAIN GRID */}
-            <div className="grid gap-6 lg:grid-cols-2">
+            {/* MAIN GRID — adaptive: 2 cols se ambos gerados, 1 col centrado caso contrário */}
+            <div className={`grid gap-6 ${
+                (hasAi || loadingText) && (hasReels || loadingReels)
+                    ? "lg:grid-cols-2"
+                    : "max-w-3xl mx-auto"
+            }`}>
                 {/* COLUNA 1: POST */}
                 <div className="space-y-6">
                     <Card
-                        title="Campanha Pronta"
-                        subtitle="Preview do post e legendas prontas para uso."
+                        title="Arte Pronta"
+                        subtitle="Preview do post e conteúdo pronto para uso."
                         right={
-                            <div className="flex items-center gap-2">
-                                {hasAi ? (
-                                    <button
-                                        type="button"
-                                        onClick={() => setConfirmAction("text")}
-                                        disabled={loadingText}
-                                        className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
-                                    >
-                                        <Wand2 className="h-4 w-4" />
-                                        {loadingText ? "Gerando..." : "Regenerar post"}
-                                    </button>
-                                ) : (
-                                    <button
-                                        type="button"
-                                        onClick={() => generateText(false)}
-                                        disabled={loadingText}
-                                        className="inline-flex items-center gap-2 rounded-xl border border-transparent bg-zinc-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50 hover:bg-zinc-800"
-                                    >
-                                        <Wand2 className="h-4 w-4" />
-                                        {loadingText ? "Gerando..." : "Gerar post com IA"}
-                                    </button>
+                            <div className="flex flex-col items-end gap-2">
+                                {/* Badge de status — topo direito */}
+                                {isApproved && (
+                                    <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                                        <Check className="h-3 w-3" />
+                                        Campanha aprovada
+                                    </div>
                                 )}
-                                <button
-                                    onClick={() => copy("post", [bestHeadline, bestBody, bestCTA].filter(Boolean).join("\n\n"))}
-                                    className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
-                                    type="button"
-                                    disabled={!bestBody && !bestCTA}
-                                >
-                                    {copiedKey === "post" ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
-                                    Copiar tudo
-                                </button>
-                                <button
-                                    onClick={() => copyImage("art", imageUrlClean)}
-                                    className="inline-flex items-center gap-2 rounded-xl border border-transparent bg-zinc-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50 hover:bg-zinc-800"
-                                    type="button"
-                                    disabled={!imageUrlClean}
-                                    title="Copiar Link da Imagem"
-                                >
-                                    {copiedKey === "art" ? <Check className="h-4 w-4" /> : <ImageIcon className="h-4 w-4" />}
-                                    Copiar Link da Arte
-                                </button>
+                                {/* Botões de ação */}
+                                <div className="flex flex-wrap items-center justify-end gap-2">
+                                    {!isApproved && (hasAi ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => setConfirmAction("text")}
+                                            disabled={loadingText}
+                                            className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
+                                        >
+                                            <Wand2 className="h-4 w-4" />
+                                            {loadingText ? "Gerando..." : "Regenerar post"}
+                                        </button>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={() => generateText(false)}
+                                            disabled={loadingText}
+                                            className="inline-flex items-center gap-2 rounded-xl border border-transparent bg-zinc-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50 hover:bg-zinc-800"
+                                        >
+                                            <Wand2 className="h-4 w-4" />
+                                            {loadingText ? "Gerando..." : "Gerar post com IA"}
+                                        </button>
+                                    ))}
+                                    {imageUrlClean && (
+                                        <>
+                                            <button
+                                                onClick={handleCopyArt}
+                                                disabled={artStatus === "copying" || artStatus === "saving"}
+                                                className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
+                                                type="button"
+                                            >
+                                                {artStatus === "copied"
+                                                    ? <><Check className="h-4 w-4 text-emerald-600" /> Copiada!</>
+                                                    : artStatus === "copying"
+                                                    ? <><ImageIcon className="h-4 w-4 animate-pulse" /> Copiando...</>
+                                                    : <><ImageIcon className="h-4 w-4" /> Copiar Arte</>}
+                                            </button>
+                                            <button
+                                                onClick={handleSaveArt}
+                                                disabled={artStatus === "saving" || artStatus === "copying"}
+                                                className="inline-flex items-center gap-2 rounded-xl border border-transparent bg-zinc-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md hover:bg-zinc-800 disabled:opacity-50"
+                                                type="button"
+                                            >
+                                                {artStatus === "saving"
+                                                    ? <><Download className="h-4 w-4 animate-bounce" /> Salvando...</>
+                                                    : <><Download className="h-4 w-4" /> Salvar Arte</>}
+                                            </button>
+                                        </>
+                                    )}
+                                    {hasAi && (
+                                        <button
+                                            onClick={() => copy("post", [bestHeadline, "", bestBody, "", bestCTA, "", bestCaption, bestHashtags].filter((l, i, a) => l !== "" || (i > 0 && a[i-1] !== "")).join("\n").trim())}
+                                            className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
+                                            type="button"
+                                            disabled={!bestBody && !bestCTA}
+                                        >
+                                            {copiedKey === "post" ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
+                                            Copiar Tudo
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         }
                     >
                         {hasAi ? (
                             <div className="space-y-4">
+                                {/* Arte */}
                                 <div id="campanha-arte" className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-900 shadow-lg max-w-[400px] mx-auto aspect-[4/5]">
                                     {isLikelyUnconfiguredRemote(imageUrlClean) ? (
                                         // eslint-disable-next-line @next/next/no-img-element
@@ -663,21 +786,66 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
                                         <Image src={imageUrlClean} alt="Arte da Campanha" fill className="object-cover" />
                                     )}
                                 </div>
-                                
-                                <div className="rounded-xl border border-black/5 bg-zinc-50 px-4 py-3">
-                                    <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Legenda</div>
-                                    <div className="mt-2 text-sm text-zinc-800 whitespace-pre-wrap leading-relaxed">{bestCaption || "Legenda não encontrada"}</div>
-                                    <div className="mt-3 text-xs text-emerald-700 font-medium whitespace-pre-wrap">{bestHashtags}</div>
-                                    <div className="mt-4 flex justify-end">
-                                        <button
-                                            onClick={() => copy("caption", `${bestCaption}\n\n${bestHashtags}`)}
-                                            className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-[11px] font-bold uppercase text-zinc-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                                            type="button"
-                                        >
-                                            {copiedKey === "caption" ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
-                                            Copiar legenda
-                                        </button>
+
+                                {/* Textos */}
+                                <div className="space-y-3">
+                                    {/* Headline */}
+                                    {bestHeadline && (
+                                        <div className="rounded-xl border border-black/5 bg-zinc-50 px-4 py-3">
+                                            <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Headline</div>
+                                            <div className="mt-1.5 text-base font-bold text-zinc-900">{bestHeadline}</div>
+                                        </div>
+                                    )}
+
+                                    {/* Texto Principal */}
+                                    {bestBody && (
+                                        <div className="rounded-xl border border-black/5 bg-zinc-50 px-4 py-3">
+                                            <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Texto Principal</div>
+                                            <div className="mt-1.5 text-sm text-zinc-800 whitespace-pre-wrap leading-relaxed">{bestBody}</div>
+                                        </div>
+                                    )}
+
+                                    {/* CTA */}
+                                    {bestCTA && (
+                                        <div className="rounded-xl border border-black/5 bg-zinc-50 px-4 py-3">
+                                            <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">CTA</div>
+                                            <div className="mt-1.5 text-sm font-bold text-zinc-900">{bestCTA}</div>
+                                        </div>
+                                    )}
+
+                                    {/* Legenda com ícone de copiar */}
+                                    <div className="rounded-xl border border-black/5 bg-zinc-50 px-4 py-3">
+                                        <div className="flex items-center justify-between mb-1.5">
+                                            <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Legenda</div>
+                                            <button
+                                                onClick={() => copy("caption", bestCaption)}
+                                                className="text-zinc-400 hover:text-zinc-700 transition p-1 rounded"
+                                                type="button"
+                                                title="Copiar legenda"
+                                            >
+                                                {copiedKey === "caption" ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                                            </button>
+                                        </div>
+                                        <div className="text-sm text-zinc-800 whitespace-pre-wrap leading-relaxed">{bestCaption || "Legenda não encontrada"}</div>
                                     </div>
+
+                                    {/* Hashtags com ícone de copiar */}
+                                    {bestHashtags && (
+                                        <div className="rounded-xl border border-black/5 bg-zinc-50 px-4 py-3">
+                                            <div className="flex items-center justify-between mb-1.5">
+                                                <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Hashtags</div>
+                                                <button
+                                                    onClick={() => copy("hashtags", bestHashtags)}
+                                                    className="text-zinc-400 hover:text-zinc-700 transition p-1 rounded"
+                                                    type="button"
+                                                    title="Copiar hashtags"
+                                                >
+                                                    {copiedKey === "hashtags" ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                                                </button>
+                                            </div>
+                                            <div className="text-xs text-emerald-700 font-medium whitespace-pre-wrap">{bestHashtags}</div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ) : (
@@ -708,28 +876,58 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
                         title="Vídeo Curto" 
                         subtitle="Hook + roteiro (quando gerado)."
                         right={
-                            <div className="flex items-center gap-2">
-                                {hasReels ? (
-                                    <button
-                                        type="button"
-                                        onClick={() => setConfirmAction("reels")}
-                                        disabled={loadingReels}
-                                        className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
-                                    >
-                                        <Video className="h-4 w-4" />
-                                        {loadingReels ? "Gerando..." : "Regenerar vídeo"}
-                                    </button>
-                                ) : (
-                                    <button
-                                        type="button"
-                                        onClick={() => generateReels(false)}
-                                        disabled={loadingReels}
-                                        className="inline-flex items-center gap-2 rounded-xl border border-transparent bg-zinc-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50 hover:bg-zinc-800"
-                                    >
-                                        <Video className="h-4 w-4" />
-                                        {loadingReels ? "Gerando..." : "Gerar vídeo curto"}
-                                    </button>
+                            <div className="flex flex-col items-end gap-2">
+                                {/* Badge de status */}
+                                {isApproved && (
+                                    <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                                        <Check className="h-3 w-3" />
+                                        Campanha aprovada
+                                    </div>
                                 )}
+                                {/* Botões de ação */}
+                                <div className="flex flex-wrap items-center justify-end gap-2">
+                                    {!isApproved && (hasReels ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => setConfirmAction("reels")}
+                                            disabled={loadingReels}
+                                            className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
+                                        >
+                                            <Video className="h-4 w-4" />
+                                            {loadingReels ? "Gerando..." : "Regenerar vídeo"}
+                                        </button>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={() => generateReels(false)}
+                                            disabled={loadingReels}
+                                            className="inline-flex items-center gap-2 rounded-xl border border-transparent bg-zinc-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50 hover:bg-zinc-800"
+                                        >
+                                            <Video className="h-4 w-4" />
+                                            {loadingReels ? "Gerando..." : "Gerar vídeo curto"}
+                                        </button>
+                                    ))}
+                                    {(hasReels || campaign.reels_hook) && (
+                                        <>
+                                            <button
+                                                onClick={handleCopyReelsScript}
+                                                className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                                                type="button"
+                                            >
+                                                {reelsScriptCopied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
+                                                {reelsScriptCopied ? "Copiado!" : "Copiar Script"}
+                                            </button>
+                                            <button
+                                                onClick={handlePrintReels}
+                                                className="inline-flex items-center gap-2 rounded-xl border border-transparent bg-zinc-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md hover:bg-zinc-800"
+                                                type="button"
+                                            >
+                                                <Printer className="h-4 w-4" />
+                                                Imprimir Roteiro
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         }
                     >
@@ -738,14 +936,57 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
                                 {campaign.reels_hook ? (
                                     <Field label="Hook" value={safeToString(campaign.reels_hook)} />
                                 ) : (
-                                    <Empty title="Hook ainda não gerado" hint="Clique em “Gerar vídeo curto” acima." />
+                                    <Empty title="Hook ainda não gerado" hint='Clique em "Gerar vídeo curto" acima.' />
                                 )}
+
+                                {campaign.reels_duration_seconds || campaign.reels_audio_suggestion ? (
+                                    <div className="rounded-xl border border-black/5 bg-zinc-50 px-4 py-3">
+                                        <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-1">Foco do Vídeo</div>
+                                        <div className="flex flex-wrap gap-2 text-sm text-zinc-700">
+                                            {campaign.reels_duration_seconds && (
+                                                <span className="px-2 py-0.5 bg-zinc-100 rounded text-xs font-medium">⏱️ {campaign.reels_duration_seconds}s</span>
+                                            )}
+                                            {campaign.reels_audio_suggestion && (
+                                                <span className="px-2 py-0.5 bg-zinc-100 rounded text-xs font-medium">🎵 {campaign.reels_audio_suggestion}</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                ) : null}
+
+                                {(campaign.reels_on_screen_text as any)?.length ? (
+                                    <div className="rounded-xl border border-black/5 bg-zinc-50 px-4 py-3">
+                                        <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">Texto na Tela</div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {(campaign.reels_on_screen_text as string[]).map((t, i) => (
+                                                <span key={i} className="px-3 py-1 bg-zinc-900 text-white rounded-lg text-[10px] font-bold uppercase italic tracking-tighter">"{t}"</span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : null}
 
                                 {campaign.reels_script ? (
                                     <Field label="Roteiro" value={safeToString(campaign.reels_script)} />
                                 ) : (
-                                    <Empty title="Roteiro ainda não gerado" hint="Clique em “Gerar vídeo curto” acima." />
+                                    <Empty title="Roteiro ainda não gerado" hint='Clique em "Gerar vídeo curto" acima.' />
                                 )}
+
+                                {(campaign.reels_shotlist as any)?.length ? (
+                                    <div className="rounded-xl border border-black/5 bg-zinc-50 px-4 py-3">
+                                        <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-3">Cenas Sugeridas</div>
+                                        <div className="space-y-2">
+                                            {(campaign.reels_shotlist as any[]).map((item, idx) => (
+                                                <div key={idx} className="rounded-xl border border-zinc-200 bg-white p-3 flex gap-3">
+                                                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-[10px] font-bold text-white">{item.scene}</div>
+                                                    <div className="space-y-0.5">
+                                                        <div className="text-[10px] font-bold uppercase text-emerald-600 tracking-wide">{item.camera}</div>
+                                                        <p className="text-xs text-zinc-800"><span className="font-semibold">Ação:</span> {item.action}</p>
+                                                        <p className="text-xs italic text-zinc-500">"{item.dialogue}"</p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : null}
 
                                 <div className="grid gap-3 sm:grid-cols-2">
                                     <Field label="Legenda (vídeo)" value={safeToString(campaign.reels_caption)} />

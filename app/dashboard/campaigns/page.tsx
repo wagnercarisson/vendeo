@@ -7,7 +7,6 @@ import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { ArrowRight, AlertTriangle, Sparkles, Video, Wand2, Plus, Eye } from "lucide-react";
 import { MotionWrapper } from "../_components/MotionWrapper";
-import { CampaignArtViewer } from "./_components/CampaignArtViewer";
 import { PostModal, ReelsModal } from "./_components/CampaignModals";
 
 type Store = {
@@ -44,7 +43,6 @@ type Campaign = {
   audience: string;
   objective: string;
   image_url: string | null;
-  layout: "solid" | "floating" | "split" | null;
 
   product_positioning: string | null;
 
@@ -277,7 +275,7 @@ export default function CampaignsPage() {
       .from("campaigns")
       .select(
         `
-        id, product_name, price, audience, objective, image_url, layout,
+        id, product_name, price, audience, objective, image_url, headline,
         product_positioning,
         ai_caption, ai_text, ai_cta, ai_hashtags,
 
@@ -610,91 +608,32 @@ export default function CampaignsPage() {
                         {generatingTextId === c.id ? "Gerando..." : "Gerar post com IA"}
                       </button>
                     ) : (
-                      <>
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setSelectedPostCampaign(c);
-                          }}
-                          className="inline-flex items-center gap-2 rounded-xl border border-transparent bg-zinc-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md hover:bg-zinc-800"
-                          type="button"
-                        >
-                          <Eye className="h-4 w-4 text-emerald-400" />
-                          Ver Post
-                        </button>
-
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            openConfirm({
-                              icon: "ai",
-                              title: "Regenerar conteúdo de IA?",
-                              description:
-                                "Isso vai substituir o texto e arte atuais (headline/legenda/CTA/hashtags).",
-                              confirmLabel: "Regenerar IA",
-                              destructive: true,
-                              onConfirm: () => generateAndSaveText(c, true),
-                            });
-                          }}
-                          disabled={generatingTextId === c.id}
-                          className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
-                          type="button"
-                        >
-                          <Wand2 className="h-4 w-4" />
-                          {generatingTextId === c.id ? "Gerando..." : "Regenerar IA"}
-                        </button>
-                      </>
-                    )}
-
-                    {/* REELS */}
-                    {!hasReels ? (
                       <button
                         onClick={(e) => {
                           e.preventDefault();
-                          generateAndSaveReels(c, false);
+                          setSelectedPostCampaign(c);
                         }}
-                        disabled={generatingReelsId === c.id}
-                        className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
+                        className="inline-flex items-center gap-2 rounded-xl border border-transparent bg-zinc-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md hover:bg-zinc-800"
                         type="button"
                       >
-                        <Video className="h-4 w-4" />
-                        {generatingReelsId === c.id ? "Gerando..." : "Gerar Vídeo Curto"}
+                        <Eye className="h-4 w-4 text-emerald-400" />
+                        Ver Post
                       </button>
-                    ) : (
-                      <>
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setSelectedReelsCampaign(c);
-                          }}
-                          className="inline-flex items-center gap-2 rounded-xl border border-transparent bg-zinc-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md hover:bg-zinc-800"
-                          type="button"
-                        >
-                          <Eye className="h-4 w-4 text-indigo-400" />
-                          Ver Vídeo
-                        </button>
+                    )}
 
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            openConfirm({
-                              icon: "reels",
-                              title: "Regenerar roteiro de Reels?",
-                              description:
-                                "Isso vai substituir o roteiro atual (hook, script, shotlist e sugestões).",
-                              confirmLabel: "Regenerar Reels",
-                              destructive: true,
-                              onConfirm: () => generateAndSaveReels(c, true),
-                            });
-                          }}
-                          disabled={generatingReelsId === c.id}
-                          className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
-                          type="button"
-                        >
-                          <Video className="h-4 w-4" />
-                          {generatingReelsId === c.id ? "Gerando..." : "Regenerar Reels"}
-                        </button>
-                      </>
+                    {/* REELS — só mostra "Ver Vídeo" se gerado, sem botões de gerar/regenerar na lista */}
+                    {hasReels && (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setSelectedReelsCampaign(c);
+                        }}
+                        className="inline-flex items-center gap-2 rounded-xl border border-transparent bg-zinc-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md hover:bg-zinc-800"
+                        type="button"
+                      >
+                        <Eye className="h-4 w-4 text-indigo-400" />
+                        Ver Vídeo
+                      </button>
                     )}
                   </div>
                 </div>
