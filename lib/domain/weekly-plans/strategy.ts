@@ -42,12 +42,9 @@ export interface GenerateWeeklyStrategyInput {
   holidays: Array<{ date: string; name: string }>;
 }
 
-export interface GenerateWeeklyStrategyResult {
-  ok: boolean;
-  strategyItems?: StrategyItem[];
-  error?: string;
-  status?: number;
-}
+export type GenerateWeeklyStrategyResult =
+  | { ok: true; strategyItems: StrategyItem[] }
+  | { ok: false; error: string; status: number };
 
 /**
  * Pipeline de geração de estratégia semanal:

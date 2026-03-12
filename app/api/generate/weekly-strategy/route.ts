@@ -24,10 +24,10 @@ export async function POST(req: Request) {
       selectedDays: body.data.selected_days,
       city: body.data.city,
       state: body.data.state,
-      holidays: body.data.holidays,
+      holidays: body.data.holidays as Array<{ date: string; name: string }>,
     });
 
-    if (!result.ok) {
+    if (result.ok === false) {
       return NextResponse.json(
         { ok: false, requestId, error: result.error },
         { status: result.status ?? 500 }

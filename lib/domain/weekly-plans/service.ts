@@ -79,15 +79,9 @@ export interface GenerateWeeklyPlanInput {
   approvedStrategy: StrategyItem[];
 }
 
-export interface GenerateWeeklyPlanResult {
-  ok: boolean;
-  reused?: boolean;
-  plan: WeeklyPlan | null;
-  items: WeeklyPlanItem[];
-  campaigns: unknown[];
-  error?: string;
-  status?: number;
-}
+export type GenerateWeeklyPlanResult =
+  | { ok: true; reused?: boolean; plan: WeeklyPlan; items: WeeklyPlanItem[]; campaigns: unknown[] }
+  | { ok: false; error: string; details?: unknown; status: number };
 
 /**
  * Pipeline de geração do plano semanal:
@@ -121,7 +115,7 @@ export async function generateWeeklyPlan(
     .single();
 
   if (sErr || !store) {
-    return { ok: false, error: "STORE_NOT_FOUND", plan: null, items: [], campaigns: [], status: 404 };
+    return { ok: false, error: "STORE_NOT_FOUND", status: 404 };
   }
 
   // 4) Upsert cabeçalho do plano

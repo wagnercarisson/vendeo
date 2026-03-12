@@ -33,7 +33,7 @@ export async function POST(req: Request) {
       user_agent: body.data.userAgent,
     });
 
-    if (!result.ok) {
+    if (result.ok === false) {
       return NextResponse.json(result, { status: 500 });
     }
 
