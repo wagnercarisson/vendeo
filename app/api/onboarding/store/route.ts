@@ -29,7 +29,7 @@ export async function POST(req: Request) {
   const json = await req.json().catch(() => null);
   const parsed = BodySchema.safeParse(json);
 
-  if (!parsed.success) {
+    if (parsed.success === false) {
     return NextResponse.json(
       { error: "invalid_body", details: parsed.error.flatten() },
       { status: 400 }

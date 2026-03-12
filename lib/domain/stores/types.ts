@@ -1,5 +1,5 @@
 /** Campos mínimos da loja que os services de geração precisam. */
-export interface StoreContext {
+export interface Store {
   id: string;
   name: string;
   city: string | null;
@@ -10,7 +10,11 @@ export interface StoreContext {
   whatsapp: string | null;
   phone: string | null;
   instagram: string | null;
+  address?: string | null;
+  neighborhood?: string | null;
   primary_color: string | null;
   secondary_color: string | null;
   logo_url: string | null;
 }
+
+export type StoreContext = Store;

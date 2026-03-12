@@ -167,7 +167,7 @@ export async function callAIWithRetry<T>(
   const parsed = parseJsonFirstObject(raw);
   const validation = validateAI(parsed, schema);
 
-  if (validation.ok) {
+  if (validation.ok === true) {
     return { data: validation.data, wasRetried: false };
   }
 

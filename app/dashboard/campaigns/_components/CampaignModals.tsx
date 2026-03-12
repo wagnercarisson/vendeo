@@ -16,8 +16,10 @@ function useCopy() {
     return { copiedKey, copy };
 }
 
+import { Campaign } from "../page";
+
 type ModalProps = {
-    campaign: any;
+    campaign: Campaign;
     onClose: () => void;
 };
 
@@ -274,7 +276,7 @@ export function ReelsModal({ campaign, onClose }: ModalProps) {
         "ROTEIRO:",     campaign.reels_script,    "",
         campaign.reels_duration_seconds ? `FOCO DO VÍDEO:\n⏱️ ${campaign.reels_duration_seconds}s${campaign.reels_audio_suggestion ? ` · 🎵 ${campaign.reels_audio_suggestion}` : ""}` : null, "",
         campaign.reels_on_screen_text?.length ? `TEXTO NA TELA:\n${(campaign.reels_on_screen_text as string[]).map((t: string) => `"${t}"`).join(" · ")}` : null, "",
-        campaign.reels_shotlist?.length ? `CENAS SUGERIDAS:\n${(campaign.reels_shotlist as any[]).map((s: any) => `Cena ${s.scene} [${s.camera}]\nAção: ${s.action}\n"${s.dialogue}"`).join("\n\n")}` : null, "",
+        campaign.reels_shotlist?.length ? `CENAS SUGERIDAS:\n${campaign.reels_shotlist.map((s) => `Cena ${s.scene} [${s.camera}]\nAção: ${s.action}\n"${s.dialogue}"`).join("\n\n")}` : null, "",
         "LEGENDA:",     campaign.reels_caption,   "",
         "CTA:",         campaign.reels_cta,       "",
         "HASHTAGS:",    campaign.reels_hashtags,
@@ -300,7 +302,7 @@ export function ReelsModal({ campaign, onClose }: ModalProps) {
         if (campaign.reels_script) lines.push(`🎬 ROTEIRO SUGERIDO\n${campaign.reels_script}\n`);
         if (campaign.reels_shotlist?.length) {
             lines.push(`📋 CENAS SUGERIDAS`);
-            (campaign.reels_shotlist as any[]).forEach((s: any) => {
+            campaign.reels_shotlist.forEach((s) => {
                 lines.push(`  Cena ${s.scene} [${s.camera}]\n  Ação: ${s.action}\n  Fala: "${s.dialogue}"\n`);
             });
         }
@@ -331,7 +333,7 @@ export function ReelsModal({ campaign, onClose }: ModalProps) {
                 ${campaign.reels_duration_seconds || campaign.reels_audio_suggestion ? `<section><div class="label">📽️ Foco do Vídeo</div><div class="content">${campaign.reels_duration_seconds ? `⏱️ ${campaign.reels_duration_seconds}s` : ""} ${campaign.reels_audio_suggestion ? `🎵 ${campaign.reels_audio_suggestion}` : ""}</div></section>` : ""}
                 ${campaign.reels_on_screen_text?.length ? `<section><div class="label">📝 Texto na Tela</div><div class="content">${(campaign.reels_on_screen_text as string[]).map((t: string) => `• "${t}"`).join("<br>")}</div></section>` : ""}
                 ${campaign.reels_script ? `<section><div class="label">🎬 Roteiro Sugerido</div><div class="content">${campaign.reels_script.replace(/\n/g, "<br>")}</div></section>` : ""}
-                ${campaign.reels_shotlist?.length ? `<section><div class="label">📋 Cenas Sugeridas</div>${(campaign.reels_shotlist as any[]).map((s: any) => `<div class="scene"><div class="scene-num">Cena ${s.scene} — ${s.camera}</div><div>Ação: ${s.action}</div><div style="color:#52525b;font-style:italic">"${s.dialogue}"</div></div>`).join("")}</section>` : ""}
+                ${campaign.reels_shotlist?.length ? `<section><div class="label">📋 Cenas Sugeridas</div>${campaign.reels_shotlist.map((s) => `<div class="scene"><div class="scene-num">Cena ${s.scene} — ${s.camera}</div><div>Ação: ${s.action}</div><div style="color:#52525b;font-style:italic">"${s.dialogue}"</div></div>`).join("")}</section>` : ""}
                 ${campaign.reels_caption ? `<section><div class="label">💬 Legenda</div><div class="content">${campaign.reels_caption}</div></section>` : ""}
                 ${campaign.reels_cta ? `<section><div class="label">📣 CTA</div><div class="content" style="font-weight:700">${campaign.reels_cta}</div></section>` : ""}
                 ${campaign.reels_hashtags ? `<section><div class="label">#️⃣ Hashtags</div><div class="content" style="color:#52525b">${campaign.reels_hashtags}</div></section>` : ""}

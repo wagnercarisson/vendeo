@@ -1,5 +1,5 @@
 import { StoreContext } from "@/lib/domain/stores/types";
-import { WeatherData } from "./types";
+import { WeatherData, WeeklyPlanItemBrief } from "./types";
 
 const MAP_DAYS: Record<number, string> = {
   1: "Segunda", 2: "Terça", 3: "Quarta", 4: "Quinta",
@@ -26,7 +26,7 @@ function formatHolidaysContext(
 function formatHistoryContext(
   pastPlans: Array<{
     week_start: string;
-    items: Array<{ day_of_week: number; brief: Record<string, unknown> | null }>;
+    items: Array<{ day_of_week: number; brief: WeeklyPlanItemBrief | null | Record<string, any> }>;
   }>
 ): string {
   if (!pastPlans?.length) return "Ainda não há histórico recente de campanhas.";
@@ -34,8 +34,10 @@ function formatHistoryContext(
   pastPlans.forEach((p) => {
     ctx += `- Semana de ${p.week_start}:\n`;
     p.items.slice(0, 3).forEach((i) => {
-      const b = i.brief ?? {};
-      ctx += `  Dia ${i.day_of_week}: Obj: ${(b as any).objective ?? "—"}, Púb: ${(b as any).audience ?? "—"}\n`;
+      const b = i.brief;
+      const objective = b && "objective" in b ? b.objective : "—";
+      const audience = b && "audience" in b ? b.audience : "—";
+      ctx += `  Dia ${i.day_of_week}: Obj: ${objective}, Púb: ${audience}\n`;
     });
   });
   return ctx;
@@ -51,7 +53,7 @@ export function buildWeeklyStrategyPrompt(opts: {
   holidays: Array<{ date: string; name: string }>;
   history: Array<{
     week_start: string;
-    items: Array<{ day_of_week: number; brief: Record<string, unknown> | null }>;
+    items: Array<{ day_of_week: number; brief: WeeklyPlanItemBrief | null | Record<string, any> }>;
   }>;
 }): string {
   const { store, days, weather, holidays, history } = opts;

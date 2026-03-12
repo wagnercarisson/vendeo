@@ -69,13 +69,13 @@ export async function POST(req: NextRequest) {
                 let response = await fetch(url);
                 
                 // Fallback interno: Se a transformação falhar, tenta o weserv.nl como proxy de segurança
-                if (!response.ok && url !== originalUrl) {
+                if (response.ok === false && url !== originalUrl) {
                     console.warn(`Transformation failed (${response.status}), trying weserv proxy for: ${originalUrl}`);
                     const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(originalUrl)}&output=png&w=1000`;
                     response = await fetch(proxyUrl);
                 }
 
-                if (!response.ok) {
+                if (response.ok === false) {
                     console.error(`Fetch image failed: ${url} (Status: ${response.status})`);
                     return null;
                 }

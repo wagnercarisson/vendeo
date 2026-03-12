@@ -12,67 +12,12 @@ function cx(...classes: Array<string | false | null | undefined>) {
     return classes.filter(Boolean).join(" ");
 }
 
-type Store = {
-    id: string;
-    name: string;
-    city: string | null;
-    state: string | null;
+import { Store } from "@/lib/domain/stores/types";
+import { Campaign as CampaignDomain } from "@/lib/domain/campaigns/types";
+import { ShortVideoShotScene as ReelsShot } from "@/lib/domain/short-videos/types";
 
-    brand_positioning: string | null;
-    main_segment: string | null;
-    tone_of_voice: string | null;
-
-    address: string | null;
-    neighborhood: string | null;
-    phone: string | null;
-    whatsapp: string | null;
-    instagram: string | null;
-
-    primary_color: string | null;
-    secondary_color: string | null;
-};
-
-type ReelsShot = {
-    scene: number;
-    camera: string;
-    action: string;
-    dialogue: string;
-};
-
-type Campaign = {
-    id: string;
-    store_id?: string;
-
-    product_name: string;
-    price: number | null;
-    audience: string | null;
-    objective: string | null;
-    status: string | null;
-
-    image_url: string | null;
-    headline: string | null;
-    body_text: string | null;
-    cta: string | null;
-
-    product_positioning: string | null;
-
-    ai_caption: string | null;
-    ai_text: string | null;
-    ai_hashtags: string | null;
-    ai_cta: string | null;
-    ai_generated_at: string | null;
-
-    reels_hook: string | null;
-    reels_script: string | null;
-    reels_shotlist: ReelsShot[] | null;
-    reels_on_screen_text: string[] | null;
-    reels_audio_suggestion: string | null;
-    reels_duration_seconds: number | null;
-    reels_caption: string | null;
-    reels_cta: string | null;
-    reels_hashtags: string | null;
-    reels_generated_at: string | null;
-
+/** Campanha com relação de loja incluída (para preview). */
+export type Campaign = CampaignDomain & {
     stores?: Store | null;
 };
 
@@ -253,9 +198,9 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
             const f = [campaign.reels_duration_seconds ? `⏱️ ${campaign.reels_duration_seconds}s` : null, campaign.reels_audio_suggestion ? `🎵 ${campaign.reels_audio_suggestion}` : null].filter(Boolean).join(" · ");
             parts.push(`FOCO DO VÍDEO:\n${f}`);
         }
-        if ((campaign.reels_on_screen_text as any)?.length) parts.push(`TEXTO NA TELA:\n${(campaign.reels_on_screen_text as string[]).map((t) => `"${t}"`).join(" · ")}`);
+        if (campaign.reels_on_screen_text?.length) parts.push(`TEXTO NA TELA:\n${campaign.reels_on_screen_text.map((t) => `"${t}"`).join(" · ")}`);
         if (campaign.reels_script) parts.push(`ROTEIRO:\n${campaign.reels_script}`);
-        if ((campaign.reels_shotlist as any)?.length) parts.push(`CENAS:\n${(campaign.reels_shotlist as any[]).map((s) => `Cena ${s.scene} [${s.camera}]\nAção: ${s.action}\n"${s.dialogue}"`).join("\n\n")}`);
+        if (campaign.reels_shotlist?.length) parts.push(`CENAS:\n${campaign.reels_shotlist.map((s) => `Cena ${s.scene} [${s.camera}]\nAção: ${s.action}\n"${s.dialogue}"`).join("\n\n")}`);
         if (campaign.reels_caption) parts.push(`LEGENDA:\n${campaign.reels_caption}`);
         if (campaign.reels_cta) parts.push(`CTA:\n${campaign.reels_cta}`);
         if (campaign.reels_hashtags) parts.push(`HASHTAGS:\n${campaign.reels_hashtags}`);
@@ -272,7 +217,7 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
         const name = campaign.product_name || "Campanha";
         const w = window.open("", "_blank");
         if (!w) return;
-        w.document.write(`<html><head><title>Roteiro — ${name}</title><style>body{font-family:Georgia,serif;max-width:700px;margin:40px auto;color:#18181b;line-height:1.6}h1{font-size:18px;border-bottom:2px solid #18181b;padding-bottom:8px;margin-bottom:24px}section{margin-bottom:24px}.label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#71717a;margin-bottom:4px}.content{white-space:pre-wrap;font-size:14px}.scene{border-left:3px solid #18181b;padding:8px 12px;margin:8px 0;font-size:13px}.scene-num{font-weight:700;font-size:11px;text-transform:uppercase}@media print{body{margin:20px}}</style></head><body><h1>Roteiro de Vídeo Curto — ${name}</h1>${campaign.reels_hook?`<section><div class="label">🎯 Hook (Gancho Vital)</div><div class="content" style="font-weight:700;font-style:italic;font-size:16px">${campaign.reels_hook}</div></section>`:""} ${campaign.reels_duration_seconds||campaign.reels_audio_suggestion?`<section><div class="label">📽️ Foco do Vídeo</div><div class="content">${campaign.reels_duration_seconds?`⏱️ ${campaign.reels_duration_seconds}s`:""} ${campaign.reels_audio_suggestion?`🎵 ${campaign.reels_audio_suggestion}`:""}</div></section>`:""} ${(campaign.reels_on_screen_text as any)?.length?`<section><div class="label">📝 Texto na Tela</div><div class="content">${(campaign.reels_on_screen_text as string[]).map(t=>`• "${t}"`).join("<br>")}</div></section>`:""} ${campaign.reels_script?`<section><div class="label">🎬 Roteiro Sugerido</div><div class="content">${campaign.reels_script.replace(/\n/g,"<br>")}</div></section>`:""} ${(campaign.reels_shotlist as any)?.length?`<section><div class="label">📋 Cenas Sugeridas</div>${(campaign.reels_shotlist as any[]).map(s=>`<div class="scene"><div class="scene-num">Cena ${s.scene} — ${s.camera}</div><div>Ação: ${s.action}</div><div style="color:#52525b;font-style:italic">"${s.dialogue}"</div></div>`).join("")}</section>`:""} ${campaign.reels_caption?`<section><div class="label">💬 Legenda</div><div class="content">${campaign.reels_caption}</div></section>`:""} ${campaign.reels_cta?`<section><div class="label">📣 CTA</div><div class="content" style="font-weight:700">${campaign.reels_cta}</div></section>`:""} ${campaign.reels_hashtags?`<section><div class="label">#️⃣ Hashtags</div><div class="content" style="color:#52525b">${campaign.reels_hashtags}</div></section>`:""}</body></html>`);
+        w.document.write(`<html><head><title>Roteiro — ${name}</title><style>body{font-family:Georgia,serif;max-width:700px;margin:40px auto;color:#18181b;line-height:1.6}h1{font-size:18px;border-bottom:2px solid #18181b;padding-bottom:8px;margin-bottom:24px}section{margin-bottom:24px}.label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#71717a;margin-bottom:4px}.content{white-space:pre-wrap;font-size:14px}.scene{border-left:3px solid #18181b;padding:8px 12px;margin:8px 0;font-size:13px}.scene-num{font-weight:700;font-size:11px;text-transform:uppercase}@media print{body{margin:20px}}</style></head><body><h1>Roteiro de Vídeo Curto — ${name}</h1>${campaign.reels_hook?`<section><div class="label">🎯 Hook (Gancho Vital)</div><div class="content" style="font-weight:700;font-style:italic;font-size:16px">${campaign.reels_hook}</div></section>`:""} ${campaign.reels_duration_seconds||campaign.reels_audio_suggestion?`<section><div class="label">📽️ Foco do Vídeo</div><div class="content">${campaign.reels_duration_seconds?`⏱️ ${campaign.reels_duration_seconds}s`:""} ${campaign.reels_audio_suggestion?`🎵 ${campaign.reels_audio_suggestion}`:""}</div></section>`:""} ${campaign.reels_on_screen_text?.length?`<section><div class="label">📝 Texto na Tela</div><div class="content">${campaign.reels_on_screen_text.map(t=>`• "${t}"`).join("<br>")}</div></section>`:""} ${campaign.reels_script?`<section><div class="label">🎬 Roteiro Sugerido</div><div class="content">${campaign.reels_script.replace(/\n/g,"<br>")}</div></section>`:""} ${campaign.reels_shotlist?.length?`<section><div class="label">📋 Cenas Sugeridas</div>${campaign.reels_shotlist.map(s=>`<div class="scene"><div class="scene-num">Cena ${s.scene} — ${s.camera}</div><div>Ação: ${s.action}</div><div style="color:#52525b;font-style:italic">"${s.dialogue}"</div></div>`).join("")}</section>`:""} ${campaign.reels_caption?`<section><div class="label">💬 Legenda</div><div class="content">${campaign.reels_caption}</div></section>`:""} ${campaign.reels_cta?`<section><div class="label">📣 CTA</div><div class="content" style="font-weight:700">${campaign.reels_cta}</div></section>`:""} ${campaign.reels_hashtags?`<section><div class="label">#️⃣ Hashtags</div><div class="content" style="color:#52525b">${campaign.reels_hashtags}</div></section>`:""}</body></html>`);
         w.document.close();
         w.focus();
         w.print();
@@ -355,7 +300,7 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
                 body: JSON.stringify(buildGenerateTextPayload(force)),
             });
 
-            if (!res.ok) {
+            if (res.ok === false) {
                 const err = await res.json().catch(() => ({}));
                 throw new Error(err?.details ?? err?.error ?? `Erro na API: ${res.status}`);
             }
@@ -380,7 +325,7 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
                 body: JSON.stringify(buildGenerateReelsPayload(force)),
             });
 
-            if (!res.ok) {
+            if (res.ok === false) {
                 const err = await res.json().catch(() => ({}));
                 throw new Error(err?.details ?? err?.error ?? `Erro na API: ${res.status}`);
             }
@@ -961,7 +906,7 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
                                     </div>
                                 ) : null}
 
-                                {(campaign.reels_on_screen_text as any)?.length ? (
+                                {campaign.reels_on_screen_text?.length ? (
                                     <div className="rounded-xl border border-black/5 bg-zinc-50 px-4 py-3">
                                         <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">Texto na Tela</div>
                                         <div className="flex flex-wrap gap-2">
@@ -978,11 +923,11 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
                                     <Empty title="Roteiro ainda não gerado" hint='Clique em "Gerar vídeo curto" acima.' />
                                 )}
 
-                                {(campaign.reels_shotlist as any)?.length ? (
+                                {campaign.reels_shotlist?.length ? (
                                     <div className="rounded-xl border border-black/5 bg-zinc-50 px-4 py-3">
                                         <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-3">Cenas Sugeridas</div>
                                         <div className="space-y-2">
-                                            {(campaign.reels_shotlist as any[]).map((item, idx) => (
+                                            {campaign.reels_shotlist.map((item, idx) => (
                                                 <div key={idx} className="rounded-xl border border-zinc-200 bg-white p-3 flex gap-3">
                                                     <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-[10px] font-bold text-white">{item.scene}</div>
                                                     <div className="space-y-0.5">

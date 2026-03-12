@@ -11,8 +11,8 @@ export interface ShortVideoContext {
   reels_generated_at: string | null;
   reels_hook: string | null;
   reels_script: string | null;
-  reels_shotlist: unknown | null;
-  reels_on_screen_text: unknown | null;
+  reels_shotlist: ShortVideoShotScene[] | null;
+  reels_on_screen_text: string[] | null;
   reels_audio_suggestion: string | null;
   reels_duration_seconds: number | null;
   reels_caption: string | null;

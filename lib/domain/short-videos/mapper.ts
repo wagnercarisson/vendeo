@@ -17,8 +17,13 @@ export function normalizeShortVideoAI(
     hook: aiData.hook,
     duration_seconds: aiData.duration_seconds,
     audio_suggestion: aiData.audio_suggestion,
-    on_screen_text: aiData.on_screen_text,
-    shotlist: aiData.shotlist,
+    on_screen_text: aiData.on_screen_text ?? [],
+    shotlist: (aiData.shotlist ?? []).map((s) => ({
+      scene: Number(s.scene) || 0,
+      camera: String(s.camera || ""),
+      action: String(s.action || ""),
+      dialogue: String(s.dialogue || ""),
+    })),
     script: aiData.script,
     caption:
       aiData.caption ||

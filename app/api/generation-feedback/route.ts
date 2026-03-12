@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     const json = await req.json().catch(() => ({}));
     const body = GenerationFeedbackSchema.safeParse(json);
 
-    if (!body.success) {
+    if (body.success === false) {
       return NextResponse.json(
         { ok: false, error: "INVALID_INPUT", details: body.error.flatten() },
         { status: 400 }

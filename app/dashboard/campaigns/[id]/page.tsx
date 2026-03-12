@@ -21,12 +21,12 @@ export default async function CampaignPreviewPage({
         ai_caption, ai_text, ai_hashtags, ai_cta, ai_generated_at,
         reels_hook, reels_script, reels_caption, reels_cta, reels_hashtags, reels_generated_at,
         reels_shotlist, reels_on_screen_text, reels_audio_suggestion, reels_duration_seconds,
-        product_positioning,
+        product_positioning, created_at,
         stores (
           id, name, city, state,
           brand_positioning, main_segment, tone_of_voice,
           address, neighborhood, phone, whatsapp, instagram,
-          primary_color, secondary_color
+          primary_color, secondary_color, logo_url
         )
       `
         )
@@ -38,6 +38,7 @@ export default async function CampaignPreviewPage({
 
     const normalizedCampaign = {
         ...campaign,
+        created_at: campaign.created_at,
         stores: Array.isArray(campaign.stores)
             ? campaign.stores[0] ?? null
             : campaign.stores ?? null,

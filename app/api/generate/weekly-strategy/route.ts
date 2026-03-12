@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     const json = await req.json().catch(() => null);
     const body = WeeklyStrategyRequestSchema.safeParse(json);
 
-    if (!body.success) {
+    if (body.success === false) {
       return NextResponse.json(
         { ok: false, requestId, error: "INVALID_INPUT", details: body.error.flatten() },
         { status: 400 }

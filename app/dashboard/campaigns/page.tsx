@@ -9,59 +9,14 @@ import { ArrowRight, AlertTriangle, Sparkles, Video, Wand2, Plus, Eye } from "lu
 import { MotionWrapper } from "../_components/MotionWrapper";
 import { PostModal, ReelsModal } from "./_components/CampaignModals";
 
-type Store = {
-  id: string;
-  name: string;
-  city: string | null;
-  state: string | null;
+import { Store } from "@/lib/domain/stores/types";
+import { Campaign as CampaignDomain } from "@/lib/domain/campaigns/types";
+import { ShortVideoShotScene as ReelsShot } from "@/lib/domain/short-videos/types";
 
-  brand_positioning: string | null;
-  main_segment: string | null;
-  tone_of_voice: string | null;
+export type { Store, ReelsShot };
 
-  address: string | null;
-  neighborhood: string | null;
-  phone: string | null;
-  whatsapp: string | null;
-  instagram: string | null;
-
-  primary_color: string | null;
-  secondary_color: string | null;
-};
-
-type ReelsShot = {
-  scene: number;
-  camera: string;
-  action: string;
-  dialogue: string;
-};
-
-type Campaign = {
-  id: string;
-  product_name: string;
-  price: number;
-  audience: string;
-  objective: string;
-  image_url: string | null;
-
-  product_positioning: string | null;
-
-  ai_caption: string | null;
-  ai_text: string | null;
-  ai_cta: string | null;
-  ai_hashtags: string | null;
-
-  reels_hook: string | null;
-  reels_script: string | null;
-  reels_shotlist: ReelsShot[] | null;
-  reels_on_screen_text: string[] | null;
-  reels_audio_suggestion: string | null;
-  reels_duration_seconds: number | null;
-  reels_caption: string | null;
-  reels_cta: string | null;
-  reels_hashtags: string | null;
-  reels_generated_at: string | null;
-
+/** Campanha com relação de loja incluída (para listagem). */
+export type Campaign = CampaignDomain & {
   stores?: Store | null;
 };
 
@@ -81,7 +36,7 @@ function labelPositioning(v: string | null | undefined) {
   return map[v] ?? v;
 }
 
-function safeToString(v: any) {
+function safeToString(v: string | number | null | undefined): string {
   if (v === null || v === undefined) return "";
   return String(v);
 }
@@ -275,9 +230,9 @@ export default function CampaignsPage() {
       .from("campaigns")
       .select(
         `
-        id, product_name, price, audience, objective, image_url, headline,
-        product_positioning,
-        ai_caption, ai_text, ai_cta, ai_hashtags,
+        id, store_id, product_name, price, audience, objective, image_url, status, created_at,
+        headline, body_text, cta, product_positioning,
+        ai_caption, ai_text, ai_cta, ai_hashtags, ai_generated_at,
 
         reels_hook, reels_script, reels_shotlist, reels_on_screen_text,
         reels_audio_suggestion, reels_duration_seconds,
@@ -287,7 +242,7 @@ export default function CampaignsPage() {
           id, name, city, state,
           brand_positioning, main_segment, tone_of_voice,
           address, neighborhood, phone, whatsapp, instagram,
-          primary_color, secondary_color
+          primary_color, secondary_color, logo_url
         )
       `
       )
@@ -297,7 +252,11 @@ export default function CampaignsPage() {
       setError(error);
       setCampaigns([]);
     } else {
-      setCampaigns((data as any) ?? []);
+      const rows = (data ?? []).map((row: any) => ({
+        ...row,
+        stores: Array.isArray(row.stores) ? (row.stores[0] ?? null) : (row.stores ?? null),
+      })) as Campaign[];
+      setCampaigns(rows);
     }
 
     setLoading(false);
@@ -344,7 +303,7 @@ export default function CampaignsPage() {
         }),
       });
 
-      if (!res.ok) {
+      if (res.ok === false) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err?.details ?? err?.error ?? `Erro na API: ${res.status}`);
       }
@@ -390,7 +349,7 @@ export default function CampaignsPage() {
         }),
       });
 
-      if (!res.ok) {
+      if (res.ok === false) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err?.details ?? err?.error ?? `Erro na API: ${res.status}`);
       }

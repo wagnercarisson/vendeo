@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { WeeklyPlan, WeeklyPlanItem, StrategyItem } from "./types";
+import { Campaign } from "../campaigns/types";
 
 // ─── Helper de datas ──────────────────────────────────────────────────────────
 
@@ -22,7 +23,7 @@ export function getWeekStartMondayISO(today = new Date()): string {
 export interface WeeklyPlanResult {
   plan: WeeklyPlan;
   items: WeeklyPlanItem[];
-  campaigns: unknown[];
+  campaigns: Campaign[];
 }
 
 /** Busca o plano semanal com items e campanhas vinculadas. Retorna null se não existir. */
@@ -48,15 +49,16 @@ export async function fetchWeeklyPlan(
 
   if (itemsErr) throw new Error(itemsErr.message);
 
-  const campaignIds = (items ?? []).map((i: any) => i.campaign_id).filter(Boolean);
-  let campaigns: unknown[] = [];
+  const campaignIds = (items ?? []).map((i) => (i as any).campaign_id).filter(Boolean) as string[];
+  let campaigns: Campaign[] = [];
 
   if (campaignIds.length) {
     const { data: cData, error: cErr } = await supabaseAdmin
       .from("campaigns")
       .select(
         `id, store_id, product_name, price, audience, objective, product_positioning, created_at,
-         ai_caption, ai_text, ai_cta, ai_hashtags,
+         status, image_url, headline, body_text, cta,
+         ai_caption, ai_text, ai_cta, ai_hashtags, ai_generated_at,
          reels_hook, reels_script, reels_shotlist, reels_on_screen_text,
          reels_audio_suggestion, reels_duration_seconds,
          reels_caption, reels_cta, reels_hashtags, reels_generated_at`
@@ -80,7 +82,7 @@ export interface GenerateWeeklyPlanInput {
 }
 
 export type GenerateWeeklyPlanResult =
-  | { ok: true; reused?: boolean; plan: WeeklyPlan; items: WeeklyPlanItem[]; campaigns: unknown[] }
+  | { ok: true; reused?: boolean; plan: WeeklyPlan; items: WeeklyPlanItem[]; campaigns: Campaign[] }
   | { ok: false; error: string; details?: unknown; status: number };
 
 /**
@@ -168,7 +170,7 @@ export async function generateWeeklyPlan(
       recommended_time: recommendedTime,
       campaign_id: null,
       brief: {
-        angle: `Focar em ${st.reasoning ?? ""}`,
+        angle: `Focar em ${st.reasoning}`,
         hook_hint: "Atenção inicial focada na estratégia",
         cta_hint: "Chamada para ação clara",
         audience: st.audience,

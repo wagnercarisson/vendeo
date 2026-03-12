@@ -49,8 +49,8 @@ export async function generateShortVideoContent(
     const existingVideo: ShortVideoAIOutput = {
       hook: campaignCtx.reels_hook ?? "",
       script: campaignCtx.reels_script ?? "",
-      shotlist: (campaignCtx.reels_shotlist as any) ?? [],
-      on_screen_text: (campaignCtx.reels_on_screen_text as any) ?? [],
+      shotlist: campaignCtx.reels_shotlist ?? [],
+      on_screen_text: campaignCtx.reels_on_screen_text ?? [],
       audio_suggestion: campaignCtx.reels_audio_suggestion ?? "",
       duration_seconds: campaignCtx.reels_duration_seconds ?? 30,
       caption: campaignCtx.reels_caption ?? "",

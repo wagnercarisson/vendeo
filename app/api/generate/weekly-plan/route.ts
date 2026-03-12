@@ -61,7 +61,7 @@ export async function GET(req: Request) {
     const store_id = (url.searchParams.get("store_id") ?? "").trim();
 
     const q = WeeklyPlanQuerySchema.safeParse({ store_id, week_start });
-    if (!q.success) {
+    if (q.success === false) {
       return NextResponse.json(
         { ok: false, requestId, error: "INVALID_QUERY", details: q.error.flatten() },
         { status: 400 }
@@ -98,7 +98,7 @@ export async function POST(req: Request) {
     const json = await req.json().catch(() => null);
     const body = WeeklyPlanPostBodySchema.safeParse(json);
 
-    if (!body.success) {
+    if (body.success === false) {
       return NextResponse.json(
         { ok: false, requestId, error: "INVALID_INPUT", details: body.error.flatten() },
         { status: 400 }

@@ -2,7 +2,16 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { callAI } from "@/lib/ai/parse";
 import { buildWeeklyStrategyPrompt } from "./prompts";
 import { normalizeStrategyItems } from "./mapper";
-import { WeatherData, StrategyItem } from "./types";
+import { WeatherData, StrategyItem, WeeklyPlanItemBrief } from "./types";
+
+interface PastPlan {
+  id: string;
+  week_start: string;
+  items: Array<{
+    day_of_week: number;
+    brief: WeeklyPlanItemBrief | null | Record<string, any>;
+  }>;
+}
 
 // ─── Weather helper ───────────────────────────────────────────────────────────
 
@@ -75,7 +84,7 @@ export async function generateWeeklyStrategy(
     .select(`id, week_start, items:weekly_plan_items(day_of_week, brief)`)
     .eq("store_id", storeId)
     .order("created_at", { ascending: false })
-    .limit(2);
+    .limit(2) as { data: PastPlan[] | null };
 
   // 3) Busca clima
   const weather = await fetchWeather(city || store.city, state || store.state);
@@ -86,7 +95,7 @@ export async function generateWeeklyStrategy(
     days: daysToGenerate,
     weather,
     holidays,
-    history: (pastPlans ?? []) as any,
+    history: pastPlans ?? [],
   });
 
   // 5) Chama IA
@@ -99,11 +108,11 @@ export async function generateWeeklyStrategy(
   );
 
   // 6) Parse e normaliza
-  let parsed: any;
+  let parsed: { items?: unknown[] } | null = null;
   try {
     parsed = JSON.parse(raw);
   } catch {
-    parsed = {};
+    parsed = null;
   }
 
   const strategyItems = normalizeStrategyItems(parsed?.items ?? []);

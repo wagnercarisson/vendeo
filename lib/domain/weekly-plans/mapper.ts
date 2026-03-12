@@ -4,14 +4,22 @@ import { StrategyItem } from "./types";
 export function normalizeStrategyItems(raw: unknown): StrategyItem[] {
   if (!raw || !Array.isArray(raw)) return [];
 
-  return raw.filter(
-    (item): item is StrategyItem =>
-      item &&
-      typeof item === "object" &&
-      typeof item.day_of_week === "number" &&
-      typeof item.audience === "string" &&
-      typeof item.objective === "string" &&
-      typeof item.positioning === "string" &&
-      (item.content_type === "post" || item.content_type === "reels")
-  );
+  return raw
+    .map((item: any) => {
+      if (!item || typeof item !== "object") return null;
+      
+      const normalized: StrategyItem = {
+        day_of_week: Number(item.day_of_week) || 0,
+        audience: String(item.audience || ""),
+        objective: String(item.objective || ""),
+        positioning: String(item.positioning || ""),
+        content_type: (item.content_type === "post" || item.content_type === "reels") 
+          ? item.content_type 
+          : "post",
+        reasoning: String(item.reasoning || ""),
+      };
+      
+      return normalized;
+    })
+    .filter((item): item is StrategyItem => item !== null);
 }

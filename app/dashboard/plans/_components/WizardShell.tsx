@@ -90,12 +90,12 @@ export function WizardShell() {
 
     const { data, error } = await supabase
       .from("stores")
-      .select("id, name, city, state, main_segment, brand_positioning, tone_of_voice, whatsapp, instagram, phone, primary_color, secondary_color, owner_user_id")
+      .select("id, name, city, state, main_segment, brand_positioning, tone_of_voice, whatsapp, instagram, phone, primary_color, secondary_color, owner_user_id, logo_url")
       .eq("owner_user_id", user.id)
       .order("created_at", { ascending: false });
 
     if (!error) {
-      const rows = (data as any) ?? [];
+      const rows = (data as Store[]) ?? [];
       setStores(rows);
       if (rows.length && !storeId) setStoreId(rows[0].id);
     }
@@ -121,11 +121,11 @@ export function WizardShell() {
         `/api/generate/weekly-plan?week_start=${encodeURIComponent(weekStart)}&store_id=${encodeURIComponent(storeId)}`,
         { method: "GET" }
       );
-      if (data?.ok) {
+      if (data?.ok === true) {
         setPlan(data.plan ?? null);
-        setItems((data.items ?? []) as WeeklyPlanItem[]);
-        setCampaigns((data.campaigns ?? []) as Campaign[]);
-        setStrategyDraft(data.plan?.strategy?.items || []);
+        setItems(data.items ?? []);
+        setCampaigns(data.campaigns ?? []);
+        setStrategyDraft((data.plan?.strategy?.items as StrategyDraftItem[]) || []);
         
         // Se já tem plano gerado com itens, preenchemos a UI de dias selecionados e podemos avançar o step
         if (data.plan && data.items && data.items.length > 0) {
@@ -180,7 +180,7 @@ export function WizardShell() {
         }),
       });
 
-      if (!data?.ok) {
+      if (data?.ok === false) {
         throw new Error(data?.details || data?.error || "Falha ao gerar estratégia");
       }
 
@@ -220,13 +220,13 @@ export function WizardShell() {
         }),
       });
 
-      if (!data?.ok) {
+      if (data?.ok === false) {
         throw new Error(data?.details || data?.error || "Falha ao gerar plano");
       }
 
       setPlan(data.plan ?? null);
-      setItems((data.items ?? []) as WeeklyPlanItem[]);
-      setCampaigns((data.campaigns ?? []) as Campaign[]);
+      setItems(data.items ?? []);
+      setCampaigns(data.campaigns ?? []);
 
       // Advance wizard to Execution
       setStep(3);

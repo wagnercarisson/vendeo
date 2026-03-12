@@ -1,5 +1,7 @@
 import React from "react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { Campaign } from "@/lib/domain/campaigns/types";
+import { WeeklyPlan } from "@/lib/domain/weekly-plans/types";
 
 type Activity = {
     id: string;
@@ -62,7 +64,7 @@ export async function ActivityFeed({ storeId }: { storeId: string }) {
     const activities: Activity[] = [];
 
     if (recentCampaigns) {
-        recentCampaigns.forEach((c: any) => {
+        recentCampaigns.forEach((c) => {
             activities.push({
                 id: `camp_${c.id}`,
                 type: "campaign",
@@ -75,8 +77,8 @@ export async function ActivityFeed({ storeId }: { storeId: string }) {
     }
 
     if (recentAI) {
-        recentAI.forEach((c: any) => {
-            const aiDate = c.ai_generated_at || c.reels_generated_at;
+        recentAI.forEach((c) => {
+            const aiDate = (c as any).ai_generated_at || (c as any).reels_generated_at;
             if (aiDate) {
                 activities.push({
                     id: `ai_${c.id}`,
@@ -91,9 +93,9 @@ export async function ActivityFeed({ storeId }: { storeId: string }) {
     }
 
     if (recentPlans) {
-        recentPlans.forEach((p: any) => {
+        recentPlans.forEach((p) => {
             // week_start is YYYY-MM-DD
-            const [y, m, d] = p.week_start.split("-");
+            const [y, m, d] = (p as any).week_start.split("-");
             const dateStr = `${d}/${m}`;
             activities.push({
                 id: `plan_${p.id}`,

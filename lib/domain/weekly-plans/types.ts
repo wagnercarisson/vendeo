@@ -1,3 +1,13 @@
+/** Brief detalhado de um item do plano. */
+export interface WeeklyPlanItemBrief {
+  angle: string;
+  hook_hint: string;
+  cta_hint: string;
+  audience: string;
+  objective: string;
+  product_positioning: string;
+}
+
 /** Item de planejamento semanal. */
 export interface WeeklyPlanItem {
   id: string;
@@ -7,8 +17,15 @@ export interface WeeklyPlanItem {
   theme: string | null;
   recommended_time: string | null;
   campaign_id: string | null;
-  brief: Record<string, unknown> | null;
+  brief: WeeklyPlanItemBrief | null;
   created_at: string;
+}
+
+/** Estratégia completa salva no plano. */
+export interface WeeklyPlanStrategy {
+  strategy_summary: string;
+  items: StrategyItem[];
+  store_snapshot?: Record<string, unknown>;
 }
 
 /** Plano semanal (cabeçalho). */
@@ -17,7 +34,7 @@ export interface WeeklyPlan {
   store_id: string;
   week_start: string;
   status: string;
-  strategy: Record<string, unknown> | null;
+  strategy: WeeklyPlanStrategy | null;
   created_at: string;
 }
 
@@ -28,7 +45,7 @@ export interface StrategyItem {
   objective: string;
   positioning: string;
   content_type: "post" | "reels";
-  reasoning?: string;
+  reasoning: string;
 }
 
 /** Previsão do tempo simplificada. */

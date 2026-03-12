@@ -15,6 +15,7 @@ import type {
     CampaignFormData,
     StrategyData,
 } from "./types";
+import { ShortVideoAIOutput } from "@/lib/domain/short-videos/types";
 
 const INITIAL_CAMPAIGN: CampaignFormData = {
     type: "product",
@@ -52,7 +53,7 @@ export function NewCampaignShell() {
                 setProduct(prev => ({ 
                     ...prev, 
                     type: (typeParam === "product" || typeParam === "service" || typeParam === "info") 
-                        ? (typeParam as any) 
+                        ? typeParam 
                         : prev.type 
                 }));
             }
@@ -168,7 +169,7 @@ export function NewCampaignShell() {
                 });
 
                 const genData = await genResponse.json();
-                if (!genData.ok) throw new Error(genData.error || "Erro ao gerar post.");
+                if (genData.ok === false) throw new Error(genData.error || "Erro ao gerar post.");
             }
 
             // 3) Buscar dados atualizados para o preview
@@ -181,7 +182,7 @@ export function NewCampaignShell() {
             if (fetchErr || !finalCampaign) throw new Error("Falha ao recuperar dados da campanha.");
 
             // 4) Tenta gerar Reels se Vídeo solicitado
-            let reels: any = null;
+            let reels: ShortVideoAIOutput | null = null;
             if (strategy.generateReels) {
                 try {
                     const reelsResponse = await fetch("/api/generate/reels", {
@@ -189,7 +190,7 @@ export function NewCampaignShell() {
                         body: JSON.stringify({ campaign_id: currentId, force: true }),
                     });
                     const reelsData = await reelsResponse.json();
-                    if (reelsData.ok) reels = reelsData.reels;
+                    if (reelsData.ok === true) reels = reelsData.reels;
                 } catch (reelsErr) {
                     console.warn("Falha silenciosa ao gerar Reels:", reelsErr);
                 }

@@ -1,5 +1,5 @@
-import React from "react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { WeeklyPlanItemBrief } from "@/lib/domain/weekly-plans/types";
 import Link from "next/link";
 import { Plus, Cloud, CloudDrizzle, CloudLightning, CloudRain, CloudSnow, Sun, CloudFog } from "lucide-react";
 
@@ -16,6 +16,32 @@ type Day = {
     titleTooltip?: string;
     ctaLink?: string;
     holidayName?: string;
+};
+
+type Holiday = {
+    date: string;
+    name: string;
+    type: string;
+};
+
+type PlanItemWithCampaign = {
+    id: string;
+    day_of_week: number;
+    content_type: string;
+    theme: string | null;
+    brief: WeeklyPlanItemBrief | null | any;
+    campaign_id: string | null;
+    campaigns: Array<{
+        id: string;
+        status: string;
+        objective: string | null;
+        product_name: string | null;
+    }> | {
+        id: string;
+        status: string;
+        objective: string | null;
+        product_name: string | null;
+    } | null;
 };
 
 // Utils string date YYYY-MM-DD for Monday
@@ -45,7 +71,7 @@ export async function ContentCalendar({ storeId }: { storeId: string }) {
         .eq("week_start", currentWeekStart)
         .maybeSingle();
 
-    let planItems: any[] = [];
+    let planItems: PlanItemWithCampaign[] = [];
     if (plan) {
         const { data } = await supabase
             .from("weekly_plan_items")
@@ -64,7 +90,7 @@ export async function ContentCalendar({ storeId }: { storeId: string }) {
                 )
             `)
             .eq("plan_id", plan.id);
-        if (data) planItems = data;
+        if (data) planItems = data as PlanItemWithCampaign[];
     }
 
     // Fetch store info for weather
@@ -92,7 +118,7 @@ export async function ContentCalendar({ storeId }: { storeId: string }) {
 
     // Fetch BrasilAPI Holidays for the current year
     const now = new Date();
-    let holidays: any[] = [];
+    let holidays: Holiday[] = [];
     try {
         const res = await fetch(`https://brasilapi.com.br/api/feriados/v1/${now.getFullYear()}`, {
             next: { revalidate: 86400 } // cache de 24 horas
@@ -124,12 +150,12 @@ export async function ContentCalendar({ storeId }: { storeId: string }) {
         const matchingItem = planItems.find((it) => it.day_of_week === (i + 1));
 
         // Find if this day constitutes a holiday
-        const matchingHoliday = holidays.find((h: any) => h.date === dStr);
+        const matchingHoliday = holidays.find((h) => h.date === dStr);
         const holidayName = matchingHoliday ? matchingHoliday.name : undefined;
 
         // Find forecast for this day (format DD/MM)
         const dayDateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
-        const dayForecast = weather?.forecast?.find((f: any) => f.date === dayDateStr);
+        const dayForecast = weather?.forecast?.find((f: { date: string }) => f.date === dayDateStr);
 
         let campaignFormat = undefined;
         let campaignObjective = undefined;
