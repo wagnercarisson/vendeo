@@ -39,9 +39,14 @@ export async function POST(req: Request) {
     });
 
     // 4) Retorna response
-    if (!result.ok) {
+    if (result.ok === false) {
       return NextResponse.json(
-        { ok: false, requestId, error: result.error, details: result.details },
+        { 
+          ok: false, 
+          requestId, 
+          error: result.error, 
+          details: result.details 
+        },
         { status: result.status }
       );
     }
