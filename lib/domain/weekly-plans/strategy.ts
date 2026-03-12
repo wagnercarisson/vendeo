@@ -1,7 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { callAIWithRetry } from "@/lib/ai/parse";
 import { buildWeeklyStrategyPrompt } from "./prompts";
-import { normalizeStrategyItems } from "./mapper";
+import { mapAiStrategyToDomain } from "./mapper";
 import { WeatherData, StrategyItem, WeeklyPlanItemBrief } from "./types";
 import { WeeklyStrategyAISchema } from "./schemas";
 
@@ -105,7 +105,7 @@ export async function generateWeeklyStrategy(
   });
 
   // 6) Normaliza (camada defensiva final)
-  const strategyItems = normalizeStrategyItems(aiData.items);
+  const strategyItems = mapAiStrategyToDomain(aiData.items);
 
   return { ok: true, strategyItems };
 }

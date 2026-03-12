@@ -3,7 +3,7 @@ import { callAIWithRetry } from "@/lib/ai/parse";
 import { fetchStoreContext } from "@/lib/domain/stores/queries";
 import { ShortVideoAISchema } from "./schemas";
 import { buildShortVideoPrompt } from "./prompts";
-import { normalizeShortVideoAI } from "./mapper";
+import { mapAiShortVideoToDomain, mapDbCampaignToShortVideoContext } from "./mapper";
 import { ShortVideoAIOutput, ShortVideoContext } from "./types";
 
 export type GenerateShortVideoInput = {
@@ -42,7 +42,7 @@ export async function generateShortVideoContent(
     return { ok: false, error: "CAMPAIGN_NOT_FOUND", details: cErr?.message, status: 404 };
   }
 
-  const campaignCtx: ShortVideoContext = campaign as ShortVideoContext;
+  const campaignCtx = mapDbCampaignToShortVideoContext(campaign);
 
   // 2) Idempotência — retorna dados já gerados se existirem
   if (!force && campaignCtx.reels_generated_at) {
@@ -61,9 +61,9 @@ export async function generateShortVideoContent(
   }
 
   // 3) Validação mínima
-  const nameOk = !!String(campaignCtx.product_name ?? "").trim();
-  const audOk = !!String(campaignCtx.audience ?? "").trim();
-  const objOk = !!String(campaignCtx.objective ?? "").trim();
+  const nameOk = !!campaignCtx.product_name.trim();
+  const audOk = !!campaignCtx.audience.trim();
+  const objOk = !!campaignCtx.objective.trim();
   if (!nameOk || !audOk || !objOk) {
     return {
       ok: false,
@@ -84,7 +84,7 @@ export async function generateShortVideoContent(
   const { data: aiData } = await callAIWithRetry(prompt, ShortVideoAISchema, { temperature: 0.6 });
 
   // 6) Normaliza
-  const normalized: ShortVideoAIOutput = normalizeShortVideoAI(aiData, campaignCtx, store);
+  const normalized: ShortVideoAIOutput = mapAiShortVideoToDomain(aiData, campaignCtx, store);
 
   // 7) Persiste
   const { error: upErr } = await supabaseAdmin

@@ -2,6 +2,9 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { WeeklyPlan, WeeklyPlanItem, StrategyItem, WeeklyPlanItemBrief } from "./types";
 import { Campaign } from "../campaigns/types";
 import { WeeklyPlanItemBriefSchema } from "./schemas";
+import { mapDbWeeklyPlanToDomain, mapDbWeeklyPlanItemToDomain } from "./mapper";
+import { mapDbCampaignToDomain } from "../campaigns/mapper";
+import { mapDbStoreToDomain } from "../stores/mapper";
 
 // ─── Helper de datas ──────────────────────────────────────────────────────────
 
@@ -50,7 +53,10 @@ export async function fetchWeeklyPlan(
 
   if (itemsErr) throw new Error(itemsErr.message);
 
-  const campaignIds = (items ?? []).map((i) => (i as any).campaign_id).filter(Boolean) as string[];
+  const normalizedPlan = mapDbWeeklyPlanToDomain(plan);
+  const normalizedItems = (items ?? []).map((i) => mapDbWeeklyPlanItemToDomain(i));
+
+  const campaignIds = normalizedItems.map((i) => i.campaign_id).filter(Boolean) as string[];
   let campaigns: Campaign[] = [];
 
   if (campaignIds.length) {
@@ -67,10 +73,10 @@ export async function fetchWeeklyPlan(
       .in("id", campaignIds);
 
     if (cErr) throw new Error(cErr.message);
-    campaigns = cData ?? [];
+    campaigns = (cData ?? []).map(mapDbCampaignToDomain);
   }
 
-  return { plan, items: items ?? [], campaigns };
+  return { plan: normalizedPlan, items: normalizedItems, campaigns };
 }
 
 // ─── Pipeline de geração ──────────────────────────────────────────────────────
@@ -121,6 +127,8 @@ export async function generateWeeklyPlan(
     return { ok: false, error: "STORE_NOT_FOUND", status: 404 };
   }
 
+  const normalizedStore = mapDbStoreToDomain(store);
+
   // 4) Upsert cabeçalho do plano
   const { data: upPlan, error: upPlanErr } = await supabaseAdmin
     .from("weekly_plans")
@@ -132,6 +140,8 @@ export async function generateWeeklyPlan(
     .single();
 
   if (upPlanErr || !upPlan) throw new Error(upPlanErr?.message ?? "FAILED_UPSERT_PLAN");
+
+  const normalizedUpPlan = mapDbWeeklyPlanToDomain(upPlan);
 
   // 5) Salva estratégia no plano
   const strategySummary = approvedStrategy
@@ -145,16 +155,16 @@ export async function generateWeeklyPlan(
         strategy_summary: strategySummary || "Estratégia omitida.",
         items: approvedStrategy,
         store_snapshot: {
-          name: store.name,
-          city: store.city,
-          state: store.state,
-          main_segment: store.main_segment,
-          brand_positioning: store.brand_positioning,
-          tone_of_voice: store.tone_of_voice,
+          name: normalizedStore.name,
+          city: normalizedStore.city,
+          state: normalizedStore.state,
+          main_segment: normalizedStore.main_segment,
+          brand_positioning: normalizedStore.brand_positioning,
+          tone_of_voice: normalizedStore.tone_of_voice,
         },
       },
     })
-    .eq("id", upPlan.id);
+    .eq("id", normalizedUpPlan.id);
 
   if (updPlanErr) throw new Error(updPlanErr.message);
 
@@ -176,7 +186,7 @@ export async function generateWeeklyPlan(
     const validBrief = WeeklyPlanItemBriefSchema.parse(brief);
 
     const { error: iErr } = await supabaseAdmin.from("weekly_plan_items").insert({
-      plan_id: upPlan.id,
+      plan_id: normalizedUpPlan.id,
       day_of_week: st.day_of_week,
       content_type: st.content_type,
       theme,
@@ -193,7 +203,7 @@ export async function generateWeeklyPlan(
   return {
     ok: true,
     reused: false,
-    plan: final?.plan ?? upPlan,
+    plan: final?.plan ?? normalizedUpPlan,
     items: final?.items ?? [],
     campaigns: final?.campaigns ?? [],
   };

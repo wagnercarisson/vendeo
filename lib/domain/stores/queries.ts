@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { StoreContext } from "./types";
+import { mapDbStoreToDomain } from "./mapper";
 
 /**
  * Busca os campos de contexto da loja necessários para geração de IA.
@@ -20,5 +21,5 @@ export async function fetchStoreContext(
     .single();
 
   if (error || !data) return null;
-  return data as StoreContext;
+  return mapDbStoreToDomain(data);
 }

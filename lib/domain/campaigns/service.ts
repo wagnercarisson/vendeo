@@ -3,7 +3,7 @@ import { callAIWithRetry } from "@/lib/ai/parse";
 import { fetchStoreContext } from "@/lib/domain/stores/queries";
 import { CampaignAISchema, CampaignRequestSchema } from "./schemas";
 import { buildCampaignPrompt } from "./prompts";
-import { normalizeCampaignAI } from "./mapper";
+import { mapAiCampaignToDomain, mapDbCampaignToAIContext } from "./mapper";
 import { CampaignAIOutput, CampaignContext } from "./types";
 
 export type GenerateCampaignInput = {
@@ -42,6 +42,9 @@ export async function generateCampaignContent(
     return { ok: false, error: "CAMPAIGN_NOT_FOUND", details: cErr?.message, status: 404 };
   }
 
+  // Mapeamento inicial de contexto (normalizado)
+  const campaignCtx = mapDbCampaignToAIContext(campaign);
+
   // 2) Idempotência
   const already = !!(campaign.ai_caption && String(campaign.ai_caption).trim().length > 0);
   if (!force && already) {
@@ -49,9 +52,9 @@ export async function generateCampaignContent(
   }
 
   // 3) Validação mínima dos dados da campanha
-  const nameOk = !!String(campaign.product_name ?? "").trim();
-  const audOk = !!String(campaign.audience ?? "").trim();
-  const objOk = !!String(campaign.objective ?? "").trim();
+  const nameOk = !!campaignCtx.product_name.trim();
+  const audOk = !!campaignCtx.audience.trim();
+  const objOk = !!campaignCtx.objective.trim();
   if (!nameOk || !audOk || !objOk) {
     return {
       ok: false,
@@ -62,27 +65,18 @@ export async function generateCampaignContent(
   }
 
   // 4) Busca contexto da loja
-  const store = await fetchStoreContext(campaign.store_id);
+  const store = await fetchStoreContext(campaignCtx.store_id);
   if (!store) {
     return { ok: false, error: "STORE_NOT_FOUND", status: 404 };
   }
 
-  const campaignCtx: CampaignContext = {
-    id: campaign.id,
-    store_id: campaign.store_id,
-    product_name: campaign.product_name,
-    price: campaign.price,
-    audience: campaign.audience,
-    objective: campaign.objective,
-    product_positioning: campaign.product_positioning,
-  };
 
   // 5) Monta prompt e chama IA
   const prompt = buildCampaignPrompt(campaignCtx, store, description);
   const { data: aiData } = await callAIWithRetry(prompt, CampaignAISchema, { temperature: 0.7 });
 
   // 6) Normaliza com fallbacks
-  const normalized: CampaignAIOutput = normalizeCampaignAI(aiData, campaignCtx, store);
+  const normalized: CampaignAIOutput = mapAiCampaignToDomain(aiData, campaignCtx, store);
 
   // 7) Persiste no banco
   const { error: upErr } = await supabaseAdmin
