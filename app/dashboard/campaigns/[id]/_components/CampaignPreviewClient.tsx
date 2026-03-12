@@ -1,4 +1,4 @@
-"use client";
+"use client"; // Fix ReferenceError v2
 
 import React, { useMemo, useRef, useState } from "react";
 import Image from "next/image";
