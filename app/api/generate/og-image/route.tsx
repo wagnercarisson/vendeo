@@ -41,9 +41,61 @@ export async function POST(req: NextRequest) {
         };
         const formattedWhatsapp = formatWhatsApp(whatsapp);
 
-        // A URL da imagem DEVE ser um buffer/array ou absolute url completa.
-        // O next/og não renderiza URLs relativas ou instáveis perfeitamente, garantimos url string
-        
+        // 1) Identifica se precisa de transformação e define URL final
+        const getTransformUrl = (url: string) => {
+            if (!url) return "";
+            const base = url.split("?")[0].split("#")[0];
+            const isWebp = base.toLowerCase().endsWith(".webp");
+            
+            if (isWebp && base.includes("supabase.co/storage/v1/object/public/")) {
+                return base.replace("/object/public/", "/render/image/public/") + "?format=png&width=1000";
+            }
+            
+            // Fallback para conversão externa via weserv.nl se for WebP fora do supabase ou se quisermos garantir PNG
+            if (isWebp) {
+                return `https://images.weserv.nl/?url=${encodeURIComponent(url)}&output=png&w=1000`;
+            }
+
+            return url;
+        };
+
+        const transformUrl = getTransformUrl(imageUrl);
+
+        // 2) Busca a imagem como Data URL (Base64)
+        // Isso resolve problemas de tipos desconhecidos e fetch remoto no Satori
+        const fetchImageData = async (url: string, originalUrl: string) => {
+            if (!url) return null;
+            try {
+                let response = await fetch(url);
+                
+                // Fallback interno: Se a transformação falhar, tenta o weserv.nl como proxy de segurança
+                if (!response.ok && url !== originalUrl) {
+                    console.warn(`Transformation failed (${response.status}), trying weserv proxy for: ${originalUrl}`);
+                    const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(originalUrl)}&output=png&w=1000`;
+                    response = await fetch(proxyUrl);
+                }
+
+                if (!response.ok) {
+                    console.error(`Fetch image failed: ${url} (Status: ${response.status})`);
+                    return null;
+                }
+                
+                const buffer = await response.arrayBuffer();
+                const base64 = Buffer.from(buffer).toString("base64");
+                const contentType = response.headers.get("content-type") || "image/png";
+                
+                // Se ainda for WebP (o que não deveria), o Satori vai ignorar. 
+                // Mas pelo menos tentamos as transformações.
+                console.log(`Successfully fetched image for OG. Content-Type: ${contentType}`);
+                return `data:${contentType};base64,${base64}`;
+            } catch (err: any) {
+                console.error(`Fetch image error: ${url}`, err.message);
+                return null;
+            }
+        };
+
+        const imageData = await fetchImageData(transformUrl, imageUrl);
+
         let content;
 
         if (layout === "floating") {
@@ -58,18 +110,22 @@ export async function POST(req: NextRequest) {
                         overflow: "hidden",
                     }}
                 >
-                    <img
-                        src={imageUrl}
-                        alt="Background"
-                        style={{
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                        }}
-                    />
+                    {imageData && (
+                        <img
+                            src={imageData as any}
+                            width={1080}
+                            height={1350}
+                            alt="Background"
+                            style={{
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                            }}
+                        />
+                    )}
                     <div
                         style={{
                             position: "absolute",
@@ -171,7 +227,15 @@ export async function POST(req: NextRequest) {
             content = (
                 <div style={{ display: "flex", width: "100%", height: "100%", backgroundColor: "#18181b" }}>
                     <div style={{ display: "flex", flexDirection: "column", width: "50%", height: "100%", position: "relative" }}>
-                        <img src={imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", top: 0, left: 0 }} />
+                        {imageData && (
+                            <img 
+                                src={imageData as any} 
+                                width={540} 
+                                height={1350} 
+                                alt="" 
+                                style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", top: 0, left: 0 }} 
+                            />
+                        )}
                         <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundImage: "linear-gradient(to right, transparent, rgba(0,0,0,0.6))" }}></div>
                     </div>
                     
@@ -221,7 +285,15 @@ export async function POST(req: NextRequest) {
             content = (
                 <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", backgroundColor: "white" }}>
                     <div style={{ display: "flex", position: "relative", height: "55%", width: "100%" }}>
-                        <img src={imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", top: 0, left: 0 }} />
+                        {imageData && (
+                            <img 
+                                src={imageData as any} 
+                                width={1080} 
+                                height={742} 
+                                alt="" 
+                                style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", top: 0, left: 0 }} 
+                            />
+                        )}
                         <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundImage: "linear-gradient(to top, rgba(0,0,0,0.3), transparent)" }}></div>
                         
                         {formattedPrice && (
@@ -277,7 +349,7 @@ export async function POST(req: NextRequest) {
             }
         );
     } catch (e: any) {
-        console.log(`${e.message}`);
+        console.error(`OG Generation Error: ${e.message}`);
         return new Response(`Failed to generate the image`, {
             status: 500,
         });

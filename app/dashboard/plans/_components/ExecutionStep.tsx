@@ -4,6 +4,7 @@ import { MotionWrapper } from "@/app/dashboard/_components/MotionWrapper";
 import { MousePointerClick, Zap, Plus, Image as ImageIcon, CheckCircle2, RotateCw, ExternalLink } from "lucide-react";
 import { ValidationPopupModal } from "./ValidationPopupModal";
 import { useRouter } from "next/navigation";
+import SalesFeedbackInline from "@/components/feedback/SalesFeedbackInline";
 import { AUDIENCE_OPTIONS, OBJECTIVE_OPTIONS, PRODUCT_POSITIONING_OPTIONS } from "@/app/dashboard/campaigns/new/_components/constants";
 
 interface Props {
@@ -294,6 +295,15 @@ export function ExecutionStep({
                         )}
                       </div>
 
+                      {/* Feedback Plano Semanal */}
+                      {(hasText || hasReels) && (
+                        <SalesFeedbackInline 
+                          contentType={isPost ? "weekly_plan" : "weekly_strategy"}
+                          campaignId={camp.id}
+                          weeklyPlanId={it.plan_id}
+                          contextLabel={`Feedback sobre o ${isPost ? 'Post' : 'Vídeo'} planejado`}
+                        />
+                      )}
                     </div>
                   )}
                 </div>

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { Copy, Check, Sparkles, ArrowLeft, Wand2, Video, Upload, Loader2, Image as ImageIcon, Download, Printer } from "lucide-react";
+import SalesFeedbackInline from "@/components/feedback/SalesFeedbackInline";
 
 function cx(...classes: Array<string | false | null | undefined>) {
     return classes.filter(Boolean).join(" ");
@@ -846,6 +847,13 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
                                             <div className="text-xs text-emerald-700 font-medium whitespace-pre-wrap">{bestHashtags}</div>
                                         </div>
                                     )}
+
+                                    {/* Feedback Post */}
+                                    <SalesFeedbackInline 
+                                        contentType="campaign" 
+                                        campaignId={campaign.id}
+                                        contextLabel="Feedback sobre o Post Gerado"
+                                    />
                                 </div>
                             </div>
                         ) : (
@@ -994,6 +1002,13 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
                                 </div>
 
                                 <Field label="Hashtags (vídeo)" value={safeToString(campaign.reels_hashtags)} />
+
+                                {/* Feedback Reels */}
+                                <SalesFeedbackInline 
+                                    contentType="reels" 
+                                    campaignId={campaign.id}
+                                    contextLabel="Feedback sobre o Roteiro de Vídeo Curto"
+                                />
                             </div>
                         ) : (
                             <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-black/10 bg-zinc-50 py-12 px-4 text-center">

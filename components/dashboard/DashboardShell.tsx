@@ -15,6 +15,7 @@ import {
   ChevronsRight,
   Sparkles,
 } from "lucide-react";
+import FeedbackButton from "@/components/feedback/FeedbackButton";
 
 type Props = {
   children: React.ReactNode;
@@ -515,6 +516,9 @@ export function DashboardShell({
         </header>
 
         <main id="dashboard-main-content" className="flex-1 overflow-y-auto p-6">{children}</main>
+
+        {/* Feedback Flutuante */}
+        {user && <FeedbackButton />}
       </div>
     </div>
   );
