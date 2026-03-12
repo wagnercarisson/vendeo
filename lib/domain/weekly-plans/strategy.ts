@@ -1,8 +1,9 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { callAI } from "@/lib/ai/parse";
+import { callAIWithRetry } from "@/lib/ai/parse";
 import { buildWeeklyStrategyPrompt } from "./prompts";
 import { normalizeStrategyItems } from "./mapper";
 import { WeatherData, StrategyItem, WeeklyPlanItemBrief } from "./types";
+import { WeeklyStrategyAISchema } from "./schemas";
 
 interface PastPlan {
   id: string;
@@ -98,24 +99,13 @@ export async function generateWeeklyStrategy(
     history: pastPlans ?? [],
   });
 
-  // 5) Chama IA
-  const raw = await callAI(
-    [
-      { role: "system", content: "You respond strictly in pure JSON format adhering to the structure given." },
-      { role: "user", content: prompt },
-    ],
-    { temperature: 0.7 }
-  );
+  // 5) Chama IA com Zod e Retry
+  const { data: aiData } = await callAIWithRetry(prompt, WeeklyStrategyAISchema, {
+    temperature: 0.7,
+  });
 
-  // 6) Parse e normaliza
-  let parsed: { items?: unknown[] } | null = null;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    parsed = null;
-  }
-
-  const strategyItems = normalizeStrategyItems(parsed?.items ?? []);
+  // 6) Normaliza (camada defensiva final)
+  const strategyItems = normalizeStrategyItems(aiData.items);
 
   return { ok: true, strategyItems };
 }

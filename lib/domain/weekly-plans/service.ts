@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { WeeklyPlan, WeeklyPlanItem, StrategyItem } from "./types";
+import { WeeklyPlan, WeeklyPlanItem, StrategyItem, WeeklyPlanItemBrief } from "./types";
 import { Campaign } from "../campaigns/types";
+import { WeeklyPlanItemBriefSchema } from "./schemas";
 
 // ─── Helper de datas ──────────────────────────────────────────────────────────
 
@@ -162,6 +163,18 @@ export async function generateWeeklyPlan(
     const recommendedTime = Math.random() > 0.5 ? "18:00" : "12:00";
     const theme = `Diretriz Prática:\nObjetivo: ${st.objective}\nPúblico: ${st.audience}\nTom: ${st.positioning}`;
 
+    const brief: WeeklyPlanItemBrief = {
+      angle: `Focar em ${st.reasoning}`,
+      hook_hint: "Atenção inicial focada na estratégia",
+      cta_hint: "Chamada para ação clara",
+      audience: st.audience,
+      objective: st.objective,
+      product_positioning: st.positioning,
+    };
+
+    // Validação/Normalização básica
+    const validBrief = WeeklyPlanItemBriefSchema.parse(brief);
+
     const { error: iErr } = await supabaseAdmin.from("weekly_plan_items").insert({
       plan_id: upPlan.id,
       day_of_week: st.day_of_week,
@@ -169,14 +182,7 @@ export async function generateWeeklyPlan(
       theme,
       recommended_time: recommendedTime,
       campaign_id: null,
-      brief: {
-        angle: `Focar em ${st.reasoning}`,
-        hook_hint: "Atenção inicial focada na estratégia",
-        cta_hint: "Chamada para ação clara",
-        audience: st.audience,
-        objective: st.objective,
-        product_positioning: st.positioning,
-      },
+      brief: validBrief,
     });
 
     if (iErr) throw new Error(iErr.message);
