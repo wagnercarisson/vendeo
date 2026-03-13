@@ -126,7 +126,7 @@ export function PostModal({ campaign, onClose }: ModalProps) {
                             <Sparkles className="h-5 w-5" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-bold text-zinc-900">Post com IA</h2>
+                            <h2 className="text-lg font-bold text-zinc-900">Arte com IA</h2>
                             <p className="text-sm text-zinc-500">{campaign.product_name}</p>
                         </div>
                     </div>
@@ -226,6 +226,7 @@ export function PostModal({ campaign, onClose }: ModalProps) {
                                         <h3 className="text-sm font-semibold text-zinc-900">Legenda</h3>
                                         <button
                                             onClick={() => copy("legenda", caption)}
+                                            title="copiar legenda"
                                             className="text-zinc-400 hover:text-zinc-700 transition"
                                         >
                                             {copiedKey === "legenda" ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
@@ -241,6 +242,7 @@ export function PostModal({ campaign, onClose }: ModalProps) {
                                         <h3 className="text-sm font-semibold text-zinc-900">Hashtags</h3>
                                         <button
                                             onClick={() => copy("hashtags", hashtags)}
+                                            title="copiar hashtags"
                                             className="text-zinc-400 hover:text-zinc-700 transition"
                                         >
                                             {copiedKey === "hashtags" ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
@@ -367,14 +369,14 @@ export function ReelsModal({ campaign, onClose }: ModalProps) {
                             onClick={() => copy("tudo", allText)}
                             className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-xs font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md mr-2"
                         >
-                            {copiedKey === "tudo" ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4 text-zinc-500" />}
-                            Copiar Script
+                            {copiedKey === "tudo" ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
+                            Copiar Tudo
                         </button>
                         <button
                             onClick={handlePrint}
-                            className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-xs font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md mr-2"
+                            className="inline-flex items-center gap-2 rounded-xl border border-transparent bg-zinc-900 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md hover:bg-zinc-800 mr-2"
                         >
-                            <Printer className="h-4 w-4 text-zinc-500" />
+                            <Printer className="h-4 w-4 text-indigo-400" />
                             Imprimir Roteiro
                         </button>
                         <button

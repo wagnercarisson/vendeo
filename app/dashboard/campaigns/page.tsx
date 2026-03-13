@@ -491,24 +491,24 @@ export default function CampaignsPage() {
                         {hasAi ? (
                           <Pill tone="success">
                             <Sparkles className="h-3.5 w-3.5" />
-                            IA pronta
+                            arte pronta
                           </Pill>
                         ) : (
                           <Pill tone="warning">
                             <Sparkles className="h-3.5 w-3.5" />
-                            IA pendente
+                            arte pendente
                           </Pill>
                         )}
 
                         {hasReels ? (
                           <Pill tone="success">
                             <Video className="h-3.5 w-3.5" />
-                            Reels pronto
+                            vídeo pronto
                           </Pill>
                         ) : (
-                          <Pill tone="neutral">
+                          <Pill tone="warning">
                             <Video className="h-3.5 w-3.5" />
-                            Reels —
+                            vídeo pendente
                           </Pill>
                         )}
                       </div>
@@ -552,21 +552,7 @@ export default function CampaignsPage() {
                 {/* FOOTER FIXO (ações sempre no mesmo lugar) */}
                 <div className="border-t border-black/5 px-4 py-3 bg-zinc-50/60">
                   <div className="flex flex-wrap items-center justify-end gap-2">
-                    {/* TEXTO IA */}
-                    {!hasAi ? (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          generateAndSaveText(c, false);
-                        }}
-                        disabled={generatingTextId === c.id}
-                        className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
-                        type="button"
-                      >
-                        <Wand2 className="h-4 w-4" />
-                        {generatingTextId === c.id ? "Gerando..." : "Gerar post com IA"}
-                      </button>
-                    ) : (
+                    {hasAi && (
                       <button
                         onClick={(e) => {
                           e.preventDefault();
@@ -576,7 +562,7 @@ export default function CampaignsPage() {
                         type="button"
                       >
                         <Eye className="h-4 w-4 text-emerald-400" />
-                        Ver Post
+                        Ver Arte
                       </button>
                     )}
 

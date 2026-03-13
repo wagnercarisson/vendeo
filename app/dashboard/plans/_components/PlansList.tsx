@@ -33,11 +33,13 @@ export function PlansList({ onNewPlan }: { onNewPlan: () => void }) {
 
         if (!store) return;
 
+        // User requested: ordem decrescente pela data (semana) para a qual o plano foi criado.
+        // week_start is the column for the week.
         const { data } = await supabase
           .from("weekly_plans")
           .select("*")
           .eq("store_id", store.id)
-          .order("created_at", { ascending: false });
+          .order("week_start", { ascending: false });
 
         if (data) setPlans(data);
       } catch (err) {
@@ -49,6 +51,20 @@ export function PlansList({ onNewPlan }: { onNewPlan: () => void }) {
 
     fetchPlans();
   }, []);
+
+  const groupedPlans = plans.reduce((acc, plan) => {
+    const month = format(parseISO(plan.week_start), "MMMM yyyy", { locale: ptBR });
+    if (!acc[month]) acc[month] = [];
+    acc[month].push(plan);
+    return acc;
+  }, {} as Record<string, WeeklyPlan[]>);
+
+  // Maintain chronological order of months from the sorted plans
+  const months = plans.reduce((acc, plan) => {
+    const month = format(parseISO(plan.week_start), "MMMM yyyy", { locale: ptBR });
+    if (!acc.includes(month)) acc.push(month);
+    return acc;
+  }, [] as string[]);
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 pb-12">
@@ -69,6 +85,23 @@ export function PlansList({ onNewPlan }: { onNewPlan: () => void }) {
           Novo Plano
         </button>
       </div>
+
+      {/* Card de Dica */}
+      <MotionWrapper delay={0.1}>
+        <div className="group relative overflow-hidden rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50 to-orange-50 p-5 shadow-sm transition-all hover:shadow-md">
+           <div className="flex items-start gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+                <CalendarDays className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="text-xs font-bold uppercase tracking-wider text-amber-700">Dica Vendeo</div>
+                <p className="mt-1 text-sm leading-relaxed text-amber-900/80 font-medium">
+                  Caso queira alterar algum plano já criado, você pode criar um novo plano para a mesma semana e <span className="font-bold text-amber-800">sobrescrever</span> o conteúdo existente.
+                </p>
+              </div>
+           </div>
+        </div>
+      </MotionWrapper>
 
       {loading ? (
         <div className="flex h-40 items-center justify-center">
@@ -91,50 +124,59 @@ export function PlansList({ onNewPlan }: { onNewPlan: () => void }) {
           </button>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {plans.map((plan, idx) => {
-            if (!plan.week_start || !plan.created_at) return null;
+        <div className="space-y-12">
+          {months.map((month) => (
+            <div key={month} className="space-y-6">
+              <div className="flex items-center gap-4">
+                <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400 whitespace-nowrap">
+                  {month}
+                </h2>
+                <div className="h-px w-full bg-slate-100" />
+              </div>
+              
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {groupedPlans[month].map((plan, idx) => {
+                  if (!plan.week_start || !plan.created_at) return null;
 
-            const startDate = parseISO(plan.week_start);
-            const endDate = addDays(startDate, 6);
-            
-            return (
-              <MotionWrapper key={plan.id} delay={idx * 0.05}>
-                <div className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:shadow-premium hover:border-emerald-200">
-                  <div>
-                    <div className="mb-4 flex items-center justify-between">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-                        <CalendarDays className="h-5 w-5" />
+                  const startDate = parseISO(plan.week_start);
+                  const endDate = addDays(startDate, 6);
+                  
+                  return (
+                    <MotionWrapper key={plan.id} delay={idx * 0.05}>
+                      <div className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:shadow-premium hover:border-emerald-200">
+                        <div>
+                          <div className="mb-4 flex items-center justify-between">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                              <CalendarDays className="h-5 w-5" />
+                            </div>
+                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                              {format(parseISO(plan.created_at), "dd MMM")}
+                            </span>
+                          </div>
+                          
+                          <h3 className="mb-1 text-lg font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
+                            Semana de {format(startDate, "dd/MM")}
+                          </h3>
+                          <p className="text-sm text-slate-500 mb-6">
+                            {format(startDate, "dd 'de' MMMM", { locale: ptBR })} a {format(endDate, "dd 'de' MMMM", { locale: ptBR })}
+                          </p>
+                        </div>
+                        
+                        <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
+                           <span className="text-sm font-semibold text-emerald-600">Ver plano</span>
+                           <ArrowRight className="h-4 w-4 text-emerald-500 transition-transform group-hover:translate-x-1" />
+                        </div>
+                        
+                        <a href={`/dashboard/plans/${plan.id}`} className="absolute inset-0" aria-label="Ver detalhes do plano">
+                          <span className="sr-only">Ver detalhes do plano</span>
+                        </a>
                       </div>
-                      <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                        {format(parseISO(plan.created_at), "dd MMM")}
-                      </span>
-                    </div>
-                    
-                    <h3 className="mb-1 text-lg font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
-                      Semana de {format(startDate, "dd/MM")}
-                    </h3>
-                    <p className="text-sm text-slate-500 mb-6">
-                      {format(startDate, "dd 'de' MMMM", { locale: ptBR })} a {format(endDate, "dd 'de' MMMM", { locale: ptBR })}
-                    </p>
-                  </div>
-                  
-                  {/* Como a página de visualização individual ainda não existe, 
-                      podemos redirecionar direto para o wizard populando os dados do banco,
-                      ou criar uma View. Por enquanto apenas listamos. */}
-                  <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
-                     <span className="text-sm font-semibold text-emerald-600">Ver plano</span>
-                     <ArrowRight className="h-4 w-4 text-emerald-500 transition-transform group-hover:translate-x-1" />
-                  </div>
-                  
-                  {/* Se for criar uma tela de review: */}
-                  <a href={`/dashboard/plans/${plan.id}`} className="absolute inset-0" aria-label="Ver detalhes do plano">
-                    <span className="sr-only">Ver detalhes do plano</span>
-                  </a>
-                </div>
-              </MotionWrapper>
-            );
-          })}
+                    </MotionWrapper>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
