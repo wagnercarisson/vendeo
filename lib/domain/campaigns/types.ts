@@ -11,6 +11,7 @@ export interface Campaign {
   product_positioning: string | null;
   status: string | null;
   image_url: string | null;
+  product_image_url: string | null;
   headline: string | null;
   body_text: string | null;
   cta: string | null;
@@ -57,4 +58,4 @@ export interface CampaignAIOutput {
 
 export type ContentState = "none" | "art_only" | "video_only" | "art_and_video";
 export type ActiveTab = "art" | "video";
-export type ViewMode = "view" | "edit";
+export type ViewMode = "view" | "edit" | "review";

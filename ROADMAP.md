@@ -1,41 +1,66 @@
-# Vendeo - Roadmap e Decisões Estratégicas
+# Vendeo — Roadmap e Decisões Estratégicas
 
-Este documento centraliza as discussões sobre o futuro do produto, decisões estratégicas de roadmap e funcionalidades mapeadas para próximas fases.
+Este documento centraliza as decisões de produto, prioridades estratégicas e evolução planejada do Vendeo.
+
+Ele serve como referência para evitar dispersão de escopo e manter o foco na entrega de valor real para lojistas.
 
 ---
 
-# Estratégia Atual (Foco no Core Value)
+# Visão do Produto
 
-Status: foco no Plano Básico (Starter)
+O Vendeo é um **motor de vendas social para lojas físicas**.
 
-A estratégia imediata do Vendeo é resolver 80% do problema de marketing das lojas físicas focando na combinação mais eficaz atualmente:
+Seu objetivo é permitir que qualquer lojista transforme rapidamente produtos e ofertas em campanhas prontas para redes sociais.
 
-• Posts (Imagens Estáticas) focados em conversão e vitrine
-• Vídeos Curtos verticais (9:16) com ganchos fortes para alcance e engajamento
+Fluxo ideal do produto:
 
-Decisão estratégica (Março/2026):
+escolhi → gerou → postei → vendeu
 
-Em vez de desenvolver múltiplos formatos complexos na V1, o foco permanece em aperfeiçoar o núcleo do produto:
+O Vendeo não é:
 
-criar campanhas úteis, rápidas e fáceis de reutilizar.
+• Canva  
+• editor de imagem  
+• agência de marketing  
 
-O Vendeo deve se comportar como um motor de vendas social para lojas físicas, não como um editor complexo nem como uma agência.
+O Vendeo é:
+
+**um sistema que transforma produtos em campanhas que vendem.**
+
+---
+
+# Estratégia Atual (Core Value)
+
+Status: foco no Plano Starter
+
+A estratégia atual é resolver **80% do problema de marketing das lojas físicas** com a combinação mais eficaz hoje:
+
+• posts (imagens estáticas) focados em conversão  
+• vídeos curtos verticais (reels) focados em alcance
+
+Decisão estratégica:
+
+Em vez de construir muitos formatos complexos na V1, o foco é **aperfeiçoar o núcleo do produto**.
+
+Criar campanhas:
+
+• rápidas  
+• reutilizáveis  
+• fáceis de entender  
+• fáceis de publicar
 
 ---
 
 # Prioridade Atual de Produto
 
-Status: Beta / Pré‑lançamento controlado
+Status: Beta / Pré-lançamento controlado
 
-O momento atual exige disciplina de escopo.
-
-A prioridade não é adicionar inteligência avançada ou analytics agora, mas sim deixar o fluxo principal mais claro, utilizável e profissional para o grupo beta inicial.
-
-Objetivo imediato:
+O objetivo atual é garantir que o fluxo principal seja:
 
 localizar rápido → reconhecer rápido → agir rápido
 
-A tela de campanhas deve funcionar como uma bússola visual de marketing.
+A experiência deve parecer natural para um lojista.
+
+A tela de campanhas deve funcionar como uma **bússola visual de marketing**.
 
 ---
 
@@ -45,86 +70,90 @@ Status: aprovado para execução
 
 ## Página de campanhas — refinamento final
 
-A lista de campanhas deve mostrar apenas o necessário para refrescar a memória do usuário e orientar a próxima ação.
+A lista de campanhas deve mostrar apenas o necessário para refrescar a memória do usuário.
 
 ### Estrutura do card de campanha
 
 Cada card deve exibir:
 
-• Miniatura da arte (preview premium)
-• Nome do produto
-• Preço + público + objetivo
-• Estratégia da campanha
-• Data da campanha
-• Status do conteúdo gerado
-• Botões condicionais conforme conteúdo existente
+• miniatura da arte  
+• nome do produto  
+• preço + público + objetivo  
+• estratégia da campanha  
+• data da campanha  
+• status do conteúdo gerado  
+• botões condicionais conforme conteúdo existente  
 
 ### Regras visuais
 
-• Não mostrar dados da loja na lista
-• Não mostrar textos longos da campanha
-• Thumb apresentada como peça pronta
-• Separação visual entre thumb e conteúdo
-• Hover lift permanece
+• não mostrar dados da loja na lista  
+• não mostrar textos longos da campanha  
+• thumb apresentada como peça pronta  
+• separação visual entre thumb e conteúdo  
+• hover lift permanece  
 
 ### Estratégias padronizadas
 
-OFERTA
-COMBO
-MOMENTO
-DESTAQUE
-PRESENTE
+OFERTA  
+COMBO  
+MOMENTO  
+DESTAQUE  
+PRESENTE  
 
-A UI traduz posicionamentos complexos para essas categorias simples.
+A UI traduz posicionamentos complexos para categorias simples.
 
 ### Botões condicionais
 
-Arte apenas:
-Ver arte • Editar
+Arte apenas  
+Ver arte • Editar  
 
-Vídeo apenas:
-Ver vídeo • Editar
+Vídeo apenas  
+Ver vídeo • Editar  
 
-Arte + vídeo:
-Ver arte • Ver vídeo • Editar
+Arte + vídeo  
+Ver arte • Ver vídeo • Editar  
 
 Mostrar apenas o que existe.
 
-### Edição de campanha
+---
+
+## Edição de campanha
 
 Campos editáveis:
 
-• preço
-• público
-• objetivo
-• textos
-• CTA
+• preço  
+• público  
+• objetivo  
+• textos  
+• CTA  
 
 Regra oficial:
 
-Arte não é editável
+Arte não é editável  
 Arte pode ser regenerada
 
-### Duplicar campanha
+---
+
+## Duplicar campanha
 
 Duplicar campanha permitirá:
 
-• reaproveitar campanhas
-• ajustar preço
+• reaproveitar campanhas  
+• ajustar preço  
 • gerar nova arte ou vídeo
 
 ---
 
-# Fase 2 — Pós‑lançamento
+# Fase 2 — Pós-lançamento
 
 Status: planejado
 
 Melhorias previstas:
 
-• Menu de ações no card (⋯)
-• Arquivar campanhas
-• Filtros por estratégia
-• Pequenos refinamentos de UX
+• menu de ações no card (⋯)  
+• arquivar campanhas  
+• filtros por estratégia  
+• pequenos refinamentos de UX  
 
 Arquivar campanhas é preferível à exclusão direta para preservar histórico.
 
@@ -136,13 +165,104 @@ Status: futuro
 
 Recursos planejados:
 
-• Indicador de desempenho de campanhas
-• Variações automáticas de campanha
-• Sugestões estratégicas
-• Analytics de campanhas
-• Calendário estratégico
+• indicador de desempenho de campanhas  
+• variações automáticas de campanha  
+• sugestões estratégicas  
+• analytics de campanhas  
+• calendário estratégico
 
-Esses recursos serão avaliados após validação real de uso.
+Esses recursos devem ser avaliados **após validação real de uso**.
+
+---
+
+# Inteligência Comercial da Campanha
+
+Status: planejado
+
+Uma evolução natural do Vendeo é tornar explícita a lógica estratégica por trás das campanhas.
+
+A campanha deve mostrar não apenas **o conteúdo gerado**, mas também **por que aquela campanha tende a vender**.
+
+Isso reforça o posicionamento do Vendeo como:
+
+**motor de vendas social para lojas físicas.**
+
+---
+
+## Camada 1 — Leitura Comercial da Campanha
+
+Adicionar um pequeno card informativo na página da campanha (`campaigns/[id]`).
+
+Exemplo:
+
+🧠 Leitura comercial da campanha
+
+Objetivo da campanha  
+aumentar ticket médio com compra em grupo
+
+Gatilho principal  
+ocasião + valor percebido
+
+Momento ideal  
+noite ou final de semana
+
+Leitura do Vendeo  
+boa campanha para encontros familiares.
+
+A primeira versão pode usar **templates simples** baseados nos dados já existentes:
+
+• objective  
+• audience  
+• price  
+• product_positioning  
+
+Sem necessidade de IA adicional.
+
+---
+
+## Camada 2 — Ajustes sugeridos pelo Vendeo
+
+Adicionar recomendações simples para melhorar a campanha.
+
+Exemplo:
+
+💡 Ajuste sugerido pelo Vendeo
+
+• tornar o preço mais visível na headline  
+• adicionar urgência (tempo limitado ou estoque)  
+• destacar benefício principal do produto
+
+Objetivo:
+
+transformar o Vendeo em um **assistente comercial**, não apenas um gerador de posts.
+
+---
+
+## Camada 3 — Diagnóstico Comercial da Campanha
+
+Transformar o card em um diagnóstico estratégico.
+
+Exemplo:
+
+📈 Diagnóstico comercial
+
+Objetivo real da campanha  
+gerar resposta rápida por preço
+
+Tipo de decisão provocada  
+compra por oportunidade
+
+Impacto esperado  
+aumento de giro de produto
+
+Momento ideal  
+início da noite ou sexta-feira
+
+Essa camada pode futuramente usar IA contextual combinando:
+
+• dados da campanha  
+• dados da loja  
+• comportamento do varejo local  
 
 ---
 
@@ -150,21 +270,21 @@ Esses recursos serão avaliados após validação real de uso.
 
 Starter
 
-• gerar campanha
-• editar campanha
-• duplicar campanha
+• gerar campanha  
+• editar campanha  
+• duplicar campanha  
 
 Pro
 
-• filtros estratégicos
-• sugestões automáticas
-• campanhas sazonais
+• filtros estratégicos  
+• sugestões automáticas  
+• campanhas sazonais  
 
 Premium
 
-• analytics
-• desempenho de campanhas
-• variações automáticas
+• analytics  
+• desempenho de campanhas  
+• variações automáticas  
 
 ---
 
@@ -172,15 +292,15 @@ Premium
 
 A tela de campanhas é uma tela de:
 
-• reconhecimento rápido
-• memória rápida
-• navegação rápida
+• reconhecimento rápido  
+• memória rápida  
+• navegação rápida  
 
 Detalhes completos ficam nas telas:
 
-• editar campanha
-• ver arte
-• ver vídeo
+• editar campanha  
+• ver arte  
+• ver vídeo  
 
 ---
 
@@ -188,28 +308,45 @@ Detalhes completos ficam nas telas:
 
 Direções futuras:
 
-• compressão e redimensionamento automático de imagens
-• limpeza de arquivos órfãos
-• otimização CDN
+• compressão e redimensionamento automático de imagens  
+• limpeza de arquivos órfãos  
+• otimização CDN  
 
-Também considerar futuramente preservar mídia original do produto para regenerações e variações.
+Também considerar futuramente preservar **mídia original do produto** para regenerações e variações.
 
 ---
 
-# Resumo executivo
+# Princípios de Produto
+
+O Vendeo deve sempre parecer:
+
+• simples  
+• rápido  
+• prático  
+• confiável  
+
+Evitar:
+
+• excesso de configuração  
+• excesso de opções  
+• complexidade desnecessária
+
+---
+
+# Resumo Executivo
 
 O foco atual do Vendeo é:
 
-• refinar UX
-• lançar beta
-• observar usuários
-• evoluir com base em uso real
+• refinar UX  
+• lançar beta  
+• observar usuários  
+• evoluir com base em uso real  
 
-A tela de campanhas foi definida para ser:
+A tela de campanhas deve ser:
 
-simples
-rápida
-visual
-estratégica
+simples  
+rápida  
+visual  
+estratégica  
 
 sem excesso de informação.

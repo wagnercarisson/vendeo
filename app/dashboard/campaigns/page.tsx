@@ -102,6 +102,7 @@ export default function CampaignsPage() {
           audience: c.audience,
           objective: c.objective,
           product_positioning: c.product_positioning,
+          status: 'draft',
         }])
         .select()
         .single();
@@ -196,10 +197,10 @@ export default function CampaignsPage() {
               >
                 {/* Left Column: Thumb (Premium Preview) */}
                 <div className="relative flex w-24 aspect-[4/5] flex-none items-center justify-center overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
-                  {c.image_url ? (
+                  {c.image_url || c.product_image_url ? (
                     <Image
-                      src={c.image_url}
-                      alt={c.product_name}
+                      src={c.image_url || c.product_image_url || ""}
+                      alt={c.product_name || "Campanha"}
                       fill
                       className="object-cover"
                       sizes="96px"

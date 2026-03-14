@@ -32,7 +32,7 @@ export async function generateCampaignContent(
     .from("campaigns")
     .select(
       `id, store_id, product_name, price, audience, objective, product_positioning,
-       headline, ai_caption, ai_text, ai_cta, ai_hashtags`
+       image_url, product_image_url, headline, ai_caption, ai_text, ai_cta, ai_hashtags`
     )
     .eq("id", campaign_id)
     .eq("store_id", storeId)
@@ -88,6 +88,7 @@ export async function generateCampaignContent(
       ai_cta: normalized.cta,
       ai_hashtags: normalized.hashtags,
       ai_generated_at: new Date().toISOString(),
+      status: 'ready',
     })
     .eq("id", campaign_id);
 
