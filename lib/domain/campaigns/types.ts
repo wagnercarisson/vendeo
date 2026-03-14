@@ -54,3 +54,7 @@ export interface CampaignAIOutput {
   cta: string;
   hashtags: string;
 }
+
+export type ContentState = "none" | "art_only" | "video_only" | "art_and_video";
+export type ActiveTab = "art" | "video";
+export type ViewMode = "view" | "edit";

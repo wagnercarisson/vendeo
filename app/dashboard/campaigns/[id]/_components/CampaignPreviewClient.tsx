@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { Copy, Check, Sparkles, ArrowLeft, Wand2, Video, Upload, Loader2, Image as ImageIcon, Download, Printer } from "lucide-react";
+import { Copy, Check, Sparkles, ArrowLeft, Wand2, Video, Upload, Loader2, Image as ImageIcon, Download, Printer, Pencil } from "lucide-react";
 import SalesFeedbackInline from "@/components/feedback/SalesFeedbackInline";
 
 function cx(...classes: Array<string | false | null | undefined>) {
@@ -13,8 +13,9 @@ function cx(...classes: Array<string | false | null | undefined>) {
 }
 
 import { Store } from "@/lib/domain/stores/types";
-import { Campaign as CampaignDomain } from "@/lib/domain/campaigns/types";
+import { Campaign as CampaignDomain, ContentState, ActiveTab, ViewMode } from "@/lib/domain/campaigns/types";
 import { ShortVideoShotScene as ReelsShot } from "@/lib/domain/short-videos/types";
+import { getContentState } from "@/lib/domain/campaigns/logic";
 
 /** Campanha com relação de loja incluída (para preview). */
 export type Campaign = CampaignDomain & {
@@ -38,6 +39,73 @@ function Empty({ title, hint }: { title: string; hint?: string }) {
         <div className="rounded-xl border border-dashed border-black/10 bg-zinc-50 px-4 py-4">
             <div className="text-sm font-semibold text-zinc-800">{title}</div>
             {hint ? <div className="mt-1 text-xs text-zinc-500">{hint}</div> : null}
+        </div>
+    );
+}
+
+function EditInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+    return (
+        <div className="space-y-1.5">
+            <label className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 ml-1">{label}</label>
+            <input
+                type="text"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                className="w-full rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm transition focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+            />
+        </div>
+    );
+}
+
+function EditTextarea({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+    return (
+        <div className="space-y-1.5">
+            <label className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 ml-1">{label}</label>
+            <textarea
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                rows={4}
+                className="w-full rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm transition focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 resize-none"
+            />
+        </div>
+    );
+}
+
+function ContentEmptyState({
+    type,
+    loading,
+    onClick,
+}: {
+    type: "art" | "video";
+    loading: boolean;
+    onClick: () => void;
+}) {
+    const isArt = type === "art";
+    const Icon = isArt ? Sparkles : Video;
+    const title = isArt ? "Esta campanha ainda não tem arte." : "Esta campanha ainda não tem vídeo.";
+    const btnLabel = isArt ? (loading ? "Gerando arte..." : "Gerar arte") : (loading ? "Gerando vídeo..." : "Gerar vídeo");
+
+    return (
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-black/10 bg-zinc-50 py-12 px-4 text-center">
+            <div className={cx(
+                "flex h-12 w-12 items-center justify-center rounded-full mb-4",
+                isArt ? "bg-emerald-100 text-emerald-600" : "bg-indigo-100 text-indigo-600"
+            )}>
+                <Icon className="h-6 w-6" />
+            </div>
+            <h3 className="text-base font-semibold text-zinc-900">{isArt ? "Arte não gerada" : "Vídeo não gerado"}</h3>
+            <p className="mt-1 mb-6 max-w-sm text-sm text-zinc-500">
+                {title}
+            </p>
+            <button
+                type="button"
+                onClick={onClick}
+                disabled={loading}
+                className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-md disabled:opacity-50"
+            >
+                {isArt ? <Wand2 className="h-4 w-4" /> : <Video className="h-4 w-4" />}
+                {btnLabel}
+            </button>
         </div>
     );
 }
@@ -74,7 +142,7 @@ function useCopy() {
         try {
             await navigator.clipboard.writeText(text);
             setCopiedKey(key);
-            window.setTimeout(() => setCopiedKey((prev) => (prev === key ? null : prev)), 1200);
+            window.setTimeout(() => setCopiedKey((prev) => (prev === key ? null : prev)), 1500);
         } catch { }
     }
 
@@ -84,7 +152,7 @@ function useCopy() {
             // In a better flow we would download and put the Blob in the clipboard 
             // but sharing the direct link is the most reliable way across browsers for now
             await navigator.clipboard.writeText(url);
-            window.setTimeout(() => setCopiedKey((prev) => (prev === key ? null : prev)), 1200);
+            window.setTimeout(() => setCopiedKey((prev) => (prev === key ? null : prev)), 1500);
         } catch {}
     }
 
@@ -112,6 +180,49 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
 
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+    const [activeTab, setActiveTab] = useState<ActiveTab>("art");
+    const [viewMode, setViewMode] = useState<ViewMode>("view");
+
+    const [formData, setFormData] = useState<Record<string, any>>({});
+    const [isSaving, setIsSaving] = useState(false);
+
+    function startEditing() {
+        setFormData({
+            headline: campaign.headline || "",
+            ai_text: campaign.ai_text || "",
+            ai_cta: campaign.ai_cta || "",
+            ai_caption: campaign.ai_caption || "",
+            ai_hashtags: campaign.ai_hashtags || "",
+            reels_hook: campaign.reels_hook || "",
+            reels_script: campaign.reels_script || "",
+            reels_caption: campaign.reels_caption || "",
+            reels_cta: campaign.reels_cta || "",
+            reels_hashtags: campaign.reels_hashtags || "",
+        });
+        setViewMode("edit");
+    }
+
+    async function handleSaveEdits() {
+        try {
+            setErrorMsg(null);
+            setIsSaving(true);
+
+            const { error } = await supabase
+                .from("campaigns")
+                .update(formData)
+                .eq("id", campaign.id);
+
+            if (error) throw error;
+
+            setViewMode("view");
+            router.refresh();
+        } catch (err: any) {
+            setErrorMsg(err?.message || "Erro ao salvar alterações");
+        } finally {
+            setIsSaving(false);
+        }
+    }
+
     const [loadingText, setLoadingText] = useState(false);
     const [loadingReels, setLoadingReels] = useState(false);
     const [uploadingImage, setUploadingImage] = useState(false);
@@ -128,8 +239,19 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
         return file.type.startsWith("image/");
     }
 
-    const hasAi = !!campaign.ai_generated_at || (campaign.ai_caption ?? "").trim().length > 0;
-    const hasReels = !!campaign.reels_generated_at;
+    const contentState = useMemo(() => getContentState(campaign), [campaign]);
+
+    // Ajusta aba inicial se só houver vídeo
+    React.useEffect(() => {
+        if (contentState === "video_only") {
+            setActiveTab("video");
+        } else {
+            setActiveTab("art");
+        }
+    }, [contentState]);
+
+    const hasAi = contentState === "art_only" || contentState === "art_and_video";
+    const hasReels = contentState === "video_only" || contentState === "art_and_video";
 
     const bestHeadline = campaign.headline || campaign.product_name;
     const bestBody = campaign.ai_text || campaign.body_text || "";
@@ -163,12 +285,12 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
             }
             await (navigator.clipboard as any).write([new ClipboardItem({ "image/png": pngBlob })]);
             setArtStatus("copied");
-            setTimeout(() => setArtStatus("idle"), 2000);
+            setTimeout(() => setArtStatus("idle"), 1500);
         } catch {
             // fallback: copia o link
             await navigator.clipboard.writeText(imageUrlClean).catch(() => {});
             setArtStatus("copied");
-            setTimeout(() => setArtStatus("idle"), 2000);
+            setTimeout(() => setArtStatus("idle"), 1500);
         }
     }
 
@@ -210,7 +332,7 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
     async function handleCopyReelsScript() {
         await navigator.clipboard.writeText(buildReelsScriptText()).catch(() => {});
         setReelsScriptCopied(true);
-        setTimeout(() => setReelsScriptCopied(false), 2000);
+        setTimeout(() => setReelsScriptCopied(false), 1500);
     }
 
     function handlePrintReels() {
@@ -637,346 +759,458 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
                 </div>
             </div>
 
-            {/* MAIN GRID — adaptive: 2 cols se ambos gerados, 1 col centrado caso contrário */}
-            <div className={`grid gap-6 ${
-                (hasAi || loadingText) && (hasReels || loadingReels)
-                    ? "lg:grid-cols-2"
-                    : "max-w-3xl mx-auto"
-            }`}>
-                {/* COLUNA 1: POST */}
-                <div className="space-y-6">
-                    <Card
-                        title="Arte Pronta"
-                        subtitle="Preview do post e conteúdo pronto para uso."
-                        right={
-                            <div className="flex flex-col items-end gap-2">
-                                {/* Badge de status — topo direito */}
-                                {isApproved && (
-                                    <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+            {/* TABS NAVIGATION */}
+            <div className="flex items-center gap-1 border-b border-black/5">
+                <button
+                    onClick={() => { setActiveTab("art"); setViewMode("view"); }}
+                    className={cx(
+                        "relative px-5 py-3.5 text-sm font-bold transition-all",
+                        activeTab === "art" ? "text-zinc-900 bg-zinc-50/50" : "text-zinc-500 hover:text-zinc-900"
+                    )}
+                >
+                    Arte
+                    {activeTab === "art" && (
+                        <div className="absolute inset-x-0 bottom-0 h-[2px] bg-zinc-900" />
+                    )}
+                </button>
+                <button
+                    onClick={() => { setActiveTab("video"); setViewMode("view"); }}
+                    className={cx(
+                        "relative px-5 py-3.5 text-sm font-bold transition-all",
+                        activeTab === "video" ? "text-zinc-900 bg-zinc-50/50" : "text-zinc-500 hover:text-zinc-900"
+                    )}
+                >
+                    Vídeo
+                    {activeTab === "video" && (
+                        <div className="absolute inset-x-0 bottom-0 h-[2px] bg-zinc-900" />
+                    )}
+                </button>
+            </div>
+
+            {/* MAIN CONTENT AREA */}
+            <div className="max-w-3xl mx-auto w-full transition-opacity duration-200">
+                {activeTab === "art" && (
+                    <div className="space-y-6">
+                        <Card
+                            title="Arte"
+                            subtitle="Preview do post e conteúdo pronto para uso."
+                            right={
+                                /* Badge de status — mantido no topo direito */
+                                isApproved && (
+                                    <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 transition hover:scale-[1.02] hover:shadow-sm">
                                         <Check className="h-3 w-3" />
                                         Campanha aprovada
                                     </div>
-                                )}
-                                {/* Botões de ação */}
-                                <div className="flex flex-wrap items-center justify-end gap-2">
-                                    {!isApproved && (hasAi ? (
-                                        <button
-                                            type="button"
-                                            onClick={() => setConfirmAction("text")}
-                                            disabled={loadingText}
-                                            className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
-                                        >
-                                            <Wand2 className="h-4 w-4" />
-                                            {loadingText ? "Gerando..." : "Regenerar post"}
-                                        </button>
-                                    ) : (
-                                        <button
-                                            type="button"
-                                            onClick={() => generateText(false)}
-                                            disabled={loadingText}
-                                            className="inline-flex items-center gap-2 rounded-xl border border-transparent bg-zinc-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50 hover:bg-zinc-800"
-                                        >
-                                            <Wand2 className="h-4 w-4" />
-                                            {loadingText ? "Gerando..." : "Gerar post com IA"}
-                                        </button>
-                                    ))}
-                                    {imageUrlClean && (
-                                        <>
-                                            <button
-                                                onClick={handleCopyArt}
-                                                disabled={artStatus === "copying" || artStatus === "saving"}
-                                                className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
-                                                type="button"
-                                            >
-                                                {artStatus === "copied"
-                                                    ? <><Check className="h-4 w-4 text-emerald-600" /> Copiada!</>
-                                                    : artStatus === "copying"
-                                                    ? <><ImageIcon className="h-4 w-4 animate-pulse" /> Copiando...</>
-                                                    : <><ImageIcon className="h-4 w-4" /> Copiar Arte</>}
-                                            </button>
-                                            <button
-                                                onClick={handleSaveArt}
-                                                disabled={artStatus === "saving" || artStatus === "copying"}
-                                                className="inline-flex items-center gap-2 rounded-xl border border-transparent bg-zinc-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md hover:bg-zinc-800 disabled:opacity-50"
-                                                type="button"
-                                            >
-                                                {artStatus === "saving"
-                                                    ? <><Download className="h-4 w-4 animate-bounce" /> Salvando...</>
-                                                    : <><Download className="h-4 w-4" /> Salvar Arte</>}
-                                            </button>
-                                        </>
-                                    )}
-                                    {hasAi && (
-                                        <button
-                                            onClick={() => copy("post", [bestHeadline, "", bestBody, "", bestCTA, "", bestCaption, bestHashtags].filter((l, i, a) => l !== "" || (i > 0 && a[i-1] !== "")).join("\n").trim())}
-                                            className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
-                                            type="button"
-                                            disabled={!bestBody && !bestCTA}
-                                        >
-                                            {copiedKey === "post" ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
-                                            Copiar Tudo
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        }
-                    >
-                        {hasAi ? (
-                            <div className="space-y-4">
-                                {/* Arte */}
-                                <div id="campanha-arte" className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-900 shadow-lg max-w-[400px] mx-auto aspect-[4/5]">
-                                    {isLikelyUnconfiguredRemote(imageUrlClean) ? (
-                                        // eslint-disable-next-line @next/next/no-img-element
-                                        <img src={imageUrlClean} alt="Arte da Campanha" className="w-full h-full object-cover" />
-                                    ) : (
-                                        <Image src={imageUrlClean} alt="Arte da Campanha" fill className="object-cover" />
-                                    )}
-                                </div>
-
-                                {/* Textos */}
-                                <div className="space-y-3">
-                                    {/* Headline */}
-                                    {bestHeadline && (
-                                        <div className="rounded-xl border border-black/5 bg-zinc-50 px-4 py-3">
-                                            <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Headline</div>
-                                            <div className="mt-1.5 text-base font-bold text-zinc-900">{bestHeadline}</div>
-                                        </div>
-                                    )}
-
-                                    {/* Texto Principal */}
-                                    {bestBody && (
-                                        <div className="rounded-xl border border-black/5 bg-zinc-50 px-4 py-3">
-                                            <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Texto Principal</div>
-                                            <div className="mt-1.5 text-sm text-zinc-800 whitespace-pre-wrap leading-relaxed">{bestBody}</div>
-                                        </div>
-                                    )}
-
-                                    {/* CTA */}
-                                    {bestCTA && (
-                                        <div className="rounded-xl border border-black/5 bg-zinc-50 px-4 py-3">
-                                            <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">CTA</div>
-                                            <div className="mt-1.5 text-sm font-bold text-zinc-900">{bestCTA}</div>
-                                        </div>
-                                    )}
-
-                                    {/* Legenda com ícone de copiar */}
-                                    <div className="rounded-xl border border-black/5 bg-zinc-50 px-4 py-3">
-                                        <div className="flex items-center justify-between mb-1.5">
-                                            <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Legenda</div>
-                                            <button
-                                                onClick={() => copy("caption", bestCaption)}
-                                                className="text-zinc-400 hover:text-zinc-700 transition p-1 rounded"
-                                                type="button"
-                                                title="Copiar legenda"
-                                            >
-                                                {copiedKey === "caption" ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
-                                            </button>
-                                        </div>
-                                        <div className="text-sm text-zinc-800 whitespace-pre-wrap leading-relaxed">{bestCaption || "Legenda não encontrada"}</div>
+                                )
+                            }
+                        >
+                            {hasAi ? (
+                                <div className="space-y-6">
+                                    {/* 1. Preview (topo) */}
+                                    <div id="campanha-arte" className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-900 shadow-lg max-w-[400px] mx-auto aspect-[4/5]">
+                                        {isLikelyUnconfiguredRemote(imageUrlClean) ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img src={imageUrlClean} alt="Arte da Campanha" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <Image src={imageUrlClean} alt="Arte da Campanha" fill className="object-cover" />
+                                        )}
                                     </div>
 
-                                    {/* Hashtags com ícone de copiar */}
-                                    {bestHashtags && (
-                                        <div className="rounded-xl border border-black/5 bg-zinc-50 px-4 py-3">
-                                            <div className="flex items-center justify-between mb-1.5">
-                                                <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Hashtags</div>
+                                    {viewMode === "view" ? (
+                                        <div className="space-y-6">
+                                            {/* 2. Content Fields */}
+                                            <div className="space-y-3">
+                                                {bestHeadline && (
+                                                    <div className="rounded-xl border border-black/5 bg-zinc-50 px-4 py-3">
+                                                        <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Headline</div>
+                                                        <div className="mt-1.5 text-base font-bold text-zinc-900">{bestHeadline}</div>
+                                                    </div>
+                                                )}
+                                                {bestBody && <Field label="Texto Principal" value={bestBody} />}
+                                                {bestCTA && <Field label="CTA" value={bestCTA} />}
+                                                
+                                                <div className="rounded-xl border border-black/5 bg-zinc-50 px-4 py-3">
+                                                    <div className="flex items-center justify-between mb-1.5">
+                                                        <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Legenda</div>
+                                                            <button
+                                                                onClick={() => copy("caption", bestCaption)}
+                                                                className="text-zinc-400 hover:text-zinc-700 transition p-1 rounded relative group"
+                                                                type="button"
+                                                                title="Copiar legenda"
+                                                            >
+                                                                {copiedKey === "caption" ? (
+                                                                    <>
+                                                                        <Check className="h-3.5 w-3.5 text-emerald-600" />
+                                                                        <span className="absolute -top-7 right-0 whitespace-nowrap rounded-lg bg-zinc-900 px-2 py-0.5 text-[10px] font-bold text-white shadow-lg ring-1 ring-white/10">Copiado!</span>
+                                                                    </>
+                                                                ) : (
+                                                                    <Copy className="h-3.5 w-3.5" />
+                                                                )}
+                                                            </button>
+                                                    </div>
+                                                    <div className="text-sm text-zinc-800 whitespace-pre-wrap leading-relaxed">{bestCaption || "Legenda não encontrada"}</div>
+                                                </div>
+
+                                                {bestHashtags && (
+                                                    <div className="rounded-xl border border-black/5 bg-zinc-50 px-4 py-3">
+                                                        <div className="flex items-center justify-between mb-1.5">
+                                                            <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Hashtags</div>
+                                                            <button
+                                                                onClick={() => copy("hashtags", bestHashtags)}
+                                                                className="text-zinc-400 hover:text-zinc-700 transition p-1 rounded relative group"
+                                                                type="button"
+                                                                title="Copiar hashtags"
+                                                            >
+                                                                {copiedKey === "hashtags" ? (
+                                                                    <>
+                                                                        <Check className="h-3.5 w-3.5 text-emerald-600" />
+                                                                        <span className="absolute -top-7 right-0 whitespace-nowrap rounded-lg bg-zinc-900 px-2 py-0.5 text-[10px] font-bold text-white shadow-lg ring-1 ring-white/10">Copiado!</span>
+                                                                    </>
+                                                                ) : (
+                                                                    <Copy className="h-3.5 w-3.5" />
+                                                                )}
+                                                            </button>
+                                                        </div>
+                                                        <div className="text-xs text-emerald-700 font-medium whitespace-pre-wrap">{bestHashtags}</div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* 3. Feedback Section */}
+                                            <SalesFeedbackInline 
+                                                contentType="campaign" 
+                                                campaignId={campaign.id}
+                                                contextLabel="Feedback sobre a Arte Gerada"
+                                            />
+
+                                            {/* 4. Actions (bottom) */}
+                                            <div className="pt-4 border-t border-black/5 flex flex-wrap items-center justify-between gap-3">
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    {imageUrlClean && (
+                                                        <>
+                                                            <button
+                                                                onClick={handleCopyArt}
+                                                                disabled={artStatus === "copying" || artStatus === "saving"}
+                                                                className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-md disabled:opacity-50"
+                                                                type="button"
+                                                            >
+                                                                {artStatus === "copied"
+                                                                    ? <><Check className="h-4 w-4 text-emerald-600" /> ✓ Copiado</>
+                                                                    : artStatus === "copying"
+                                                                    ? <><ImageIcon className="h-4 w-4 animate-pulse" /> Copiando...</>
+                                                                    : <><ImageIcon className="h-4 w-4" /> Copiar arte</>}
+                                                            </button>
+                                                            <button
+                                                                onClick={handleSaveArt}
+                                                                disabled={artStatus === "saving" || artStatus === "copying"}
+                                                                className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-md disabled:opacity-50"
+                                                                type="button"
+                                                            >
+                                                                {artStatus === "saving"
+                                                                    ? <><Download className="h-4 w-4 animate-bounce" /> Baixando...</>
+                                                                    : <><Download className="h-4 w-4" /> Baixar arte</>}
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                    <button
+                                                        onClick={() => copy("post", [bestHeadline, "", bestBody, "", bestCTA, "", bestCaption, bestHashtags].filter((l, i, a) => l !== "" || (i > 0 && a[i-1] !== "")).join("\n").trim())}
+                                                        className="inline-flex items-center gap-2 rounded-xl border border-transparent bg-zinc-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-md hover:bg-zinc-800 disabled:opacity-50"
+                                                        type="button"
+                                                        disabled={!bestBody && !bestCTA}
+                                                    >
+                                                        {copiedKey === "post" ? <Check className="h-4 w-4 text-white" /> : <Copy className="h-4 w-4" />}
+                                                        {copiedKey === "post" ? "✓ Copiado" : "Copiar conteúdo"}
+                                                    </button>
+                                                    
+                                                    {/* Botão Editar — agora visível em View Mode ao lado das outras ações */}
+                                                    <button
+                                                        onClick={startEditing}
+                                                        className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-md"
+                                                        type="button"
+                                                    >
+                                                        <Pencil className="h-4 w-4" />
+                                                        Editar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-6">
+                                            {/* FORM EDIT */}
+                                            <div className="space-y-5">
+                                                <EditInput 
+                                                    label="Headline" 
+                                                    value={formData.headline} 
+                                                    onChange={(v) => setFormData(p => ({ ...p, headline: v }))} 
+                                                />
+                                                <EditTextarea 
+                                                    label="Texto Principal" 
+                                                    value={formData.ai_text} 
+                                                    onChange={(v) => setFormData(p => ({ ...p, ai_text: v }))} 
+                                                />
+                                                <EditInput 
+                                                    label="CTA" 
+                                                    value={formData.ai_cta} 
+                                                    onChange={(v) => setFormData(p => ({ ...p, ai_cta: v }))} 
+                                                />
+                                                <EditTextarea 
+                                                    label="Legenda" 
+                                                    value={formData.ai_caption} 
+                                                    onChange={(v) => setFormData(p => ({ ...p, ai_caption: v }))} 
+                                                />
+                                                <EditTextarea 
+                                                    label="Hashtags" 
+                                                    value={formData.ai_hashtags} 
+                                                    onChange={(v) => setFormData(p => ({ ...p, ai_hashtags: v }))} 
+                                                />
+                                            </div>
+
+                                            {/* Save/Cancel Actions */}
+                                            <div className="pt-6 border-t border-black/5 flex items-center justify-end gap-3">
+                                                    <button
+                                                        onClick={() => setViewMode("view")}
+                                                        className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-4 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:bg-zinc-50 hover:scale-[1.02]"
+                                                    >
+                                                        Cancelar
+                                                    </button>
                                                 <button
-                                                    onClick={() => copy("hashtags", bestHashtags)}
-                                                    className="text-zinc-400 hover:text-zinc-700 transition p-1 rounded"
-                                                    type="button"
-                                                    title="Copiar hashtags"
+                                                    onClick={handleSaveEdits}
+                                                    disabled={isSaving}
+                                                    className="inline-flex items-center gap-2 rounded-xl border border-transparent bg-zinc-900 px-6 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-zinc-800 hover:scale-[1.02] disabled:opacity-50"
                                                 >
-                                                    {copiedKey === "hashtags" ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                                                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                                                    {isSaving ? "Salvando..." : "Salvar alterações"}
                                                 </button>
                                             </div>
-                                            <div className="text-xs text-emerald-700 font-medium whitespace-pre-wrap">{bestHashtags}</div>
+
+                                            {/* Ações avançadas - Relocated to the bottom */}
+                                            <div className="pt-6 border-t border-black/5">
+                                                <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3 ml-1">Ações avançadas</div>
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setConfirmAction("text")}
+                                                        disabled={loadingText}
+                                                        className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-md disabled:opacity-50"
+                                                    >
+                                                        {loadingText ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                                                        {loadingText ? "Gerando..." : "Gerar nova arte"}
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
                                     )}
-
-                                    {/* Feedback Post */}
-                                    <SalesFeedbackInline 
-                                        contentType="campaign" 
-                                        campaignId={campaign.id}
-                                        contextLabel="Feedback sobre o Post Gerado"
-                                    />
                                 </div>
-                            </div>
-                        ) : (
-                            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-black/10 bg-zinc-50 py-12 px-4 text-center">
-                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 mb-4">
-                                    <Sparkles className="h-6 w-6" />
-                                </div>
-                                <h3 className="text-base font-semibold text-zinc-900">Post não gerado</h3>
-                                <p className="mt-1 mb-6 max-w-sm text-sm text-zinc-500">
-                                    Gere automaticamente o texto do post, legenda e sugestões de hashtags alinhadas com sua estratégia.
-                                </p>
-                                <button
-                                    type="button"
+                            ) : (
+                                <ContentEmptyState
+                                    type="art"
+                                    loading={loadingText}
                                     onClick={() => generateText(false)}
-                                    disabled={loadingText}
-                                    className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-md disabled:opacity-50"
-                                >
-                                    <Wand2 className="h-4 w-4" />
-                                    {loadingText ? "Gerando post..." : "Gerar post com IA"}
-                                </button>
-                            </div>
-                        )}
-                    </Card>
-                </div>
+                                />
+                            )}
+                        </Card>
+                    </div>
+                )}
 
+            {activeTab === "video" && (
                 <div className="space-y-6">
                     <Card 
-                        title="Vídeo Curto" 
+                        title="Vídeo" 
                         subtitle="Hook + roteiro (quando gerado)."
                         right={
-                            <div className="flex flex-col items-end gap-2">
-                                {/* Badge de status */}
-                                {isApproved && (
-                                    <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                                        <Check className="h-3 w-3" />
-                                        Campanha aprovada
-                                    </div>
-                                )}
-                                {/* Botões de ação */}
-                                <div className="flex flex-wrap items-center justify-end gap-2">
-                                    {!isApproved && (hasReels ? (
-                                        <button
-                                            type="button"
-                                            onClick={() => setConfirmAction("reels")}
-                                            disabled={loadingReels}
-                                            className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
-                                        >
-                                            <Video className="h-4 w-4" />
-                                            {loadingReels ? "Gerando..." : "Regenerar vídeo"}
-                                        </button>
-                                    ) : (
-                                        <button
-                                            type="button"
-                                            onClick={() => generateReels(false)}
-                                            disabled={loadingReels}
-                                            className="inline-flex items-center gap-2 rounded-xl border border-transparent bg-zinc-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50 hover:bg-zinc-800"
-                                        >
-                                            <Video className="h-4 w-4" />
-                                            {loadingReels ? "Gerando..." : "Gerar vídeo curto"}
-                                        </button>
-                                    ))}
-                                    {(hasReels || campaign.reels_hook) && (
-                                        <>
-                                            <button
-                                                onClick={handleCopyReelsScript}
-                                                className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                                                type="button"
-                                            >
-                                                {reelsScriptCopied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
-                                                {reelsScriptCopied ? "Copiado!" : "Copiar Script"}
-                                            </button>
-                                            <button
-                                                onClick={handlePrintReels}
-                                                className="inline-flex items-center gap-2 rounded-xl border border-transparent bg-zinc-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md hover:bg-zinc-800"
-                                                type="button"
-                                            >
-                                                <Printer className="h-4 w-4" />
-                                                Imprimir Roteiro
-                                            </button>
-                                        </>
-                                    )}
+                            /* Badge de status — mantido no topo direito */
+                            isApproved && (
+                                <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                                    <Check className="h-3 w-3" />
+                                    Campanha aprovada
                                 </div>
-                            </div>
+                            )
                         }
                     >
                         {hasReels || campaign.reels_hook || campaign.reels_script ? (
-                            <div className="space-y-3">
-                                {campaign.reels_hook ? (
-                                    <Field label="Hook" value={safeToString(campaign.reels_hook)} />
-                                ) : (
-                                    <Empty title="Hook ainda não gerado" hint='Clique em "Gerar vídeo curto" acima.' />
-                                )}
-
-                                {campaign.reels_duration_seconds || campaign.reels_audio_suggestion ? (
-                                    <div className="rounded-xl border border-black/5 bg-zinc-50 px-4 py-3">
-                                        <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-1">Foco do Vídeo</div>
-                                        <div className="flex flex-wrap gap-2 text-sm text-zinc-700">
-                                            {campaign.reels_duration_seconds && (
-                                                <span className="px-2 py-0.5 bg-zinc-100 rounded text-xs font-medium">⏱️ {campaign.reels_duration_seconds}s</span>
+                            <div className="space-y-4">
+                                {viewMode === "view" ? (
+                                    <div className="space-y-6">
+                                        {/* 1. Content Fields */}
+                                        <div className="space-y-3">
+                                            {campaign.reels_hook ? (
+                                                <Field label="Hook" value={safeToString(campaign.reels_hook)} />
+                                            ) : (
+                                                <Empty title="Hook ainda não gerado" hint='Clique em "Editar" e depois em "Refazer vídeo" abaixo.' />
                                             )}
-                                            {campaign.reels_audio_suggestion && (
-                                                <span className="px-2 py-0.5 bg-zinc-100 rounded text-xs font-medium">🎵 {campaign.reels_audio_suggestion}</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                ) : null}
 
-                                {campaign.reels_on_screen_text?.length ? (
-                                    <div className="rounded-xl border border-black/5 bg-zinc-50 px-4 py-3">
-                                        <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">Texto na Tela</div>
-                                        <div className="flex flex-wrap gap-2">
-                                            {(campaign.reels_on_screen_text as string[]).map((t, i) => (
-                                                <span key={i} className="px-3 py-1 bg-zinc-900 text-white rounded-lg text-[10px] font-bold uppercase italic tracking-tighter">"{t}"</span>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ) : null}
-
-                                {campaign.reels_script ? (
-                                    <Field label="Roteiro" value={safeToString(campaign.reels_script)} />
-                                ) : (
-                                    <Empty title="Roteiro ainda não gerado" hint='Clique em "Gerar vídeo curto" acima.' />
-                                )}
-
-                                {campaign.reels_shotlist?.length ? (
-                                    <div className="rounded-xl border border-black/5 bg-zinc-50 px-4 py-3">
-                                        <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-3">Cenas Sugeridas</div>
-                                        <div className="space-y-2">
-                                            {campaign.reels_shotlist.map((item, idx) => (
-                                                <div key={idx} className="rounded-xl border border-zinc-200 bg-white p-3 flex gap-3">
-                                                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-[10px] font-bold text-white">{item.scene}</div>
-                                                    <div className="space-y-0.5">
-                                                        <div className="text-[10px] font-bold uppercase text-emerald-600 tracking-wide">{item.camera}</div>
-                                                        <p className="text-xs text-zinc-800"><span className="font-semibold">Ação:</span> {item.action}</p>
-                                                        <p className="text-xs italic text-zinc-500">"{item.dialogue}"</p>
+                                            {campaign.reels_duration_seconds || campaign.reels_audio_suggestion ? (
+                                                <div className="rounded-xl border border-black/5 bg-zinc-50 px-4 py-3">
+                                                    <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-1">Foco do Vídeo</div>
+                                                    <div className="flex flex-wrap gap-2 text-sm text-zinc-700">
+                                                        {campaign.reels_duration_seconds && (
+                                                            <span className="px-2 py-0.5 bg-zinc-100 rounded text-xs font-medium">⏱️ {campaign.reels_duration_seconds}s</span>
+                                                        )}
+                                                        {campaign.reels_audio_suggestion && (
+                                                            <span className="px-2 py-0.5 bg-zinc-100 rounded text-xs font-medium">🎵 {campaign.reels_audio_suggestion}</span>
+                                                        )}
                                                     </div>
                                                 </div>
-                                            ))}
+                                            ) : null}
+
+                                            {campaign.reels_on_screen_text?.length ? (
+                                                <div className="rounded-xl border border-black/5 bg-zinc-50 px-4 py-3">
+                                                    <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">Texto na Tela</div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {(campaign.reels_on_screen_text as string[]).map((t, i) => (
+                                                            <span key={i} className="px-3 py-1 bg-zinc-900 text-white rounded-lg text-[10px] font-bold uppercase italic tracking-tighter">"{t}"</span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ) : null}
+
+                                            {campaign.reels_script ? (
+                                                <Field label="Roteiro" value={safeToString(campaign.reels_script)} />
+                                            ) : (
+                                                <Empty title="Roteiro ainda não gerado" hint='Clique em "Editar" e depois em "Refazer vídeo" abaixo.' />
+                                            )}
+
+                                            {campaign.reels_shotlist?.length ? (
+                                                <div className="rounded-xl border border-black/5 bg-zinc-50 px-4 py-3">
+                                                    <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-3">Cenas Sugeridas</div>
+                                                    <div className="space-y-2">
+                                                        {campaign.reels_shotlist.map((item, idx) => (
+                                                            <div key={idx} className="rounded-xl border border-zinc-200 bg-white p-3 flex gap-3">
+                                                                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-[10px] font-bold text-white">{item.scene}</div>
+                                                                <div className="space-y-0.5">
+                                                                    <div className="text-[10px] font-bold uppercase text-emerald-600 tracking-wide">{item.camera}</div>
+                                                                    <p className="text-xs text-zinc-800"><span className="font-semibold">Ação:</span> {item.action}</p>
+                                                                    <p className="text-xs italic text-zinc-500">"{item.dialogue}"</p>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ) : null}
+
+                                            <div className="grid gap-3 sm:grid-cols-2">
+                                                <Field label="Legenda (vídeo)" value={safeToString(campaign.reels_caption)} />
+                                                <Field label="CTA (vídeo)" value={safeToString(campaign.reels_cta)} />
+                                            </div>
+
+                                            <Field label="Hashtags (vídeo)" value={safeToString(campaign.reels_hashtags)} />
+                                        </div>
+
+                                        {/* 2. Feedback Section */}
+                                        <SalesFeedbackInline 
+                                            contentType="reels" 
+                                            campaignId={campaign.id}
+                                            contextLabel="Feedback sobre o Vídeo (Reels)"
+                                        />
+
+                                        {/* 3. Actions (bottom) */}
+                                        <div className="pt-4 border-t border-black/5 flex flex-wrap items-center justify-between gap-3">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <button
+                                                    onClick={handleCopyReelsScript}
+                                                    className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-md"
+                                                    type="button"
+                                                >
+                                                    {reelsScriptCopied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
+                                                    {reelsScriptCopied ? "✓ Copiado" : "Copiar roteiro"}
+                                                </button>
+                                                <button
+                                                    onClick={handlePrintReels}
+                                                    className="inline-flex items-center gap-2 rounded-xl border border-transparent bg-zinc-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-md hover:bg-zinc-800"
+                                                    type="button"
+                                                >
+                                                    <Printer className="h-4 w-4" />
+                                                    Imprimir
+                                                </button>
+                                            </div>
+
+                                            <button
+                                                onClick={startEditing}
+                                                className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-md"
+                                                type="button"
+                                            >
+                                                <Pencil className="h-4 w-4" />
+                                                Editar
+                                            </button>
                                         </div>
                                     </div>
-                                ) : null}
+                                ) : (
+                                    <div className="space-y-6">
+                                        {/* FORM EDIT */}
+                                        <div className="space-y-5">
+                                            <EditTextarea 
+                                                label="Hook / Gancho" 
+                                                value={formData.reels_hook} 
+                                                onChange={(v) => setFormData(p => ({ ...p, reels_hook: v }))} 
+                                            />
+                                            <EditTextarea 
+                                                label="Roteiro" 
+                                                value={formData.reels_script} 
+                                                onChange={(v) => setFormData(p => ({ ...p, reels_script: v }))} 
+                                            />
+                                            <EditTextarea 
+                                                label="Legenda (vídeo)" 
+                                                value={formData.reels_caption} 
+                                                onChange={(v) => setFormData(p => ({ ...p, reels_caption: v }))} 
+                                            />
+                                            <EditInput 
+                                                label="CTA (vídeo)" 
+                                                value={formData.reels_cta} 
+                                                onChange={(v) => setFormData(p => ({ ...p, reels_cta: v }))} 
+                                            />
+                                            <EditTextarea 
+                                                label="Hashtags (vídeo)" 
+                                                value={formData.reels_hashtags} 
+                                                onChange={(v) => setFormData(p => ({ ...p, reels_hashtags: v }))} 
+                                            />
+                                        </div>
 
-                                <div className="grid gap-3 sm:grid-cols-2">
-                                    <Field label="Legenda (vídeo)" value={safeToString(campaign.reels_caption)} />
-                                    <Field label="CTA (vídeo)" value={safeToString(campaign.reels_cta)} />
-                                </div>
+                                        {/* Save/Cancel Actions */}
+                                        <div className="pt-6 border-t border-black/5 flex items-center justify-end gap-3">
+                                            <button
+                                                onClick={() => setViewMode("view")}
+                                                className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-4 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:bg-zinc-50 hover:scale-[1.02]"
+                                            >
+                                                Cancelar
+                                            </button>
+                                            <button
+                                                onClick={handleSaveEdits}
+                                                disabled={isSaving}
+                                                className="inline-flex items-center gap-2 rounded-xl border border-transparent bg-zinc-900 px-6 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-zinc-800 hover:scale-[1.02] disabled:opacity-50"
+                                            >
+                                                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                                                {isSaving ? "Salvando..." : "Salvar alterações"}
+                                            </button>
+                                        </div>
 
-                                <Field label="Hashtags (vídeo)" value={safeToString(campaign.reels_hashtags)} />
-
-                                {/* Feedback Reels */}
-                                <SalesFeedbackInline 
-                                    contentType="reels" 
-                                    campaignId={campaign.id}
-                                    contextLabel="Feedback sobre o Roteiro de Vídeo Curto"
-                                />
+                                        {/* Ações avançadas - Relocated to the bottom */}
+                                        <div className="pt-6 border-t border-black/5">
+                                            <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3 ml-1">Ações avançadas</div>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setConfirmAction("reels")}
+                                                    disabled={loadingReels}
+                                                    className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-md disabled:opacity-50"
+                                                >
+                                                    {loadingReels ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                                                    {loadingReels ? "Gerando..." : "Gerar novo vídeo"}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-black/10 bg-zinc-50 py-12 px-4 text-center">
-                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 mb-4">
-                                    <Video className="h-6 w-6" />
-                                </div>
-                                <h3 className="text-base font-semibold text-zinc-900">Vídeo Curto não gerado</h3>
-                                <p className="mt-1 mb-6 max-w-sm text-sm text-zinc-500">
-                                    Gere automaticamente um roteiro e gancho (hook) para gravar vídeos curtos virais (Reels/TikTok).
-                                </p>
-                                <button
-                                    type="button"
-                                    onClick={() => generateReels(false)}
-                                    disabled={loadingReels}
-                                    className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-md disabled:opacity-50"
-                                >
-                                    <Video className="h-4 w-4" />
-                                    {loadingReels ? "Gerando vídeo..." : "Gerar vídeo curto"}
-                                </button>
-                            </div>
+                            <ContentEmptyState
+                                type="video"
+                                loading={loadingReels}
+                                onClick={() => generateReels(false)}
+                            />
                         )}
                     </Card>
                 </div>
+            )}
             </div>
         </div>
     );

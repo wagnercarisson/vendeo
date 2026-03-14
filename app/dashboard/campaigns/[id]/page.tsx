@@ -49,10 +49,10 @@ export default async function CampaignPreviewPage({
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                     <h1 className="text-xl sm:text-2xl font-semibold text-zinc-900">
-                        Preview da campanha
+                        Gerenciar campanha
                     </h1>
                     <p className="text-sm text-zinc-600">
-                        Tudo pronto para copiar e postar — com aparência premium.
+                        Edite, gere e organize o conteúdo da sua campanha.
                     </p>
                 </div>
             </div>
