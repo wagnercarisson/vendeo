@@ -1,24 +1,25 @@
-import { Campaign, ContentState } from "./types";
+import { Campaign } from "@/lib/campaigns/types";
+import { ContentState } from "./types";
 
 /**
  * Entende o estado de conteúdo da campanha baseado na presença de campos.
- *
- * Regras:
- * - hasArt: image_url OR ai_caption OR ai_text OR ai_generated_at
- * - hasVideo: reels_script OR reels_hook OR reels_generated_at
+ * 
+ * Regras (normalizadas para o novo domínio):
+ * - hasArt: imageUrl OR aiCaption OR aiText OR aiGeneratedAt
+ * - hasVideo: reelsScript OR reelsHook OR reelsGeneratedAt
  */
 export function getContentState(campaign: Campaign): ContentState {
   const hasArt = !!(
-    campaign.image_url ||
-    campaign.ai_caption ||
-    campaign.ai_text ||
-    campaign.ai_generated_at
+    campaign.imageUrl ||
+    campaign.aiCaption ||
+    campaign.aiText ||
+    campaign.aiGeneratedAt
   );
 
   const hasVideo = !!(
-    campaign.reels_script ||
-    campaign.reels_hook ||
-    campaign.reels_generated_at
+    campaign.reelsScript ||
+    campaign.reelsHook ||
+    campaign.reelsGeneratedAt
   );
 
   if (hasArt && hasVideo) return "art_and_video";

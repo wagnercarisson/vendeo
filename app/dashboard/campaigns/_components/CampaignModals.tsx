@@ -36,16 +36,16 @@ export function PostModal({ campaign, onClose }: ModalProps) {
         return () => window.removeEventListener("keydown", onKeyDown);
     }, [onClose]);
 
-    const parsedText = typeof campaign.ai_text === "string" && campaign.ai_text.startsWith("{")
-        ? (() => { try { return JSON.parse(campaign.ai_text); } catch { return null; } })()
+    const parsedText = typeof campaign.aiText === "string" && campaign.aiText.startsWith("{")
+        ? (() => { try { return JSON.parse(campaign.aiText); } catch { return null; } })()
         : null;
 
-    const headline  = parsedText?.headline  || campaign.headline  || campaign.product_name;
-    const bodyText  = parsedText?.body      || campaign.ai_text   || campaign.body_text || "";
-    const cta       = parsedText?.cta       || campaign.ai_cta    || campaign.cta || "";
-    const caption   = campaign.ai_caption   || "";
-    const hashtags  = campaign.ai_hashtags  || "";
-    const imageUrl  = campaign.image_url    || "";
+    const headline  = parsedText?.headline  || campaign.headline  || campaign.productName;
+    const bodyText  = parsedText?.body      || campaign.aiText    || campaign.bodyText || "";
+    const cta       = parsedText?.cta       || campaign.aiCta     || campaign.cta || "";
+    const caption   = campaign.aiCaption    || "";
+    const hashtags  = campaign.aiHashtags   || "";
+    const imageUrl  = campaign.imageUrl     || "";
 
     // "Copiar Tudo" inclui headline + body + cta + legenda + hashtags
     const allText = [headline, "", bodyText, "", cta, "", caption, hashtags]
@@ -83,7 +83,7 @@ export function PostModal({ campaign, onClose }: ModalProps) {
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = `arte-${campaign.product_name?.replace(/\s+/g, "-").toLowerCase() || "campanha"}.png`;
+            a.download = `arte-${campaign.productName?.replace(/\s+/g, "-").toLowerCase() || "campanha"}.png`;
             document.body.appendChild(a);
             a.click();
             a.remove();
@@ -127,7 +127,7 @@ export function PostModal({ campaign, onClose }: ModalProps) {
                         </div>
                         <div>
                             <h2 className="text-lg font-bold text-zinc-900">Arte com IA</h2>
-                            <p className="text-sm text-zinc-500">{campaign.product_name}</p>
+                            <p className="text-sm text-zinc-500">{campaign.productName}</p>
                         </div>
                     </div>
                     <button
@@ -139,8 +139,8 @@ export function PostModal({ campaign, onClose }: ModalProps) {
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-6">
-                    <div className="grid lg:grid-cols-12 gap-8">
+                <div className="flex-1 overflow-y-auto p-8">
+                    <div className="grid lg:grid-cols-12 gap-10">
                         {/* Arte */}
                         <div className="lg:col-span-5">
                             <h3 className="text-sm font-semibold text-zinc-900 mb-3">Arte Aprovada</h3>
@@ -156,11 +156,11 @@ export function PostModal({ campaign, onClose }: ModalProps) {
 
                                 {/* Botões de arte */}
                                 {imageUrl && (
-                                    <div className="mt-3 flex gap-2 max-w-[400px] mx-auto">
+                                    <div className="mt-4 flex gap-3 max-w-[400px] mx-auto">
                                         <button
                                             onClick={handleCopyArt}
                                             disabled={artStatus === "copying" || artStatus === "saving"}
-                                            className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
+                                            className="flex-1 inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-black/10 bg-white px-4 text-sm font-bold text-zinc-800 shadow-sm transition hover:bg-zinc-50 disabled:opacity-50"
                                             type="button"
                                         >
                                             {artStatus === "copied"
@@ -173,12 +173,12 @@ export function PostModal({ campaign, onClose }: ModalProps) {
                                         <button
                                             onClick={handleSaveArt}
                                             disabled={artStatus === "saving" || artStatus === "copying"}
-                                            className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-transparent bg-zinc-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md hover:bg-zinc-800 disabled:opacity-50"
+                                            className="flex-1 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-zinc-800 disabled:opacity-50"
                                             type="button"
                                         >
                                             {artStatus === "saving"
-                                                ? <><Download className="h-4 w-4 animate-bounce" /> Salvando...</>
-                                                : <><Download className="h-4 w-4" /> Salvar Arte</>
+                                                ? <><Download className="h-4 w-4 animate-bounce" /> Baixando...</>
+                                                : <><Download className="h-4 w-4" /> Baixar Arte</>
                                             }
                                         </button>
                                     </div>
@@ -192,9 +192,9 @@ export function PostModal({ campaign, onClose }: ModalProps) {
                                 <h3 className="text-sm font-semibold text-zinc-900">Textos do Post</h3>
                                 <button
                                     onClick={() => copy("tudo", allText)}
-                                    className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-xs font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                                    className="inline-flex h-11 items-center gap-2 rounded-xl border border-black/5 bg-white px-4 text-xs font-bold text-zinc-800 shadow-sm transition hover:bg-zinc-50"
                                 >
-                                    {copiedKey === "tudo" ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                                    {copiedKey === "tudo" ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
                                     Copiar Tudo
                                 </button>
                             </div>
@@ -274,43 +274,43 @@ export function ReelsModal({ campaign, onClose }: ModalProps) {
     }, [onClose]);
 
     const allText = [
-        "HOOK:",        campaign.reels_hook,      "",
-        "ROTEIRO:",     campaign.reels_script,    "",
-        campaign.reels_duration_seconds ? `FOCO DO VÍDEO:\n⏱️ ${campaign.reels_duration_seconds}s${campaign.reels_audio_suggestion ? ` · 🎵 ${campaign.reels_audio_suggestion}` : ""}` : null, "",
-        campaign.reels_on_screen_text?.length ? `TEXTO NA TELA:\n${(campaign.reels_on_screen_text as string[]).map((t: string) => `"${t}"`).join(" · ")}` : null, "",
-        campaign.reels_shotlist?.length ? `CENAS SUGERIDAS:\n${campaign.reels_shotlist.map((s) => `Cena ${s.scene} [${s.camera}]\nAção: ${s.action}\n"${s.dialogue}"`).join("\n\n")}` : null, "",
-        "LEGENDA:",     campaign.reels_caption,   "",
-        "CTA:",         campaign.reels_cta,       "",
-        "HASHTAGS:",    campaign.reels_hashtags,
+        "HOOK:",        campaign.reelsHook,      "",
+        "ROTEIRO:",     campaign.reelsScript,    "",
+        campaign.reelsDurationSeconds ? `FOCO DO VÍDEO:\n⏱️ ${campaign.reelsDurationSeconds}s${campaign.reelsAudioSuggestion ? ` · 🎵 ${campaign.reelsAudioSuggestion}` : ""}` : null, "",
+        Array.isArray(campaign.reelsOnScreenText) && campaign.reelsOnScreenText.length ? `TEXTO NA TELA:\n${campaign.reelsOnScreenText.map((t: string) => `"${t}"`).join(" · ")}` : null, "",
+        Array.isArray(campaign.reelsShotlist) && campaign.reelsShotlist.length ? `CENAS SUGERIDAS:\n${campaign.reelsShotlist.map((s: any) => `Cena ${s.scene} [${s.camera}]\nAção: ${s.action}\n"${s.dialogue}"`).join("\n\n")}` : null, "",
+        "LEGENDA:",     campaign.reelsCaption,   "",
+        "CTA:",         campaign.reelsCta,       "",
+        "HASHTAGS:",    campaign.reelsHashtags,
     ].filter(Boolean).join("\n");
 
     function handlePrint() {
-        const productName = campaign.product_name || "Campanha";
+        const productName = campaign.productName || "Campanha";
         const lines: string[] = [
             `ROTEIRO DE VÍDEO CURTO — ${productName}`,
             "=" .repeat(50),
             "",
         ];
-        if (campaign.reels_hook) lines.push(`🎯 HOOK (Gancho Vital)\n${campaign.reels_hook}\n`);
-        if (campaign.reels_duration_seconds || campaign.reels_audio_suggestion) {
+        if (campaign.reelsHook) lines.push(`🎯 HOOK (Gancho Vital)\n${campaign.reelsHook}\n`);
+        if (campaign.reelsDurationSeconds || campaign.reelsAudioSuggestion) {
             const parts = [];
-            if (campaign.reels_duration_seconds) parts.push(`⏱️ ${campaign.reels_duration_seconds}s`);
-            if (campaign.reels_audio_suggestion) parts.push(`🎵 ${campaign.reels_audio_suggestion}`);
+            if (campaign.reelsDurationSeconds) parts.push(`⏱️ ${campaign.reelsDurationSeconds}s`);
+            if (campaign.reelsAudioSuggestion) parts.push(`🎵 ${campaign.reelsAudioSuggestion}`);
             lines.push(`📽️ FOCO DO VÍDEO\n${parts.join(" · ")}\n`);
         }
-        if (campaign.reels_on_screen_text?.length) {
-            lines.push(`📝 TEXTO NA TELA\n${(campaign.reels_on_screen_text as string[]).map((t: string) => `• "${t}"`).join("\n")}\n`);
+        if (Array.isArray(campaign.reelsOnScreenText) && campaign.reelsOnScreenText.length) {
+            lines.push(`📝 TEXTO NA TELA\n${campaign.reelsOnScreenText.map((t: string) => `• "${t}"`).join("\n")}\n`);
         }
-        if (campaign.reels_script) lines.push(`🎬 ROTEIRO SUGERIDO\n${campaign.reels_script}\n`);
-        if (campaign.reels_shotlist?.length) {
+        if (campaign.reelsScript) lines.push(`🎬 ROTEIRO SUGERIDO\n${campaign.reelsScript}\n`);
+        if (Array.isArray(campaign.reelsShotlist) && campaign.reelsShotlist.length) {
             lines.push(`📋 CENAS SUGERIDAS`);
-            campaign.reels_shotlist.forEach((s) => {
+            campaign.reelsShotlist.forEach((s: any) => {
                 lines.push(`  Cena ${s.scene} [${s.camera}]\n  Ação: ${s.action}\n  Fala: "${s.dialogue}"\n`);
             });
         }
-        if (campaign.reels_caption) lines.push(`💬 LEGENDA\n${campaign.reels_caption}\n`);
-        if (campaign.reels_cta) lines.push(`📣 CTA\n${campaign.reels_cta}\n`);
-        if (campaign.reels_hashtags) lines.push(`#️⃣ HASHTAGS\n${campaign.reels_hashtags}\n`);
+        if (campaign.reelsCaption) lines.push(`💬 LEGENDA\n${campaign.reelsCaption}\n`);
+        if (campaign.reelsCta) lines.push(`📣 CTA\n${campaign.reelsCta}\n`);
+        if (campaign.reelsHashtags) lines.push(`#️⃣ HASHTAGS\n${campaign.reelsHashtags}\n`);
 
         const printWindow = window.open("", "_blank");
         if (!printWindow) return;
@@ -331,14 +331,14 @@ export function ReelsModal({ campaign, onClose }: ModalProps) {
             </head>
             <body>
                 <h1>Roteiro de Vídeo Curto — ${productName}</h1>
-                ${campaign.reels_hook ? `<section><div class="label">🎯 Hook (Gancho Vital)</div><div class="content" style="font-weight:700; font-style:italic; font-size:16px">${campaign.reels_hook}</div></section>` : ""}
-                ${campaign.reels_duration_seconds || campaign.reels_audio_suggestion ? `<section><div class="label">📽️ Foco do Vídeo</div><div class="content">${campaign.reels_duration_seconds ? `⏱️ ${campaign.reels_duration_seconds}s` : ""} ${campaign.reels_audio_suggestion ? `🎵 ${campaign.reels_audio_suggestion}` : ""}</div></section>` : ""}
-                ${campaign.reels_on_screen_text?.length ? `<section><div class="label">📝 Texto na Tela</div><div class="content">${(campaign.reels_on_screen_text as string[]).map((t: string) => `• "${t}"`).join("<br>")}</div></section>` : ""}
-                ${campaign.reels_script ? `<section><div class="label">🎬 Roteiro Sugerido</div><div class="content">${campaign.reels_script.replace(/\n/g, "<br>")}</div></section>` : ""}
-                ${campaign.reels_shotlist?.length ? `<section><div class="label">📋 Cenas Sugeridas</div>${campaign.reels_shotlist.map((s) => `<div class="scene"><div class="scene-num">Cena ${s.scene} — ${s.camera}</div><div>Ação: ${s.action}</div><div style="color:#52525b;font-style:italic">"${s.dialogue}"</div></div>`).join("")}</section>` : ""}
-                ${campaign.reels_caption ? `<section><div class="label">💬 Legenda</div><div class="content">${campaign.reels_caption}</div></section>` : ""}
-                ${campaign.reels_cta ? `<section><div class="label">📣 CTA</div><div class="content" style="font-weight:700">${campaign.reels_cta}</div></section>` : ""}
-                ${campaign.reels_hashtags ? `<section><div class="label">#️⃣ Hashtags</div><div class="content" style="color:#52525b">${campaign.reels_hashtags}</div></section>` : ""}
+                ${campaign.reelsHook ? `<section><div class="label">🎯 Hook (Gancho Vital)</div><div class="content" style="font-weight:700; font-style:italic; font-size:16px">${campaign.reelsHook}</div></section>` : ""}
+                ${campaign.reelsDurationSeconds || campaign.reelsAudioSuggestion ? `<section><div class="label">📽️ Foco do Vídeo</div><div class="content">${campaign.reelsDurationSeconds ? `⏱️ ${campaign.reelsDurationSeconds}s` : ""} ${campaign.reelsAudioSuggestion ? `🎵 ${campaign.reelsAudioSuggestion}` : ""}</div></section>` : ""}
+                ${Array.isArray(campaign.reelsOnScreenText) && campaign.reelsOnScreenText.length ? `<section><div class="label">📝 Texto na Tela</div><div class="content">${campaign.reelsOnScreenText.map((t: string) => `• "${t}"`).join("<br>")}</div></section>` : ""}
+                ${campaign.reelsScript ? `<section><div class="label">🎬 Roteiro Sugerido</div><div class="content">${campaign.reelsScript.replace(/\n/g, "<br>")}</div></section>` : ""}
+                ${Array.isArray(campaign.reelsShotlist) && campaign.reelsShotlist.length ? `<section><div class="label">📋 Cenas Sugeridas</div>${campaign.reelsShotlist.map((s: any) => `<div class="scene"><div class="scene-num">Cena ${s.scene} — ${s.camera}</div><div>Ação: ${s.action}</div><div style="color:#52525b;font-style:italic">"${s.dialogue}"</div></div>`).join("")}</section>` : ""}
+                ${campaign.reelsCaption ? `<section><div class="label">💬 Legenda</div><div class="content">${campaign.reelsCaption}</div></section>` : ""}
+                ${campaign.reelsCta ? `<section><div class="label">📣 CTA</div><div class="content" style="font-weight:700">${campaign.reelsCta}</div></section>` : ""}
+                ${campaign.reelsHashtags ? `<section><div class="label">#️⃣ Hashtags</div><div class="content" style="color:#52525b">${campaign.reelsHashtags}</div></section>` : ""}
             </body>
             </html>
         `);
@@ -361,27 +361,27 @@ export function ReelsModal({ campaign, onClose }: ModalProps) {
                         </div>
                         <div>
                             <h2 className="text-lg font-bold text-zinc-900">Roteiro de Vídeo Curto</h2>
-                            <p className="text-sm text-zinc-500">{campaign.product_name}</p>
+                            <p className="text-sm text-zinc-500">{campaign.productName}</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                         <button
                             onClick={() => copy("tudo", allText)}
-                            className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-xs font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md mr-2"
+                            className="inline-flex h-11 items-center gap-2 rounded-xl border border-black/5 bg-white px-4 text-xs font-bold text-zinc-800 shadow-sm transition hover:bg-zinc-50"
                         >
                             {copiedKey === "tudo" ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
                             Copiar Tudo
                         </button>
                         <button
                             onClick={handlePrint}
-                            className="inline-flex items-center gap-2 rounded-xl border border-transparent bg-zinc-900 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md hover:bg-zinc-800 mr-2"
+                            className="inline-flex h-11 items-center gap-2 rounded-xl bg-zinc-900 px-4 text-xs font-bold text-white shadow-sm transition hover:bg-zinc-800"
                         >
                             <Printer className="h-4 w-4 text-indigo-400" />
                             Imprimir Roteiro
                         </button>
                         <button
                             onClick={onClose}
-                            className="rounded-full p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition"
+                            className="ml-2 rounded-full p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition"
                         >
                             <X className="h-5 w-5" />
                         </button>
@@ -389,17 +389,17 @@ export function ReelsModal({ campaign, onClose }: ModalProps) {
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-6 bg-zinc-50/50">
+                <div className="flex-1 overflow-y-auto p-8 bg-zinc-50/50">
                     <ReelsPreviewCard
-                        hook={campaign.reels_hook}
-                        script={campaign.reels_script}
-                        shotlist={campaign.reels_shotlist}
-                        audioSuggestion={campaign.reels_audio_suggestion}
-                        durationSeconds={campaign.reels_duration_seconds}
-                        onScreenText={campaign.reels_on_screen_text}
-                        caption={campaign.reels_caption}
-                        cta={campaign.reels_cta}
-                        hashtags={campaign.reels_hashtags}
+                        hook={campaign.reelsHook}
+                        script={campaign.reelsScript}
+                        shotlist={campaign.reelsShotlist as any}
+                        audioSuggestion={campaign.reelsAudioSuggestion}
+                        durationSeconds={campaign.reelsDurationSeconds}
+                        onScreenText={campaign.reelsOnScreenText}
+                        caption={campaign.reelsCaption}
+                        cta={campaign.reelsCta}
+                        hashtags={campaign.reelsHashtags}
                     />
                 </div>
             </div>

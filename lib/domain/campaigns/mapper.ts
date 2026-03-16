@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { CampaignAISchema } from "./schemas";
-import { Campaign, CampaignContext } from "./types";
-import { CampaignAIOutput } from "./types";
+import { Campaign, CampaignContext, CampaignAIOutput } from "./types";
 import { StoreContext } from "@/lib/domain/stores/types";
 
 type AIData = z.infer<typeof CampaignAISchema>;

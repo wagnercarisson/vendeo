@@ -10,6 +10,8 @@ export type GenerateShortVideoInput = {
   campaign_id: string;
   storeId: string;
   force?: boolean;
+  persist?: boolean;
+  description?: string;
 };
 
 export type GenerateShortVideoResult =
@@ -24,7 +26,7 @@ export type GenerateShortVideoResult =
 export async function generateShortVideoContent(
   input: GenerateShortVideoInput
 ): Promise<GenerateShortVideoResult> {
-  const { campaign_id, storeId, force = false } = input;
+  const { campaign_id, storeId, force = false, persist = true, description } = input;
 
   // 1) Busca campanha
   const { data: campaign, error: cErr } = await supabaseAdmin
@@ -32,7 +34,8 @@ export async function generateShortVideoContent(
     .select(
       `id, store_id, product_name, price, audience, objective, product_positioning,
        reels_generated_at, reels_hook, reels_script, reels_shotlist, reels_on_screen_text,
-       reels_audio_suggestion, reels_duration_seconds, reels_caption, reels_cta, reels_hashtags`
+       reels_audio_suggestion, reels_duration_seconds, reels_caption, reels_cta, reels_hashtags,
+       product_image_url`
     )
     .eq("id", campaign_id)
     .eq("store_id", storeId)
@@ -80,32 +83,34 @@ export async function generateShortVideoContent(
   }
 
   // 5) Monta prompt e chama IA
-  const prompt = buildShortVideoPrompt(campaignCtx, store);
+  const prompt = buildShortVideoPrompt(campaignCtx, store, { extra: description });
   const { data: aiData } = await callAIWithRetry(prompt, ShortVideoAISchema, { temperature: 0.6 });
 
   // 6) Normaliza
   const normalized: ShortVideoAIOutput = mapAiShortVideoToDomain(aiData, campaignCtx, store);
 
-  // 7) Persiste
-  const { error: upErr } = await supabaseAdmin
-    .from("campaigns")
-    .update({
-      reels_hook: normalized.hook,
-      reels_script: normalized.script,
-      reels_shotlist: normalized.shotlist,
-      reels_on_screen_text: normalized.on_screen_text,
-      reels_audio_suggestion: normalized.audio_suggestion,
-      reels_duration_seconds: normalized.duration_seconds,
-      reels_caption: normalized.caption,
-      reels_cta: normalized.cta,
-      reels_hashtags: normalized.hashtags,
-      reels_generated_at: new Date().toISOString(),
-      status: 'ready',
-    })
-    .eq("id", campaign_id);
+  // 7) Persiste (se persist for true)
+  if (persist) {
+    const { error: upErr } = await supabaseAdmin
+      .from("campaigns")
+      .update({
+        reels_hook: normalized.hook,
+        reels_script: normalized.script,
+        reels_shotlist: normalized.shotlist,
+        reels_on_screen_text: normalized.on_screen_text,
+        reels_audio_suggestion: normalized.audio_suggestion,
+        reels_duration_seconds: normalized.duration_seconds,
+        reels_caption: normalized.caption,
+        reels_cta: normalized.cta,
+        reels_hashtags: normalized.hashtags,
+        reels_generated_at: new Date().toISOString(),
+        status: 'ready',
+      })
+      .eq("id", campaign_id);
 
-  if (upErr) {
-    return { ok: false, error: "DB_UPDATE_FAILED", details: upErr.message, status: 500 };
+    if (upErr) {
+      return { ok: false, error: "DB_UPDATE_FAILED", details: upErr.message, status: 500 };
+    }
   }
 
   return { ok: true, reused: false, video: normalized };

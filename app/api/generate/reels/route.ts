@@ -35,6 +35,8 @@ export async function POST(req: Request) {
       campaign_id: body.data.campaign_id,
       storeId,
       force: body.data.force,
+      persist: (json as any).persist,
+      description: (json as any).description,
     });
 
     // 4) Retorna response

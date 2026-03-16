@@ -29,7 +29,7 @@ export async function POST(req: Request) {
   const json = await req.json().catch(() => null);
   const parsed = BodySchema.safeParse(json);
 
-    if (parsed.success === false) {
+  if (parsed.success === false) {
     return NextResponse.json(
       { error: "invalid_body", details: parsed.error.flatten() },
       { status: 400 }
@@ -43,11 +43,13 @@ export async function POST(req: Request) {
     { auth: { persistSession: false } }
   );
 
-  // 1) cria store
+  // Beta owner-based:
+  // a store pertence diretamente ao usuário via owner_user_id
   const { data: store, error: storeErr } = await admin
     .from("stores")
     .insert({
       ...parsed.data,
+      owner_user_id: user.id,
     })
     .select("id")
     .single();
@@ -55,20 +57,6 @@ export async function POST(req: Request) {
   if (storeErr || !store) {
     return NextResponse.json(
       { error: "store_insert_failed", details: storeErr?.message },
-      { status: 500 }
-    );
-  }
-
-  // 2) vincula user -> store
-  const { error: memberErr } = await admin.from("store_members").insert({
-    store_id: store.id,
-    user_id: user.id,
-    role: "owner",
-  });
-
-  if (memberErr) {
-    return NextResponse.json(
-      { error: "member_insert_failed", details: memberErr.message },
       { status: 500 }
     );
   }
