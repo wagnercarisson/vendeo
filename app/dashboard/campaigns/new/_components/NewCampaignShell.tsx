@@ -40,30 +40,33 @@ export function NewCampaignShell() {
     const router = useRouter();
     const [product, setProduct] = useState<CampaignFormData>(INITIAL_CAMPAIGN);
     const [strategy, setStrategy] = useState<StrategyData>(INITIAL_STRATEGY);
-    
-    // Pre-filling effect
+
     useEffect(() => {
         const typeParam = searchParams.get("type");
         const objectiveParam = searchParams.get("objective");
         const audienceParam = searchParams.get("audience");
-        const positioningParam = searchParams.get("positioning");
+        const positioningParam = searchParams.get("positioning") || searchParams.get("product_positioning");
+        const reasoningParam = searchParams.get("reasoning");
 
         if (typeParam || objectiveParam || audienceParam || positioningParam) {
             if (typeParam) {
-                setProduct(prev => ({ 
-                    ...prev, 
-                    type: (typeParam === "product" || typeParam === "service" || typeParam === "info") 
-                        ? typeParam 
-                        : prev.type 
+                setProduct((prev) => ({
+                    ...prev,
+                    type:
+                        typeParam === "product" || typeParam === "service" || typeParam === "info"
+                            ? typeParam
+                            : prev.type,
                 }));
             }
-            
-            setStrategy(prev => ({
+
+            setStrategy((prev) => ({
                 ...prev,
                 objective: objectiveParam || prev.objective,
                 audience: audienceParam || prev.audience,
                 productPositioning: positioningParam || prev.productPositioning,
-                reasoning: "Configurado automaticamente com base na sugestão escolhida.",
+                reasoning:
+                    reasoningParam ||
+                    "Configurado automaticamente com base na sugestão escolhida.",
                 source: "manual",
             }));
         }
@@ -74,16 +77,18 @@ export function NewCampaignShell() {
         const generateReelsParam = searchParams.get("generateReels");
 
         if (planItemIdParam) {
-            setStrategy(prev => ({
+            setStrategy((prev) => ({
                 ...prev,
-                // Preserva os params vindos da URL do plano, ou no pior caso cai pro prev/theme
-                objective: objectiveParam || themeParam || prev.objective,
+                objective: objectiveParam || prev.objective,
                 audience: audienceParam || prev.audience,
                 productPositioning: positioningParam || prev.productPositioning,
-                reasoning: "Diretriz automática vinda do Plano Semanal.",
+                reasoning:
+                    reasoningParam ||
+                    themeParam ||
+                    "Diretriz automática vinda do Plano Semanal.",
                 source: "ai",
-                generatePost: generatePostParam === "true",
-                generateReels: generateReelsParam === "true",
+                generatePost: generatePostParam ? generatePostParam === "true" : prev.generatePost,
+                generateReels: generateReelsParam ? generateReelsParam === "true" : prev.generateReels,
             }));
         }
     }, [searchParams]);
@@ -96,7 +101,7 @@ export function NewCampaignShell() {
         const hasBasicInfo = product.productName.trim().length > 1;
         const hasRequiredPrice = product.type === "info" || product.price.trim().length > 0;
         const hasGenerationType = strategy.generatePost || strategy.generateReels;
-        
+
         return (
             hasBasicInfo &&
             hasRequiredPrice &&
@@ -108,8 +113,12 @@ export function NewCampaignShell() {
 
     async function handleGenerateCampaign() {
         try {
-            // Confirmar se já existe conteúdo gerado (uso comedido)
-            if (preview && !confirm("Você já possui uma campanha gerada. Deseja gerar uma nova? (Isso consumirá créditos de IA)")) {
+            if (
+                preview &&
+                !confirm(
+                    "Você já possui uma campanha gerada. Deseja gerar uma nova? (Isso consumirá créditos de IA)"
+                )
+            ) {
                 return;
             }
 
@@ -126,24 +135,25 @@ export function NewCampaignShell() {
 
             if (!store) throw new Error("Loja não encontrada.");
 
-            // 1) Salvar/Atualizar campanha no Supabase
             const campaignData = {
                 store_id: store.id,
                 product_name: product.productName,
-                // description: product.description, // Removido: coluna não existe no banco
                 price: product.type === "info" ? null : parseFloat(product.price.replace(",", ".")) || 0,
-                image_url: product.imageUrl,
-                // type: product.type,
+                product_image_url: product.imageUrl || null,
                 audience: strategy.audience,
                 objective: strategy.objective,
                 product_positioning: strategy.productPositioning,
-                status: "active" as const
+                status: "draft" as const,
             };
 
             let currentId = campaignId;
 
             if (currentId) {
-                const { error: upErr } = await supabase.from("campaigns").update(campaignData).eq("id", currentId);
+                const { error: upErr } = await supabase
+                    .from("campaigns")
+                    .update(campaignData)
+                    .eq("id", currentId);
+
                 if (upErr) throw upErr;
             } else {
                 const { data: newC, error: cErr } = await supabase
@@ -151,52 +161,61 @@ export function NewCampaignShell() {
                     .insert(campaignData)
                     .select("id")
                     .single();
-                
+
                 if (cErr) throw cErr;
                 currentId = newC.id;
                 setCampaignId(currentId);
             }
 
-            // 2) Chamar API de geração de conteúdo se Post solicitado
             if (strategy.generatePost) {
                 const genResponse = await fetch("/api/generate/campaign", {
                     method: "POST",
-                    body: JSON.stringify({ 
-                        campaign_id: currentId, 
-                        force: true,
-                        description: product.description // Enviando via body já que não está no banco
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        campaign_id: currentId,
+                        force: false,
+                        description: product.description,
                     }),
                 });
 
                 const genData = await genResponse.json();
-                if (genData.ok === false) throw new Error(genData.error || "Erro ao gerar post.");
+                if (genData.ok === false) {
+                    throw new Error(genData.error || "Erro ao gerar post.");
+                }
             }
 
-            // 3) Buscar dados atualizados para o preview
             const { data: finalCampaign, error: fetchErr } = await supabase
                 .from("campaigns")
                 .select("*")
                 .eq("id", currentId)
                 .single();
 
-            if (fetchErr || !finalCampaign) throw new Error("Falha ao recuperar dados da campanha.");
+            if (fetchErr || !finalCampaign) {
+                throw new Error("Falha ao recuperar dados da campanha.");
+            }
 
-            // 4) Tenta gerar Reels se Vídeo solicitado
             let reels: ShortVideoAIOutput | null = null;
+
             if (strategy.generateReels) {
                 try {
                     const reelsResponse = await fetch("/api/generate/reels", {
                         method: "POST",
-                        body: JSON.stringify({ campaign_id: currentId, force: true }),
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            campaign_id: currentId,
+                            force: false,
+                        }),
                     });
+
                     const reelsData = await reelsResponse.json();
-                    if (reelsData.ok === true) reels = reelsData.reels;
+                    if (reelsData.ok === true) {
+                        reels = reelsData.reels;
+                    }
                 } catch (reelsErr) {
                     console.warn("Falha silenciosa ao gerar Reels:", reelsErr);
                 }
             }
 
-            // Buscar dados completos da loja para o preview (cores, contatos, etc)
             const { data: fullStore } = await supabase
                 .from("stores")
                 .select("name, address, neighborhood, city, state, whatsapp, phone, primary_color, secondary_color, logo_url")
@@ -204,48 +223,75 @@ export function NewCampaignShell() {
                 .single();
 
             setPreview({
-                imageUrl: finalCampaign.image_url || "",
+                imageUrl:
+                    finalCampaign.image_url ||
+                    finalCampaign.product_image_url ||
+                    product.imageUrl ||
+                    "",
                 headline: finalCampaign.headline || finalCampaign.product_name,
                 bodyText: finalCampaign.ai_text || "",
                 cta: finalCampaign.ai_cta || "",
                 caption: finalCampaign.ai_caption || "",
                 hashtags: finalCampaign.ai_hashtags || "",
                 price: finalCampaign.price,
-                store: fullStore ? {
-                    name: fullStore.name,
-                    address: `${fullStore.address || ""}${fullStore.neighborhood ? `, ${fullStore.neighborhood}` : ""}`,
-                    whatsapp: fullStore.whatsapp || fullStore.phone || "",
-                    primary_color: fullStore.primary_color,
-                    secondary_color: fullStore.secondary_color,
-                    logo_url: fullStore.logo_url,
-                } : undefined,
-                reelsHook: reels?.hook || "",
-                reelsScript: reels?.script || "",
-                reelsShotlist: reels?.shotlist || [],
-                reelsAudioSuggestion: reels?.audio_suggestion || "",
-                reelsDurationSeconds: reels?.duration_seconds || 15,
-                reelsOnScreenText: reels?.on_screen_text || [],
-                reelsCaption: reels?.caption || "",
-                reelsCta: reels?.cta || "",
-                reelsHashtags: reels?.hashtags || "",
+                store: fullStore
+                    ? {
+                        name: fullStore.name,
+                        address: `${fullStore.address || ""}${fullStore.neighborhood ? `, ${fullStore.neighborhood}` : ""}`,
+                        whatsapp: fullStore.whatsapp || fullStore.phone || "",
+                        primary_color: fullStore.primary_color,
+                        secondary_color: fullStore.secondary_color,
+                        logo_url: fullStore.logo_url,
+                    }
+                    : undefined,
+                reelsHook: reels?.hook || finalCampaign.reels_hook || "",
+                reelsScript: reels?.script || finalCampaign.reels_script || "",
+                reelsShotlist: reels?.shotlist || finalCampaign.reels_shotlist || [],
+                reelsAudioSuggestion:
+                    reels?.audio_suggestion || finalCampaign.reels_audio_suggestion || "",
+                reelsDurationSeconds:
+                    reels?.duration_seconds || finalCampaign.reels_duration_seconds || 15,
+                reelsOnScreenText:
+                    reels?.on_screen_text || finalCampaign.reels_on_screen_text || [],
+                reelsCaption: reels?.caption || finalCampaign.reels_caption || "",
+                reelsCta: reels?.cta || finalCampaign.reels_cta || "",
+                reelsHashtags: reels?.hashtags || finalCampaign.reels_hashtags || "",
             });
 
             setGenerationState("ready");
-            
-            // 5) Se veio de um plano semanal, atualizar o vínculo
+
             const planItemId = searchParams.get("plan_item_id");
             if (planItemId) {
+                const editedThemeOrFallback =
+                    searchParams.get("theme") ||
+                    strategy.reasoning ||
+                    "Diretriz do plano semanal";
+
                 const { error: linkErr } = await supabase
                     .from("weekly_plan_items")
-                    .update({ campaign_id: currentId })
+                    .update({
+                        campaign_id: currentId,
+                        status: "ready",
+                        theme: editedThemeOrFallback,
+                        brief: {
+                            angle: "Campanha vinculada a partir do fluxo de execução.",
+                            hook_hint: "Abrir com promessa clara do benefício.",
+                            cta_hint: "Convidar para contato ou visita.",
+                            audience: strategy.audience,
+                            objective: strategy.objective,
+                            product_positioning: strategy.productPositioning,
+                        },
+                    })
                     .eq("id", planItemId);
-                
+
                 if (linkErr) {
                     console.error("Erro ao vincular campanha ao plano:", linkErr);
-                } 
+                }
             }
 
-            document.getElementById("dashboard-main-content")?.scrollTo({ top: 0, behavior: "smooth" });
+            document
+                .getElementById("dashboard-main-content")
+                ?.scrollTo({ top: 0, behavior: "smooth" });
         } catch (err: any) {
             console.error(err);
             alert(err.message || "Erro durante o processo de geração.");
@@ -257,20 +303,18 @@ export function NewCampaignShell() {
         if (!campaignId || !preview) return;
 
         try {
-            setGenerationState("generating"); // Add visual feedback for saving
+            setGenerationState("generating");
 
-            // Atualizar os textos editados na campanha (Post)
+            let finalImageUrl = preview.imageUrl;
+
             if (strategy.generatePost) {
-                let finalImageUrl = preview.imageUrl;
-
-                // 1) Gerar a imagem oficial estática via API
                 try {
                     const ogResponse = await fetch("/api/generate/og-image", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
                             layout: preview.layout || "solid",
-                            imageUrl: preview.imageUrl ? preview.imageUrl.split('#')[0] : "",
+                            imageUrl: preview.imageUrl ? preview.imageUrl.split("#")[0] : "",
                             headline: preview.headline,
                             bodyText: preview.bodyText,
                             cta: preview.cta,
@@ -286,8 +330,7 @@ export function NewCampaignShell() {
                         const imageBlob = await ogResponse.blob();
                         const fileName = `${campaignId}-${Date.now()}.png`;
 
-                        // 2) Fazer upload real pro Supabase Storage
-                        const { data: uploadData, error: uploadErr } = await supabase.storage
+                        const { error: uploadErr } = await supabase.storage
                             .from("campaign-images")
                             .upload(fileName, imageBlob, {
                                 contentType: "image/png",
@@ -300,7 +343,7 @@ export function NewCampaignShell() {
                             const { data: publicUrlData } = supabase.storage
                                 .from("campaign-images")
                                 .getPublicUrl(fileName);
-                            
+
                             finalImageUrl = publicUrlData.publicUrl;
                         }
                     } else {
@@ -309,32 +352,58 @@ export function NewCampaignShell() {
                 } catch (ogErr) {
                     console.error("Erro requisição OG Image:", ogErr);
                 }
-
-                // 3) Atualiza o banco com os novos textos e com o link real do PNG
-                const { error } = await supabase
-                    .from("campaigns")
-                    .update({
-                        headline: preview.headline,
-                        ai_text: preview.bodyText,
-                        ai_cta: preview.cta,
-                        ai_caption: preview.caption,
-                        ai_hashtags: preview.hashtags,
-                        image_url: finalImageUrl,
-                        status: "approved",
-                    })
-                    .eq("id", campaignId);
-
-                if (error) throw error;
             }
 
-            // Opcional: Se precisar atualizar o banco para Reels também, faríamos aqui 
-            // ex: buscar o post de reels vinculado a essa campanha e dar update.
-            // Atualmente, a API de salvar só mantém o preview visual.
+            const campaignUpdatePayload = {
+                headline: strategy.generatePost ? preview.headline : null,
+                ai_text: strategy.generatePost ? preview.bodyText : null,
+                ai_cta: strategy.generatePost ? preview.cta : null,
+                ai_caption: strategy.generatePost ? preview.caption : null,
+                ai_hashtags: strategy.generatePost ? preview.hashtags : null,
+                image_url: strategy.generatePost ? finalImageUrl : null,
+
+                reels_hook: strategy.generateReels ? preview.reelsHook || null : null,
+                reels_script: strategy.generateReels ? preview.reelsScript || null : null,
+                reels_shotlist: strategy.generateReels ? preview.reelsShotlist || [] : null,
+                reels_on_screen_text: strategy.generateReels ? preview.reelsOnScreenText || [] : null,
+                reels_audio_suggestion: strategy.generateReels
+                    ? preview.reelsAudioSuggestion || null
+                    : null,
+                reels_duration_seconds: strategy.generateReels
+                    ? preview.reelsDurationSeconds || null
+                    : null,
+                reels_caption: strategy.generateReels ? preview.reelsCaption || null : null,
+                reels_cta: strategy.generateReels ? preview.reelsCta || null : null,
+                reels_hashtags: strategy.generateReels ? preview.reelsHashtags || null : null,
+                reels_generated_at: strategy.generateReels ? new Date().toISOString() : null,
+
+                status: "approved" as const,
+            };
+
+            const { error } = await supabase
+                .from("campaigns")
+                .update(campaignUpdatePayload)
+                .eq("id", campaignId);
+
+            if (error) throw error;
+
+            const planItemId = searchParams.get("plan_item_id");
+            if (planItemId) {
+                const { error: itemErr } = await supabase
+                    .from("weekly_plan_items")
+                    .update({
+                        campaign_id: campaignId,
+                        status: "approved",
+                    })
+                    .eq("id", planItemId);
+
+                if (itemErr) throw itemErr;
+            }
 
             router.push(`/dashboard/campaigns/${campaignId}`);
         } catch (err: any) {
             console.error(err);
-            setGenerationState("ready"); // volta ao estado anterior
+            setGenerationState("ready");
             alert(err.message || "Erro ao salvar alterações da campanha.");
         }
     }
@@ -346,8 +415,8 @@ export function NewCampaignShell() {
                 {searchParams.get("plan_item_id") && generationState !== "ready" && (
                     <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
                         <p className="text-sm font-medium text-emerald-800">
-                            <strong>Plano Semanal:</strong> A IA já pré-configurou a estratégia com base no seu calendário. 
-                            Basta preencher o Produto e gerar!
+                            <strong>Plano Semanal:</strong> A IA já pré-configurou a estratégia com
+                            base no seu calendário. Basta preencher o Produto e gerar!
                         </p>
                     </div>
                 )}
@@ -390,10 +459,7 @@ export function NewCampaignShell() {
 
                     <div className="space-y-5">
                         <MotionWrapper delay={0.3}>
-                            <ProductFormCard
-                                value={product}
-                                onChange={setProduct}
-                            />
+                            <ProductFormCard value={product} onChange={setProduct} />
                         </MotionWrapper>
 
                         <MotionWrapper delay={0.4}>

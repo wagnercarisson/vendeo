@@ -17,6 +17,7 @@ export interface WeeklyPlanItem {
   theme: string | null;
   recommended_time: string | null;
   campaign_id: string | null;
+  status: "draft" | "ready" | "approved";
   brief: WeeklyPlanItemBrief | null;
   created_at: string;
 }
@@ -33,7 +34,7 @@ export interface WeeklyPlan {
   id: string;
   store_id: string;
   week_start: string;
-  status: string;
+  status: "draft" | "approved";
   strategy: WeeklyPlanStrategy | null;
   created_at: string;
 }

@@ -219,7 +219,200 @@ Tarefas:
 - Definir status finais de weekly_plans
 - Criar migration de constraint ou enum
 
-Status: ⬜
+Status: ✅
+
+Execução Realizada — Dia 2 (2026-03-16)
+
+Nesta etapa foi realizada uma auditoria completa das rotas da API do Vendeo com foco em segurança antes da liberação da beta privada.
+
+O objetivo foi garantir que nenhuma rota permitisse:
+
+redirecionamento externo
+
+acesso entre lojas diferentes
+
+fetch remoto arbitrário
+
+payloads inválidos
+
+abuso de endpoints de geração de IA
+
+1. Correção de Open Redirect no fluxo de login
+
+Foi identificado que o parâmetro next no fluxo de autenticação poderia aceitar URLs externas.
+
+Exemplo potencial de abuso:
+
+/auth/callback?next=https://evil.com
+
+Foi implementado um sanitizador centralizado:
+
+lib/security/sanitizeNextPath.ts
+
+Regras aplicadas:
+
+aceitar apenas paths internos iniciando com /
+
+bloquear:
+
+http://
+
+https://
+
+//
+
+javascript:
+
+backslash
+
+null byte
+
+CR/LF
+
+Fallback seguro:
+
+/dashboard
+
+Arquivos atualizados:
+
+app/auth/callback/route.ts
+app/login/LoginClient.tsx
+
+2. Proteção de ownership em weekly strategy
+
+A rota
+
+/api/generate/weekly-strategy
+
+utilizava supabaseAdmin e aceitava store_id vindo do cliente.
+
+Isso poderia permitir tentativa de execução para lojas de outros usuários.
+
+Foi implementado um ownership check explícito:
+
+validar autenticação
+
+obter userId
+
+consultar a loja no banco
+
+garantir que
+
+store.owner_user_id === userId
+
+Caso contrário a rota retorna:
+
+403 FORBIDDEN
+
+Arquivo alterado:
+
+app/api/generate/weekly-strategy/route.ts
+
+3. Hardening da rota de geração de OG Image
+
+A rota
+
+/api/generate/og-image
+
+permitia fetch remoto arbitrário de imagens.
+
+Isso poderia ser explorado para:
+
+SSRF
+
+proxy arbitrário
+
+abuso de infraestrutura
+
+Foi implementada uma allowlist:
+
+apenas imagens provenientes do Supabase Storage do projeto são aceitas.
+
+Host permitido:
+
+NEXT_PUBLIC_SUPABASE_URL
+
+Paths permitidos:
+
+/storage/v1/object/public/
+/storage/v1/render/image/public/
+
+Proteções adicionais:
+
+limite de download de imagem
+
+timeout de fetch
+
+validação de content-type
+
+4. Hardening da rota de strategy de campanha
+
+A rota
+
+/api/generate/campaign/strategy
+
+foi reforçada com validação de payload via Zod.
+
+Foram adicionados:
+
+schema obrigatório
+
+limite de tamanho de campos
+
+normalização de strings antes do prompt
+
+Objetivo: evitar payload excessivo, prompt injection e consumo desnecessário de IA.
+
+5. Validação manual executada
+
+Os seguintes testes foram realizados manualmente via DevTools.
+
+Open redirect:
+
+/auth/callback?next=https://evil.com
+
+Resultado: redirect externo bloqueado.
+
+Weekly strategy normal:
+
+Resultado: 200 OK.
+
+Weekly strategy com store inválida:
+
+Resultado: 403 FORBIDDEN.
+
+OG image com imagem do Supabase:
+
+Resultado: 200 OK.
+
+OG image com imagem externa:
+
+Resultado: 400 (imageUrl not allowed).
+
+Conclusão do Dia 2
+
+A camada de rotas do Vendeo passou a operar com:
+
+validação explícita de redirects
+
+verificação de ownership de loja
+
+bloqueio de fetch arbitrário
+
+validação de payload nas rotas críticas
+
+Isso reduz significativamente riscos de segurança antes da liberação do beta.
+
+Status da etapa:
+
+Dia 2 — CONCLUÍDO COM SUCESSO
+
+Status do Plano
+Dia 1 — Modelo de Loja        ✅ Concluído
+Dia 2 — Segurança de Rotas    ✅ Concluído
+Dia 3 — Fluxo de Campanha     ▶ Em execução
+Dia 4 — Geração de Conteúdo   ⏳ Planejado
+Dia 5 — UI / UX Final         ⏳ Planejado
 
 ---
 

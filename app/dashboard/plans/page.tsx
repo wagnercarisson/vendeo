@@ -19,7 +19,7 @@ export default function PlansPage() {
   if (view === "new") {
     return (
       <div className="space-y-4">
-        <button 
+        <button
           onClick={() => setView("list")}
           className="text-sm text-slate-500 hover:text-slate-800 underline mb-4 inline-block"
         >

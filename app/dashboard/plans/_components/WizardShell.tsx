@@ -25,14 +25,6 @@ function getWeekStartMondayISO(today = new Date()) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-function isCampaignComplete(c?: Campaign) {
-  if (!c) return false;
-  const nameOk = (c.product_name ?? "").trim().length > 0;
-  const audOk = (c.audience ?? "").trim().length > 0;
-  const objOk = (c.objective ?? "").trim().length > 0;
-  return nameOk && audOk && objOk;
-}
-
 export function WizardShell() {
   const [step, setStep] = useState<WizardStep>(1);
 
@@ -53,9 +45,10 @@ export function WizardShell() {
 
   const [generatingPlan, setGeneratingPlan] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const [generatingTextId, setGeneratingTextId] = useState<string | null>(null);
   const [generatingReelsId, setGeneratingReelsId] = useState<string | null>(null);
+  const [approvingPlan, setApprovingPlan] = useState(false);
 
   // Holidays
   const [holidays, setHolidays] = useState<{ date: string; name: string }[]>([]);
@@ -66,21 +59,24 @@ export function WizardShell() {
   }, []);
 
   async function loadHolidays() {
-     try {
-       const year = new Date().getFullYear();
-       const res = await fetch(`https://brasilapi.com.br/api/feriados/v1/${year}`);
-       if (res.ok) {
-         const data = await res.json();
-         setHolidays(data || []);
-       }
-     } catch (e) {
-       console.error("Erro ao carregar feriados", e);
-     }
+    try {
+      const year = new Date().getFullYear();
+      const res = await fetch(`https://brasilapi.com.br/api/feriados/v1/${year}`);
+      if (res.ok) {
+        const data = await res.json();
+        setHolidays(data || []);
+      }
+    } catch (e) {
+      console.error("Erro ao carregar feriados", e);
+    }
   }
 
   async function loadStores() {
     setLoadingStores(true);
-    const { data: { user }, error: userErr } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: userErr,
+    } = await supabase.auth.getUser();
 
     if (userErr || !user) {
       setStores([]);
@@ -90,7 +86,9 @@ export function WizardShell() {
 
     const { data, error } = await supabase
       .from("stores")
-      .select("id, name, city, state, main_segment, brand_positioning, tone_of_voice, whatsapp, instagram, phone, primary_color, secondary_color, owner_user_id, logo_url")
+      .select(
+        "id, name, city, state, main_segment, brand_positioning, tone_of_voice, whatsapp, instagram, phone, primary_color, secondary_color, owner_user_id, logo_url"
+      )
       .eq("owner_user_id", user.id)
       .order("created_at", { ascending: false });
 
@@ -102,7 +100,7 @@ export function WizardShell() {
     setLoadingStores(false);
   }
 
-  // Load plan when Week or Store changes
+  // Load existing plan when Week or Store changes
   useEffect(() => {
     if (storeId) {
       loadPlan();
@@ -118,24 +116,25 @@ export function WizardShell() {
         items: WeeklyPlanItem[];
         campaigns: Campaign[];
       }>(
-        `/api/generate/weekly-plan?week_start=${encodeURIComponent(weekStart)}&store_id=${encodeURIComponent(storeId)}`,
+        `/api/generate/weekly-plan?week_start=${encodeURIComponent(
+          weekStart
+        )}&store_id=${encodeURIComponent(storeId)}`,
         { method: "GET" }
       );
+
       if (data?.ok === true) {
         setPlan(data.plan ?? null);
         setItems(data.items ?? []);
         setCampaigns(data.campaigns ?? []);
         setStrategyDraft((data.plan?.strategy?.items as StrategyDraftItem[]) || []);
-        
-        // Se já tem plano gerado com itens, preenchemos a UI de dias selecionados e podemos avançar o step
+
         if (data.plan && data.items && data.items.length > 0) {
-           const dbDays = data.items.map(i => i.day_of_week);
-           setSelectedDays(Array.from(new Set(dbDays)).sort((a,b)=>a-b));
-           // we don't force step 3 automatically, user might want to review step 1 configuration
+          const dbDays = data.items.map((i) => i.day_of_week);
+          setSelectedDays(Array.from(new Set(dbDays)).sort((a, b) => a - b));
         } else {
-           setPlan(null);
-           setItems([]);
-           // Keep selected days as is if user is configuring a new week
+          setPlan(null);
+          setItems([]);
+          setCampaigns([]);
         }
       }
     } catch (e) {
@@ -150,15 +149,13 @@ export function WizardShell() {
     setGeneratingPlan(true);
     setError(null);
 
-    // Get holidays in this week
     const weekStartDate = new Date(weekStart);
     const weekEndDate = new Date(weekStartDate);
     weekEndDate.setUTCDate(weekEndDate.getUTCDate() + 6);
-    
-    // YYYY-MM-DD parsing to match holidays
-    const relevantHolidays = holidays.filter(h => {
-       const hd = new Date(h.date);
-       return hd >= weekStartDate && hd <= weekEndDate;
+
+    const relevantHolidays = holidays.filter((h) => {
+      const hd = new Date(h.date);
+      return hd >= weekStartDate && hd <= weekEndDate;
     });
 
     try {
@@ -175,8 +172,8 @@ export function WizardShell() {
           week_start: weekStart,
           selected_days: selectedDays,
           holidays: relevantHolidays,
-          city: stores.find(s => s.id === storeId)?.city || "",
-          state: stores.find(s => s.id === storeId)?.state || "",
+          city: stores.find((s) => s.id === storeId)?.city || "",
+          state: stores.find((s) => s.id === storeId)?.state || "",
         }),
       });
 
@@ -186,7 +183,6 @@ export function WizardShell() {
 
       setStrategyDraft(data.strategy_summary || []);
       setStep(2);
-
     } catch (e: any) {
       setError(e?.message);
       alert(e?.message);
@@ -216,7 +212,7 @@ export function WizardShell() {
           week_start: weekStart,
           force: true,
           selected_days: selectedDays,
-          approved_strategy: strategyDraft // NEW: Send approved strategy 
+          approved_strategy: strategyDraft,
         }),
       });
 
@@ -227,58 +223,109 @@ export function WizardShell() {
       setPlan(data.plan ?? null);
       setItems(data.items ?? []);
       setCampaigns(data.campaigns ?? []);
-
-      // Advance wizard to Execution
       setStep(3);
-
     } catch (e: any) {
       setError(e?.message);
       alert(e?.message);
     } finally {
       setGeneratingPlan(false);
-      loadPlan(); // Ensure latest data from DB is loaded if changed
+      await loadPlan();
     }
   }
 
   const campaignsById = useMemo(() => {
-    const m = new Map<string, Campaign>();
-    for (const c of campaigns) m.set(c.id, c);
-    return m;
+    return Object.fromEntries(campaigns.map((c) => [c.id, c]));
   }, [campaigns]);
 
-  // Generation Methods
-  async function generateTextForCampaign(camp: Campaign, force = false) {
-    if (generatingTextId === camp.id) return;
-    setGeneratingTextId(camp.id);
+  async function generateTextForCampaign(itemId: string) {
+    const item = items.find((i) => i.id === itemId);
+
+    if (!item?.campaign_id) {
+      alert("Crie ou vincule uma campanha antes de gerar conteúdo.");
+      return;
+    }
+
+    if (generatingTextId === itemId) return;
+
+    setGeneratingTextId(itemId);
+
     try {
       const res = await fetch("/api/generate/campaign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ campaign_id: camp.id, force }),
+        body: JSON.stringify({ campaign_id: item.campaign_id, force: false }),
       });
-      await loadPlan(); // reload state after generation
+
+      if (!res.ok) {
+        throw new Error("Erro ao gerar conteúdo.");
+      }
+
+      await loadPlan();
+    } catch (e: any) {
+      alert(e?.message || "Erro ao gerar conteúdo.");
     } finally {
       setGeneratingTextId(null);
     }
   }
 
-  async function generateReelsForCampaign(camp: Campaign, force = false) {
-    if (generatingReelsId === camp.id) return;
-    setGeneratingReelsId(camp.id);
+  async function generateReelsForCampaign(itemId: string) {
+    const item = items.find((i) => i.id === itemId);
+
+    if (!item?.campaign_id) {
+      alert("Crie ou vincule uma campanha antes de gerar reels.");
+      return;
+    }
+
+    if (generatingReelsId === itemId) return;
+
+    setGeneratingReelsId(itemId);
+
     try {
       const res = await fetch("/api/generate/reels", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ campaign_id: camp.id, force }),
+        body: JSON.stringify({ campaign_id: item.campaign_id, force: false }),
       });
+
+      if (!res.ok) {
+        throw new Error("Erro ao gerar reels.");
+      }
+
       await loadPlan();
+    } catch (e: any) {
+      alert(e?.message || "Erro ao gerar reels.");
     } finally {
       setGeneratingReelsId(null);
     }
   }
 
+  async function handleApprovePlan() {
+    if (!plan) return;
 
+    try {
+      setApprovingPlan(true);
 
+      const { error: planErr } = await supabase
+        .from("weekly_plans")
+        .update({ status: "approved" })
+        .eq("id", plan.id);
+
+      if (planErr) throw planErr;
+
+      const { error: itemsErr } = await supabase
+        .from("weekly_plan_items")
+        .update({ status: "approved" })
+        .eq("plan_id", plan.id);
+
+      if (itemsErr) throw itemsErr;
+
+      await loadPlan();
+    } catch (err: any) {
+      alert(err.message || "Erro ao aprovar plano.");
+    } finally {
+      setApprovingPlan(false);
+    }
+  }
 
   if (loadingStores) {
     return <PlansSkeleton />;
@@ -286,64 +333,82 @@ export function WizardShell() {
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-6 space-y-8">
-       {/* Wizard Header Progress */}
-       <div className="flex items-center gap-4">
-         <Link href="/dashboard" className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm border border-black/5 text-slate-500 hover:text-slate-900 transition hover:-translate-x-0.5">
-            <ArrowLeft className="h-4 w-4" />
-         </Link>
-         <div className="flex flex-1 items-center gap-2">
-            {[1, 2, 3].map((num) => (
-               <div key={num} className="flex flex-1 items-center">
-                  <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-all ${
-                     step === num ? "bg-[#0B2E22] text-white shadow-md ring-4 ring-[#0B2E22]/20" :
-                     step > num ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-400"
-                  }`}>
-                     {step > num ? "✓" : num}
-                  </div>
-                  {num < 3 && <div className={`h-1 flex-1 mx-2 rounded-full transition-all ${step > num ? "bg-emerald-100" : "bg-slate-100"}`} />}
-               </div>
-            ))}
-         </div>
-       </div>
+      <div className="flex items-center gap-4">
+        <Link
+          href="/dashboard"
+          className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm border border-black/5 text-slate-500 hover:text-slate-900 transition hover:-translate-x-0.5"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Link>
 
-       {/* Step Content */}
-       {step === 1 && (
-         <WeekConfigStep
-           stores={stores}
-           storeId={storeId}
-           onStoreChange={setStoreId}
-           weekStart={weekStart}
-           onWeekStartChange={setWeekStart}
-           selectedDays={selectedDays}
-           onSelectedDaysChange={setSelectedDays}
-           onNext={handleGenerateStrategy}
-           isGenerating={generatingPlan}
-           holidays={holidays}
-           hasExistingPlan={!!plan && items.length > 0}
-         />
-       )}
+        <div className="flex flex-1 items-center gap-2">
+          {[1, 2, 3].map((num) => (
+            <div key={num} className="flex flex-1 items-center">
+              <div
+                className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-all ${step === num
+                  ? "bg-[#0B2E22] text-white shadow-md ring-4 ring-[#0B2E22]/20"
+                  : step > num
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-slate-100 text-slate-400"
+                  }`}
+              >
+                {step > num ? "✓" : num}
+              </div>
+              {num < 3 && (
+                <div
+                  className={`h-1 flex-1 mx-2 rounded-full transition-all ${step > num ? "bg-emerald-100" : "bg-slate-100"
+                    }`}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
 
-       {step === 2 && (
-         <StrategyReviewStep
-           strategyDraft={strategyDraft}
-           onStrategyChange={setStrategyDraft}
-           onBack={() => setStep(1)}
-           onNext={handleGeneratePlanItems}
-           isGenerating={generatingPlan}
-         />
-       )}
+      {error ? (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {error}
+        </div>
+      ) : null}
 
-       {step === 3 && (
-         <ExecutionStep
-           items={items}
-           campaignsById={campaignsById}
-           onGenerateText={generateTextForCampaign}
-           onGenerateReels={generateReelsForCampaign}
-           generatingTextId={generatingTextId}
-           generatingReelsId={generatingReelsId}
-         />
-       )}
+      {step === 1 && (
+        <WeekConfigStep
+          stores={stores}
+          storeId={storeId}
+          onStoreChange={setStoreId}
+          weekStart={weekStart}
+          onWeekStartChange={setWeekStart}
+          selectedDays={selectedDays}
+          onSelectedDaysChange={setSelectedDays}
+          onNext={handleGenerateStrategy}
+          isGenerating={generatingPlan || loadingPlan}
+          holidays={holidays}
+          hasExistingPlan={!!plan && items.length > 0}
+        />
+      )}
 
+      {step === 2 && (
+        <StrategyReviewStep
+          strategyDraft={strategyDraft}
+          onStrategyChange={setStrategyDraft}
+          onBack={() => setStep(1)}
+          onNext={handleGeneratePlanItems}
+          isGenerating={generatingPlan}
+        />
+      )}
+
+      {step === 3 && (
+        <ExecutionStep
+          items={items}
+          campaignsById={campaignsById}
+          onGenerateText={generateTextForCampaign}
+          onGenerateReels={generateReelsForCampaign}
+          generatingTextId={generatingTextId}
+          generatingReelsId={generatingReelsId}
+          onApprovePlan={handleApprovePlan}
+          approvingPlan={approvingPlan}
+        />
+      )}
     </main>
   );
 }

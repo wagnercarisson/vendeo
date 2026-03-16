@@ -1,8 +1,16 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { WeeklyPlan, WeeklyPlanItem, StrategyItem, WeeklyPlanItemBrief } from "./types";
+import {
+  WeeklyPlan,
+  WeeklyPlanItem,
+  StrategyItem,
+  WeeklyPlanItemBrief,
+} from "./types";
 import { Campaign } from "../campaigns/types";
 import { WeeklyPlanItemBriefSchema } from "./schemas";
-import { mapDbWeeklyPlanToDomain, mapDbWeeklyPlanItemToDomain } from "./mapper";
+import {
+  mapDbWeeklyPlanToDomain,
+  mapDbWeeklyPlanItemToDomain,
+} from "./mapper";
 import { mapDbCampaignToDomain } from "../campaigns/mapper";
 import { mapDbStoreToDomain } from "../stores/mapper";
 
@@ -16,10 +24,37 @@ function toISODate(d: Date) {
 }
 
 export function getWeekStartMondayISO(today = new Date()): string {
-  const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+  const d = new Date(
+    Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
+  );
   const diffToMonday = (d.getUTCDay() + 6) % 7;
   d.setUTCDate(d.getUTCDate() - diffToMonday);
   return toISODate(d);
+}
+
+function getRecommendedTimeByObjective(
+  objective: string | null | undefined
+): string {
+  const normalized = String(objective ?? "").trim().toLowerCase();
+
+  if (
+    normalized.includes("oferta") ||
+    normalized.includes("promo") ||
+    normalized.includes("venda")
+  ) {
+    return "12:30";
+  }
+
+  if (
+    normalized.includes("combo") ||
+    normalized.includes("tráfego") ||
+    normalized.includes("trafego") ||
+    normalized.includes("visita")
+  ) {
+    return "18:00";
+  }
+
+  return "20:00";
 }
 
 // ─── Pipeline de fetch ────────────────────────────────────────────────────────
@@ -47,16 +82,23 @@ export async function fetchWeeklyPlan(
 
   const { data: items, error: itemsErr } = await supabaseAdmin
     .from("weekly_plan_items")
-    .select("id, plan_id, day_of_week, content_type, theme, recommended_time, campaign_id, brief, created_at")
+    .select(
+      "id, plan_id, day_of_week, content_type, theme, recommended_time, campaign_id, status, brief, created_at"
+    )
     .eq("plan_id", plan.id)
     .order("day_of_week", { ascending: true });
 
   if (itemsErr) throw new Error(itemsErr.message);
 
   const normalizedPlan = mapDbWeeklyPlanToDomain(plan);
-  const normalizedItems = (items ?? []).map((i) => mapDbWeeklyPlanItemToDomain(i));
+  const normalizedItems = (items ?? []).map((i) =>
+    mapDbWeeklyPlanItemToDomain(i)
+  );
 
-  const campaignIds = normalizedItems.map((i) => i.campaign_id).filter(Boolean) as string[];
+  const campaignIds = normalizedItems
+    .map((i) => i.campaign_id)
+    .filter(Boolean) as string[];
+
   let campaigns: Campaign[] = [];
 
   if (campaignIds.length) {
@@ -64,7 +106,7 @@ export async function fetchWeeklyPlan(
       .from("campaigns")
       .select(
         `id, store_id, product_name, price, audience, objective, product_positioning, created_at,
-         status, image_url, headline, body_text, cta,
+         status, image_url, product_image_url, headline, body_text, cta,
          ai_caption, ai_text, ai_cta, ai_hashtags, ai_generated_at,
          reels_hook, reels_script, reels_shotlist, reels_on_screen_text,
          reels_audio_suggestion, reels_duration_seconds,
@@ -89,7 +131,13 @@ export interface GenerateWeeklyPlanInput {
 }
 
 export type GenerateWeeklyPlanResult =
-  | { ok: true; reused?: boolean; plan: WeeklyPlan; items: WeeklyPlanItem[]; campaigns: Campaign[] }
+  | {
+    ok: true;
+    reused?: boolean;
+    plan: WeeklyPlan;
+    items: WeeklyPlanItem[];
+    campaigns: Campaign[];
+  }
   | { ok: false; error: string; details?: unknown; status: number };
 
 /**
@@ -104,7 +152,13 @@ export async function generateWeeklyPlan(
   // 1) Idempotência
   const existing = await fetchWeeklyPlan(storeId, weekStart);
   if (existing && !force) {
-    return { ok: true, reused: true, plan: existing.plan, items: existing.items, campaigns: existing.campaigns };
+    return {
+      ok: true,
+      reused: true,
+      plan: existing.plan,
+      items: existing.items,
+      campaigns: existing.campaigns,
+    };
   }
 
   // 2) Força → apaga itens existentes
@@ -113,13 +167,16 @@ export async function generateWeeklyPlan(
       .from("weekly_plan_items")
       .delete()
       .eq("plan_id", existing.plan.id);
+
     if (delItemsErr) throw new Error(delItemsErr.message);
   }
 
   // 3) Busca loja para snapshot
   const { data: store, error: sErr } = await supabaseAdmin
     .from("stores")
-    .select("id, name, city, state, brand_positioning, main_segment, tone_of_voice")
+    .select(
+      "id, name, city, state, brand_positioning, main_segment, tone_of_voice"
+    )
     .eq("id", storeId)
     .single();
 
@@ -133,13 +190,15 @@ export async function generateWeeklyPlan(
   const { data: upPlan, error: upPlanErr } = await supabaseAdmin
     .from("weekly_plans")
     .upsert(
-      { store_id: storeId, week_start: weekStart, status: "generated" },
+      { store_id: storeId, week_start: weekStart, status: "draft" },
       { onConflict: "store_id,week_start" }
     )
     .select("id, store_id, week_start, status, strategy, created_at")
     .single();
 
-  if (upPlanErr || !upPlan) throw new Error(upPlanErr?.message ?? "FAILED_UPSERT_PLAN");
+  if (upPlanErr || !upPlan) {
+    throw new Error(upPlanErr?.message ?? "FAILED_UPSERT_PLAN");
+  }
 
   const normalizedUpPlan = mapDbWeeklyPlanToDomain(upPlan);
 
@@ -151,6 +210,7 @@ export async function generateWeeklyPlan(
   const { error: updPlanErr } = await supabaseAdmin
     .from("weekly_plans")
     .update({
+      status: "draft",
       strategy: {
         strategy_summary: strategySummary || "Estratégia omitida.",
         items: approvedStrategy,
@@ -169,8 +229,7 @@ export async function generateWeeklyPlan(
   if (updPlanErr) throw new Error(updPlanErr.message);
 
   // 6) Insere items
-  for (const st of approvedStrategy) {
-    const recommendedTime = Math.random() > 0.5 ? "18:00" : "12:00";
+  const itemsToInsert = approvedStrategy.map((st) => {
     const theme = `Diretriz Prática:\nObjetivo: ${st.objective}\nPúblico: ${st.audience}\nTom: ${st.positioning}`;
 
     const brief: WeeklyPlanItemBrief = {
@@ -182,21 +241,25 @@ export async function generateWeeklyPlan(
       product_positioning: st.positioning,
     };
 
-    // Validação/Normalização básica
     const validBrief = WeeklyPlanItemBriefSchema.parse(brief);
 
-    const { error: iErr } = await supabaseAdmin.from("weekly_plan_items").insert({
+    return {
       plan_id: normalizedUpPlan.id,
       day_of_week: st.day_of_week,
       content_type: st.content_type,
       theme,
-      recommended_time: recommendedTime,
+      recommended_time: getRecommendedTimeByObjective(st.objective),
       campaign_id: null,
+      status: "draft" as const,
       brief: validBrief,
-    });
+    };
+  });
 
-    if (iErr) throw new Error(iErr.message);
-  }
+  const { error: iErr } = await supabaseAdmin
+    .from("weekly_plan_items")
+    .insert(itemsToInsert);
+
+  if (iErr) throw new Error(iErr.message);
 
   const final = await fetchWeeklyPlan(storeId, weekStart);
 

@@ -9,18 +9,18 @@ export function mapAiStrategyToDomain(raw: unknown): StrategyItem[] {
   return raw
     .map((item: any) => {
       if (!item || typeof item !== "object") return null;
-      
+
       const normalized: StrategyItem = {
         day_of_week: Number(item.day_of_week) || 0,
         audience: String(item.audience || ""),
         objective: String(item.objective || ""),
         positioning: String(item.positioning || ""),
-        content_type: (item.content_type === "post" || item.content_type === "reels") 
-          ? item.content_type 
+        content_type: (item.content_type === "post" || item.content_type === "reels")
+          ? item.content_type
           : "post",
         reasoning: String(item.reasoning || ""),
       };
-      
+
       return normalized;
     })
     .filter((item): item is StrategyItem => item !== null);
@@ -34,7 +34,7 @@ export function mapDbWeeklyPlanToDomain(raw: any): WeeklyPlan {
     id: String(raw.id),
     store_id: String(raw.store_id),
     week_start: String(raw.week_start),
-    status: raw.status ?? "generated",
+    status: raw.status === "approved" ? "approved" : "draft",
     strategy: raw.strategy ?? null,
     created_at: raw.created_at ?? new Date().toISOString(),
   };
@@ -46,7 +46,7 @@ export function mapDbWeeklyPlanToDomain(raw: any): WeeklyPlan {
  */
 export function mapDbWeeklyPlanItemToDomain(raw: any): WeeklyPlanItem {
   const briefRaw = raw.brief || {};
-  
+
   const brief: WeeklyPlanItemBrief = {
     angle: String(briefRaw.angle || ""),
     audience: String(briefRaw.audience || ""),
@@ -60,12 +60,16 @@ export function mapDbWeeklyPlanItemToDomain(raw: any): WeeklyPlanItem {
     id: String(raw.id),
     plan_id: String(raw.plan_id),
     day_of_week: Number(raw.day_of_week) || 0,
-    content_type: (raw.content_type === "post" || raw.content_type === "reels") 
-      ? raw.content_type 
-      : "post",
+    content_type: raw.content_type === "reels" ? "reels" : "post",
     theme: raw.theme ?? "",
     recommended_time: raw.recommended_time ?? null,
     campaign_id: raw.campaign_id ?? null,
+    status:
+      raw.status === "approved"
+        ? "approved"
+        : raw.status === "ready"
+          ? "ready"
+          : "draft",
     brief,
     created_at: raw.created_at ?? new Date().toISOString(),
   };
