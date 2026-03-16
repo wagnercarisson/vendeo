@@ -3,6 +3,8 @@ import { z } from "zod";
 export const ShortVideoRequestSchema = z.object({
   campaign_id: z.string().uuid(),
   force: z.boolean().optional().default(false),
+  persist: z.boolean().optional().default(true),
+  description: z.string().optional(),
 });
 
 export const ShortVideoAISchema = z.object({

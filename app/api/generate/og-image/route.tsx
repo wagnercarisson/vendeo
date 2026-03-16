@@ -99,75 +99,113 @@ export async function POST(req: NextRequest) {
         };
         const formattedWhatsapp = formatWhatsApp(whatsapp);
 
-        // 1) Identifica se precisa de transformação e define URL final
-        const getTransformUrl = (url: string) => {
-            if (!url) return "";
-
-            const base = url.split("?")[0].split("#")[0];
-            const isWebp = base.toLowerCase().endsWith(".webp");
-
-            if (isWebp && base.includes("/storage/v1/object/public/")) {
-                return (
-                    base.replace("/object/public/", "/render/image/public/") +
-                    "?format=png&width=1000"
-                );
-            }
-
-            return url;
-        };
-
-        const transformUrl = getTransformUrl(imageUrl);
-
-        // 2) Busca a imagem como Data URL (Base64)
-        // Isso resolve problemas de tipos desconhecidos e fetch remoto no Satori
-        const fetchImageData = async (url: string) => {
-            if (!url) return null;
-
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+        // 1) Monta candidatos de URL para a imagem.
+        // Ordem:
+        // - render PNG
+        // - render JPEG
+        // - original
+        const getImageCandidates = (url: string) => {
+            if (!url) return [];
 
             try {
-                const response = await fetch(url, {
-                    signal: controller.signal,
-                    redirect: "follow",
-                    cache: "no-store",
-                });
+                const parsed = new URL(url);
+                const allowedHost = getAllowedSupabaseHost();
 
-                if (!response.ok) {
-                    console.error(`Fetch image failed: ${url} (Status: ${response.status})`);
-                    return null;
+                if (!allowedHost || parsed.host !== allowedHost) {
+                    return [url];
                 }
 
-                const contentLength = Number(response.headers.get("content-length") || "0");
-                if (contentLength > MAX_IMAGE_BYTES) {
-                    console.error(`Fetch image blocked by size: ${url} (${contentLength} bytes)`);
-                    return null;
+                const candidates = new Set<string>();
+
+                const buildRenderUrl = (pathname: string, format: "png" | "jpeg") => {
+                    const renderPath = pathname
+                        .replace("/storage/v1/object/public/", "/storage/v1/render/image/public/")
+                        .replace("/storage/v1/render/image/public/", "/storage/v1/render/image/public/");
+
+                    return `${parsed.origin}${renderPath}?width=1200&quality=100&format=${format}`;
+                };
+
+                if (
+                    parsed.pathname.startsWith("/storage/v1/object/public/") ||
+                    parsed.pathname.startsWith("/storage/v1/render/image/public/")
+                ) {
+                    candidates.add(buildRenderUrl(parsed.pathname, "png"));
+                    candidates.add(buildRenderUrl(parsed.pathname, "jpeg"));
                 }
 
-                const contentType = response.headers.get("content-type") || "image/png";
-                if (!contentType.startsWith("image/")) {
-                    console.error(`Fetch image blocked by content-type: ${url} (${contentType})`);
-                    return null;
-                }
+                candidates.add(url);
 
-                const buffer = await response.arrayBuffer();
-
-                if (buffer.byteLength > MAX_IMAGE_BYTES) {
-                    console.error(`Fetch image blocked after download: ${url} (${buffer.byteLength} bytes)`);
-                    return null;
-                }
-
-                const base64 = Buffer.from(buffer).toString("base64");
-                return `data:${contentType};base64,${base64}`;
-            } catch (err: any) {
-                console.error(`Fetch image error: ${url}`, err?.message || err);
-                return null;
-            } finally {
-                clearTimeout(timeout);
+                return Array.from(candidates);
+            } catch {
+                return [url];
             }
         };
 
-        const imageData = await fetchImageData(transformUrl);
+        // 2) Busca a imagem como Data URL (Base64), tentando múltiplos fallbacks
+        const fetchImageData = async (urls: string[]) => {
+            for (const url of urls) {
+                if (!url) continue;
+
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+                try {
+                    const response = await fetch(url, {
+                        signal: controller.signal,
+                        redirect: "follow",
+                        cache: "no-store",
+                        headers: {
+                            Accept: "image/png,image/jpeg,image/*;q=0.8,*/*;q=0.5",
+                        },
+                    });
+
+                    if (!response.ok) {
+                        console.error(`Fetch image failed: ${url} (Status: ${response.status})`);
+                        continue;
+                    }
+
+                    const contentLength = Number(response.headers.get("content-length") || "0");
+                    if (contentLength > MAX_IMAGE_BYTES) {
+                        console.error(`Fetch image blocked by size: ${url} (${contentLength} bytes)`);
+                        continue;
+                    }
+
+                    const contentType = response.headers.get("content-type") || "";
+                    if (!contentType.startsWith("image/")) {
+                        console.error(`Fetch image blocked by content-type: ${url} (${contentType})`);
+                        continue;
+                    }
+
+                    const buffer = await response.arrayBuffer();
+
+                    if (buffer.byteLength > MAX_IMAGE_BYTES) {
+                        console.error(`Fetch image blocked after download: ${url} (${buffer.byteLength} bytes)`);
+                        continue;
+                    }
+
+                    const safeContentType =
+                        contentType.startsWith("image/png")
+                            ? "image/png"
+                            : contentType.startsWith("image/jpeg")
+                                ? "image/jpeg"
+                                : contentType.startsWith("image/jpg")
+                                    ? "image/jpeg"
+                                    : contentType;
+
+                    const base64 = Buffer.from(buffer).toString("base64");
+                    return `data:${safeContentType};base64,${base64}`;
+                } catch (err: any) {
+                    console.error(`Fetch image error: ${url}`, err?.message || err);
+                } finally {
+                    clearTimeout(timeout);
+                }
+            }
+
+            return null;
+        };
+
+        const imageCandidates = getImageCandidates(imageUrl);
+        const imageData = await fetchImageData(imageCandidates);
 
         let content;
 

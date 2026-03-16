@@ -4,6 +4,7 @@ export const CampaignRequestSchema = z.object({
   campaign_id: z.string().uuid(),
   force: z.boolean().optional().default(false),
   description: z.string().optional(),
+  persist: z.boolean().optional().default(true),
 });
 
 export const CampaignAISchema = z.object({

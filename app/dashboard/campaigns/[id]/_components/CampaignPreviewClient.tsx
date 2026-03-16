@@ -4,9 +4,15 @@ import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useSearchParams } from "next/navigation";
-import { 
-    Sparkles, ArrowLeft, Video, Download, Check, Copy, 
-    Image as ImageIcon, Loader2, Printer
+import {
+    Sparkles,
+    ArrowLeft,
+    Video,
+    Download,
+    Check,
+    Copy,
+    Image as ImageIcon,
+    Printer,
 } from "lucide-react";
 
 import SalesFeedbackInline from "@/components/feedback/SalesFeedbackInline";
@@ -16,9 +22,8 @@ import { Store } from "@/lib/domain/stores/types";
 import { Campaign as CampaignModel } from "@/lib/campaigns/types";
 import { ActiveTab, ViewMode } from "@/lib/domain/campaigns/types";
 import { CampaignPreviewData } from "../../new/_components/types";
-import { mapDbCampaignToDomain } from "@/lib/campaigns/mapper";
 import { PreviewReadyState } from "../../new/_components/PreviewReadyState";
-import * as selectors from "@/lib/campaigns/selectors";
+import { renderCampaignArtToBlob } from "@/app/dashboard/campaigns/_components/renderCampaignArt";
 
 /** Tipo consolidado de campanha para a UI */
 export type Campaign = CampaignModel & {
@@ -33,8 +38,10 @@ function Field({ label, value }: { label: string; value?: string | null }) {
     if (!value) return null;
     return (
         <div className="rounded-xl border border-black/5 bg-zinc-50 px-4 py-3">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{label}</div>
-            <div className="mt-1 text-sm text-zinc-900 whitespace-pre-wrap">{value}</div>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                {label}
+            </div>
+            <div className="mt-1 whitespace-pre-wrap text-sm text-zinc-900">{value}</div>
         </div>
     );
 }
@@ -43,20 +50,20 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
     const router = useRouter();
     const searchParams = useSearchParams();
     const modeParam = searchParams.get("mode");
-    
+
     const hasArt = !!(campaign.imageUrl || campaign.aiGeneratedAt);
     const hasVideo = !!(campaign.reelsScript || campaign.reelsGeneratedAt);
-    const isFinalized = campaign.status === "ready" || campaign.status === "approved";
+    const isApproved = campaign.status === "approved";
 
     const [activeTab, setActiveTab] = useState<ActiveTab>(
-        hasArt ? "art" : (hasVideo ? "video" : "art")
+        hasArt ? "art" : hasVideo ? "video" : "art"
     );
-    
+
     const [viewMode, setViewMode] = useState<ViewMode>(
-        modeParam === "view" ? "view" : (hasArt || hasVideo ? "view" : "edit")
+        modeParam === "view" ? "view" : hasArt || hasVideo ? "view" : "edit"
     );
     const [isSaving, setIsSaving] = useState(false);
-    const [isCloning, setIsCloning] = useState(false); // Flag para novo fluxo
+    const [isCloning, setIsCloning] = useState(false);
     const [previewData, setPreviewData] = useState<CampaignPreviewData | null>(null);
     const [loadingText, setLoadingText] = useState(false);
     const [loadingReels, setLoadingReels] = useState(false);
@@ -74,44 +81,53 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
 
     const priceText = useMemo(() => {
         if (campaign.price == null) return null;
-        return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(campaign.price);
+        return new Intl.NumberFormat("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+        }).format(campaign.price);
     }, [campaign.price]);
 
-    const canGenerate = !!(campaign.productName && campaign.price != null && campaign.audience && campaign.objective);
+    const canGenerate = !!(
+        campaign.productName &&
+        campaign.price != null &&
+        campaign.audience &&
+        campaign.objective
+    );
 
     async function handleSaveBaseFields(data: CampaignSavePayload) {
         try {
             setErrorMsg(null);
             setIsSaving(true);
-            
-            // Lógica "Salvar Rascunho": Criar nova campanha com campos limpos
-            const { data: newCampaign, error } = await supabase.from("campaigns").insert({
-                store_id: campaign.storeId,
-                product_name: data.product_name,
-                price: data.price,
-                audience: data.audience,
-                objective: data.objective,
-                product_positioning: data.product_positioning,
-                product_image_url: data.product_image_url,
-                // Limpeza Total de IA
-                image_url: null,
-                ai_text: null,
-                ai_cta: null,
-                ai_caption: null,
-                ai_hashtags: null,
-                // Limpeza de Reels
-                reels_hook: null,
-                reels_script: null,
-                reels_shotlist: null,
-                reels_on_screen_text: null,
-                reels_audio_suggestion: null,
-                reels_duration_seconds: null,
-                reels_caption: null,
-                reels_cta: null,
-                reels_hashtags: null,
-                reels_generated_at: null,
-                status: 'draft'
-            }).select("id").single();
+
+            const { data: newCampaign, error } = await supabase
+                .from("campaigns")
+                .insert({
+                    store_id: campaign.storeId,
+                    product_name: data.product_name,
+                    price: data.price,
+                    audience: data.audience,
+                    objective: data.objective,
+                    product_positioning: data.product_positioning,
+                    product_image_url: data.product_image_url,
+                    image_url: null,
+                    ai_text: null,
+                    ai_cta: null,
+                    ai_caption: null,
+                    ai_hashtags: null,
+                    reels_hook: null,
+                    reels_script: null,
+                    reels_shotlist: null,
+                    reels_on_screen_text: null,
+                    reels_audio_suggestion: null,
+                    reels_duration_seconds: null,
+                    reels_caption: null,
+                    reels_cta: null,
+                    reels_hashtags: null,
+                    reels_generated_at: null,
+                    status: "draft",
+                })
+                .select("id")
+                .single();
 
             if (error) throw error;
             if (newCampaign?.id) {
@@ -129,7 +145,7 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
             setErrorMsg(null);
             if (type === "art") {
                 setLoadingText(true);
-                await generateText(true, data, true); // true, overrides, isFromEdit
+                await generateText(true, data, true);
             } else {
                 setLoadingReels(true);
                 await generateReels(false, data);
@@ -142,11 +158,16 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
         }
     }
 
-    async function generateText(force = false, overrides?: Partial<CampaignSavePayload>, isFromEditFlow = false) {
+    async function generateText(
+        force = false,
+        overrides?: Partial<CampaignSavePayload>,
+        isFromEditFlow = false
+    ) {
         if (!canGenerate && !overrides) return;
         try {
             setErrorMsg(null);
             setLoadingText(true);
+
             const res = await fetch("/api/generate/campaign", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -154,18 +175,22 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
                     campaign_id: campaign.id,
                     force,
                     description: overrides?.description,
-                    persist: !isFromEditFlow
+                    persist: !isFromEditFlow,
                 }),
             });
+
             const genData = await res.json();
             if (!genData.ok) throw new Error(genData.error);
 
-            // Se for do fluxo de edição, usamos o output da IA sem afetar a campanha atual ainda
             const aiOutput = genData.output;
             const rawStore = campaign.stores;
 
             setPreviewData({
-                imageUrl: overrides?.product_image_url || campaign.productImageUrl || campaign.imageUrl || "",
+                imageUrl:
+                    overrides?.product_image_url ||
+                    campaign.productImageUrl ||
+                    campaign.imageUrl ||
+                    "",
                 headline: aiOutput?.headline || overrides?.product_name || campaign.productName || "",
                 bodyText: aiOutput?.text || "",
                 cta: aiOutput?.cta || "",
@@ -173,15 +198,19 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
                 hashtags: aiOutput?.hashtags || "",
                 price: overrides?.price !== undefined ? overrides.price : campaign.price,
                 layout: "solid",
-                store: rawStore ? {
-                    name: rawStore.name,
-                    address: `${rawStore.address || ""}${rawStore.neighborhood ? `, ${rawStore.neighborhood}` : ""}`,
-                    whatsapp: rawStore.whatsapp || rawStore.phone || "",
-                    primary_color: rawStore.primary_color,
-                    secondary_color: rawStore.secondary_color,
-                    logo_url: rawStore.logo_url,
-                } : undefined,
+                store: rawStore
+                    ? {
+                        name: rawStore.name,
+                        address: `${rawStore.address || ""}${rawStore.neighborhood ? `, ${rawStore.neighborhood}` : ""
+                            }`,
+                        whatsapp: rawStore.whatsapp || rawStore.phone || "",
+                        primary_color: rawStore.primary_color,
+                        secondary_color: rawStore.secondary_color,
+                        logo_url: rawStore.logo_url,
+                    }
+                    : undefined,
             });
+
             setIsCloning(isFromEditFlow);
             setViewMode("review");
         } catch (err: any) {
@@ -193,33 +222,40 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
 
     async function handleApproveReview() {
         if (!previewData) return;
+
         try {
             setIsSaving(true);
             let finalImageUrl = previewData.imageUrl;
-            const res = await fetch("/api/generate/og-image", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    layout: previewData.layout,
-                    imageUrl: previewData.imageUrl?.split('#')[0],
-                    headline: previewData.headline,
-                    bodyText: previewData.bodyText,
-                    cta: previewData.cta,
+
+            if (activeTab === "art") {
+                const blob = await renderCampaignArtToBlob({
+                    layout: previewData.layout || "solid",
+                    imageUrl: previewData.imageUrl?.split("#")[0] || "",
+                    headline: previewData.headline || "",
+                    bodyText: previewData.bodyText || "",
+                    cta: previewData.cta || "",
                     price: previewData.price,
-                    storeName: previewData.store?.name,
-                    storeAddress: previewData.store?.address,
-                    whatsapp: previewData.store?.whatsapp,
-                    primaryColor: previewData.store?.primary_color
-                })
-            });
-            if (res.ok) {
-                const blob = await res.blob();
+                    store: previewData.store,
+                });
+
                 const path = `art-${campaign.id}-${Date.now()}.png`;
-                const { error: upErr } = await supabase.storage.from("campaign-images").upload(path, blob);
-                if (!upErr) {
-                    const { data: pub } = supabase.storage.from("campaign-images").getPublicUrl(path);
-                    finalImageUrl = pub.publicUrl;
+
+                const { error: upErr } = await supabase.storage
+                    .from("campaign-images")
+                    .upload(path, blob, {
+                        contentType: "image/png",
+                        upsert: true,
+                    });
+
+                if (upErr) {
+                    throw upErr;
                 }
+
+                const { data: pub } = supabase.storage
+                    .from("campaign-images")
+                    .getPublicUrl(path);
+
+                finalImageUrl = pub.publicUrl;
             }
 
             const artData = {
@@ -236,7 +272,7 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
                 ai_hashtags: previewData.hashtags,
                 image_url: finalImageUrl,
                 ai_generated_at: new Date().toISOString(),
-                status: 'ready'
+                status: "approved" as const,
             };
 
             const videoPayload = {
@@ -250,35 +286,56 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
                 reels_cta: previewData.reelsCta,
                 reels_hashtags: previewData.reelsHashtags,
                 reels_generated_at: new Date().toISOString(),
-                status: 'ready'
+                status: "approved" as const,
             };
 
             if (isCloning) {
-                const dataToInsert = activeTab === "video" 
-                    ? { ...videoPayload, store_id: campaign.storeId } 
-                    : { 
-                        ...artData, 
-                        store_id: campaign.storeId,
-                        // Limpeza de Reels no clone se vier da aba Arte
-                        reels_hook: null, reels_script: null, reels_shotlist: null,
-                        reels_on_screen_text: null, reels_audio_suggestion: null,
-                        reels_duration_seconds: null, reels_caption: null,
-                        reels_cta: null, reels_hashtags: null, reels_generated_at: null
-                      };
+                const dataToInsert =
+                    activeTab === "video"
+                        ? {
+                            ...videoPayload,
+                            store_id: campaign.storeId,
+                        }
+                        : {
+                            ...artData,
+                            store_id: campaign.storeId,
+                            reels_hook: null,
+                            reels_script: null,
+                            reels_shotlist: null,
+                            reels_on_screen_text: null,
+                            reels_audio_suggestion: null,
+                            reels_duration_seconds: null,
+                            reels_caption: null,
+                            reels_cta: null,
+                            reels_hashtags: null,
+                            reels_generated_at: null,
+                        };
 
-                const { data: newC, error: dbErr } = await supabase.from("campaigns").insert(dataToInsert).select("id").single();
+                const { data: newC, error: dbErr } = await supabase
+                    .from("campaigns")
+                    .insert(dataToInsert)
+                    .select("id")
+                    .single();
+
                 if (dbErr) throw dbErr;
                 router.push(`/dashboard/campaigns/${newC.id}`);
             } else {
-                // Se estivermos na aba Vídeo, salvamos apenas campos de vídeo
                 if (activeTab === "video") {
-                    const { error: videoErr } = await supabase.from("campaigns").update(videoPayload).eq("id", campaign.id);
+                    const { error: videoErr } = await supabase
+                        .from("campaigns")
+                        .update(videoPayload)
+                        .eq("id", campaign.id);
+
                     if (videoErr) throw videoErr;
                 } else {
-                    const { error: dbErr } = await supabase.from("campaigns").update(artData).eq("id", campaign.id);
+                    const { error: dbErr } = await supabase
+                        .from("campaigns")
+                        .update(artData)
+                        .eq("id", campaign.id);
+
                     if (dbErr) throw dbErr;
                 }
-                
+
                 setViewMode("view");
                 router.refresh();
             }
@@ -289,10 +346,13 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
         }
     }
 
-    async function generateReels(force = false, overrides?: any) {
+    async function generateReels(force = false, overrides?: Partial<CampaignSavePayload>) {
         if (!canGenerate && !overrides) return;
+
         try {
+            setErrorMsg(null);
             setLoadingReels(true);
+
             const res = await fetch("/api/generate/reels", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -300,10 +360,12 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
                     campaign_id: campaign.id,
                     force,
                     persist: false,
-                    description: overrides?.description
+                    description: overrides?.description,
                 }),
             });
+
             if (!res.ok) throw new Error("Erro na geração");
+
             const genData = await res.json();
             const reels = genData.reels;
 
@@ -319,10 +381,12 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
                 reelsCaption: reels.caption,
                 reelsCta: reels.cta,
                 reelsHashtags: reels.hashtags,
-                store: campaign.stores ? {
-                    name: campaign.stores.name,
-                    primary_color: campaign.stores.primary_color
-                } : undefined
+                store: campaign.stores
+                    ? {
+                        name: campaign.stores.name,
+                        primary_color: campaign.stores.primary_color,
+                    }
+                    : undefined,
             });
 
             setViewMode("review");
@@ -336,16 +400,45 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
 
     async function handleCopyVideoScript() {
         if (!campaign.reelsScript) return;
+
         const allText = [
-            "HOOK:",        campaign.reelsHook,      "",
-            "ROTEIRO:",     campaign.reelsScript,    "",
-            campaign.reelsDurationSeconds ? `FOCO DO VÍDEO:\n⏱️ ${campaign.reelsDurationSeconds}s${campaign.reelsAudioSuggestion ? ` · 🎵 ${campaign.reelsAudioSuggestion}` : ""}` : null, "",
-            Array.isArray(campaign.reelsOnScreenText) && campaign.reelsOnScreenText.length ? `TEXTO NA TELA:\n${campaign.reelsOnScreenText.map((t: string) => `"${t}"`).join(" · ")}` : null, "",
-            Array.isArray(campaign.reelsShotlist) && campaign.reelsShotlist.length ? `CENAS SUGERIDAS:\n${campaign.reelsShotlist.map((s: any) => `Cena ${s.scene} [${s.camera}]\nAção: ${s.action}\n"${s.dialogue}"`).join("\n\n")}` : null, "",
-            "LEGENDA:",     campaign.reelsCaption,   "",
-            "CTA:",         campaign.reelsCta,       "",
-            "HASHTAGS:",    campaign.reelsHashtags,
-        ].filter(v => v !== null).join("\n");
+            "HOOK:",
+            campaign.reelsHook,
+            "",
+            "ROTEIRO:",
+            campaign.reelsScript,
+            "",
+            campaign.reelsDurationSeconds
+                ? `FOCO DO VÍDEO:\n⏱️ ${campaign.reelsDurationSeconds}s${campaign.reelsAudioSuggestion ? ` · 🎵 ${campaign.reelsAudioSuggestion}` : ""
+                }`
+                : null,
+            "",
+            Array.isArray(campaign.reelsOnScreenText) && campaign.reelsOnScreenText.length
+                ? `TEXTO NA TELA:\n${campaign.reelsOnScreenText
+                    .map((t: string) => `"${t}"`)
+                    .join(" · ")}`
+                : null,
+            "",
+            Array.isArray(campaign.reelsShotlist) && campaign.reelsShotlist.length
+                ? `CENAS SUGERIDAS:\n${campaign.reelsShotlist
+                    .map(
+                        (s: any) =>
+                            `Cena ${s.scene} [${s.camera}]\nAção: ${s.action}\n"${s.dialogue}"`
+                    )
+                    .join("\n\n")}`
+                : null,
+            "",
+            "LEGENDA:",
+            campaign.reelsCaption,
+            "",
+            "CTA:",
+            campaign.reelsCta,
+            "",
+            "HASHTAGS:",
+            campaign.reelsHashtags,
+        ]
+            .filter((v) => v !== null)
+            .join("\n");
 
         try {
             await navigator.clipboard.writeText(allText);
@@ -358,9 +451,11 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
 
     function handlePrintVideo() {
         if (!campaign.reelsScript) return;
+
         const productName = campaign.productName || "Campanha";
         const printWindow = window.open("", "_blank");
         if (!printWindow) return;
+
         printWindow.document.write(`
             <html>
             <head>
@@ -378,17 +473,50 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
             </head>
             <body>
                 <h1>Roteiro de Vídeo Curto — ${productName}</h1>
-                ${campaign.reelsHook ? `<section><div class="label">🎯 Hook (Gancho Vital)</div><div class="content" style="font-weight:700; font-style:italic; font-size:16px">${campaign.reelsHook}</div></section>` : ""}
-                ${campaign.reelsDurationSeconds || campaign.reelsAudioSuggestion ? `<section><div class="label">📽️ Foco do Vídeo</div><div class="content">${campaign.reelsDurationSeconds ? `⏱️ ${campaign.reelsDurationSeconds}s` : ""} ${campaign.reelsAudioSuggestion ? `🎵 ${campaign.reelsAudioSuggestion}` : ""}</div></section>` : ""}
-                ${Array.isArray(campaign.reelsOnScreenText) && campaign.reelsOnScreenText.length ? `<section><div class="label">📝 Texto na Tela</div><div class="content">${campaign.reelsOnScreenText.map((t: string) => `• "${t}"`).join("<br>")}</div></section>` : ""}
-                ${campaign.reelsScript ? `<section><div class="label">🎬 Roteiro Sugerido</div><div class="content">${campaign.reelsScript.replace(/\n/g, "<br>")}</div></section>` : ""}
-                ${Array.isArray(campaign.reelsShotlist) && campaign.reelsShotlist.length ? `<section><div class="label">📋 Cenas Sugeridas</div>${campaign.reelsShotlist.map((s: any) => `<div class="scene"><div class="scene-num">Cena ${s.scene} — ${s.camera}</div><div>Ação: ${s.action}</div><div style="color:#52525b;font-style:italic">"${s.dialogue}"</div></div>`).join("")}</section>` : ""}
-                ${campaign.reelsCaption ? `<section><div class="label">💬 Legenda</div><div class="content">${campaign.reelsCaption}</div></section>` : ""}
-                ${campaign.reelsCta ? `<section><div class="label">📣 CTA</div><div class="content" style="font-weight:700">${campaign.reelsCta}</div></section>` : ""}
-                ${campaign.reelsHashtags ? `<section><div class="label">#️⃣ Hashtags</div><div class="content" style="color:#52525b">${campaign.reelsHashtags}</div></section>` : ""}
+                ${campaign.reelsHook
+                ? `<section><div class="label">🎯 Hook (Gancho Vital)</div><div class="content" style="font-weight:700; font-style:italic; font-size:16px">${campaign.reelsHook}</div></section>`
+                : ""
+            }
+                ${campaign.reelsDurationSeconds || campaign.reelsAudioSuggestion
+                ? `<section><div class="label">📽️ Foco do Vídeo</div><div class="content">${campaign.reelsDurationSeconds ? `⏱️ ${campaign.reelsDurationSeconds}s` : ""
+                } ${campaign.reelsAudioSuggestion ? `🎵 ${campaign.reelsAudioSuggestion}` : ""}</div></section>`
+                : ""
+            }
+                ${Array.isArray(campaign.reelsOnScreenText) && campaign.reelsOnScreenText.length
+                ? `<section><div class="label">📝 Texto na Tela</div><div class="content">${campaign.reelsOnScreenText
+                    .map((t: string) => `• "${t}"`)
+                    .join("<br>")}</div></section>`
+                : ""
+            }
+                ${campaign.reelsScript
+                ? `<section><div class="label">🎬 Roteiro Sugerido</div><div class="content">${campaign.reelsScript.replace(/\n/g, "<br>")}</div></section>`
+                : ""
+            }
+                ${Array.isArray(campaign.reelsShotlist) && campaign.reelsShotlist.length
+                ? `<section><div class="label">📋 Cenas Sugeridas</div>${campaign.reelsShotlist
+                    .map(
+                        (s: any) =>
+                            `<div class="scene"><div class="scene-num">Cena ${s.scene} — ${s.camera}</div><div>Ação: ${s.action}</div><div style="color:#52525b;font-style:italic">"${s.dialogue}"</div></div>`
+                    )
+                    .join("")}</section>`
+                : ""
+            }
+                ${campaign.reelsCaption
+                ? `<section><div class="label">💬 Legenda</div><div class="content">${campaign.reelsCaption}</div></section>`
+                : ""
+            }
+                ${campaign.reelsCta
+                ? `<section><div class="label">📣 CTA</div><div class="content" style="font-weight:700">${campaign.reelsCta}</div></section>`
+                : ""
+            }
+                ${campaign.reelsHashtags
+                ? `<section><div class="label">#️⃣ Hashtags</div><div class="content" style="color:#52525b">${campaign.reelsHashtags}</div></section>`
+                : ""
+            }
             </body>
             </html>
         `);
+
         printWindow.document.close();
         printWindow.focus();
         printWindow.print();
@@ -396,12 +524,13 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
 
     async function handleCopyArt() {
         if (!imageUrlClean) return;
+
         setArtStatus("copying");
         try {
             const res = await fetch(imageUrlClean);
             const blob = await res.blob();
             const pngBlob = blob.type === "image/png" ? blob : await convertToPng(blob);
-            const item = new ClipboardItem({ "image/png": pngBlob }); 
+            const item = new ClipboardItem({ "image/png": pngBlob });
             await (navigator.clipboard as any).write([item]);
             setArtStatus("copied");
         } catch {
@@ -414,6 +543,7 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
 
     async function handleDownloadArt() {
         if (!imageUrlClean || artStatus === "saving") return;
+
         try {
             setArtStatus("saving");
             const res = await fetch(imageUrlClean);
@@ -435,6 +565,7 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
         return new Promise((resolve, reject) => {
             const img = new Image();
             const url = URL.createObjectURL(blob);
+
             img.onload = () => {
                 const canvas = document.createElement("canvas");
                 canvas.width = img.width;
@@ -446,91 +577,232 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
                     b ? resolve(b) : reject(new Error("canvas toBlob failed"));
                 }, "image/png");
             };
-            img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("img load failed")); };
+
+            img.onerror = () => {
+                URL.revokeObjectURL(url);
+                reject(new Error("img load failed"));
+            };
+
             img.src = url;
         });
     }
 
     return (
-        <div className="space-y-6 max-w-6xl mx-auto">
+        <div className="mx-auto max-w-6xl space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
-                <Link href="/dashboard/campaigns" className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-medium text-zinc-800 shadow-sm transition hover:bg-zinc-50">
+                <Link
+                    href="/dashboard/campaigns"
+                    className="inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white px-3 py-2 text-sm font-medium text-zinc-800 shadow-sm transition hover:bg-zinc-50"
+                >
                     <ArrowLeft className="h-4 w-4" /> Voltar
                 </Link>
-                <div className={cx("inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium shadow-sm transition", 
-                    viewMode === "review" ? "border-amber-200 bg-amber-50 text-amber-800" :
-                    currentTabHasContent ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-black/5 bg-white text-zinc-700")}>
-                    <Sparkles className="h-4 w-4" /> <span>{viewMode === "review" ? "Aguardando aprovação" : currentTabHasContent ? "Conteúdo por IA" : "Aguardando geração"}</span>
+
+                <div
+                    className={cx(
+                        "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium shadow-sm transition",
+                        viewMode === "review"
+                            ? "border-amber-200 bg-amber-50 text-amber-800"
+                            : currentTabHasContent
+                                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                                : "border-black/5 bg-white text-zinc-700"
+                    )}
+                >
+                    <Sparkles className="h-4 w-4" />
+                    <span>
+                        {viewMode === "review"
+                            ? "Aguardando aprovação"
+                            : currentTabHasContent
+                                ? "Conteúdo por IA"
+                                : "Aguardando geração"}
+                    </span>
                 </div>
             </div>
 
-            {errorMsg && <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{errorMsg}</div>}
+            {errorMsg && (
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {errorMsg}
+                </div>
+            )}
 
             {viewMode === "review" && previewData ? (
                 <div className="space-y-6">
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
                         <div className="flex items-center gap-3">
-                            <button onClick={startEditing} className="h-10 w-10 flex items-center justify-center rounded-full border border-black/5 bg-white text-zinc-500 hover:text-zinc-900 transition shadow-sm"><ArrowLeft className="h-5 w-5" /></button>
-                            <h2 className="text-xl font-bold text-zinc-900 tracking-tight">Revisão</h2>
+                            <button
+                                onClick={startEditing}
+                                className="flex h-10 w-10 items-center justify-center rounded-full border border-black/5 bg-white text-zinc-500 shadow-sm transition hover:text-zinc-900"
+                            >
+                                <ArrowLeft className="h-5 w-5" />
+                            </button>
+                            <h2 className="text-xl font-bold tracking-tight text-zinc-900">Revisão</h2>
                         </div>
-                         <div className="flex gap-3">
-                            <button onClick={startEditing} className="rounded-xl border border-black/5 bg-white px-4 py-2 text-sm font-semibold">Voltar</button>
-                            <button onClick={handleApproveReview} disabled={isSaving} className="rounded-xl bg-zinc-900 px-6 py-2 text-sm font-semibold text-white">
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={startEditing}
+                                className="rounded-xl border border-black/5 bg-white px-4 py-2 text-sm font-semibold"
+                            >
+                                Voltar
+                            </button>
+                            <button
+                                onClick={handleApproveReview}
+                                disabled={isSaving}
+                                className="rounded-xl bg-zinc-900 px-6 py-2 text-sm font-semibold text-white"
+                            >
                                 {isSaving ? "Salvando..." : "Aprovar e salvar"}
                             </button>
                         </div>
                     </div>
-                    <PreviewReadyState preview={previewData} onUpdatePreview={setPreviewData} generatePost={activeTab === "art"} generateReels={activeTab === "video"} />
+
+                    <PreviewReadyState
+                        preview={previewData}
+                        onUpdatePreview={setPreviewData}
+                        generatePost={activeTab === "art"}
+                        generateReels={activeTab === "video"}
+                    />
                 </div>
             ) : viewMode === "edit" ? (
-                <CampaignEditForm campaign={campaign} store={campaign.stores} onSave={handleSaveBaseFields} onCancel={() => setViewMode("view")} onGenerateArt={(d) => handleGenerateFromEdit("art", d)} onGenerateVideo={(d) => handleGenerateFromEdit("video", d)} activeTab={activeTab} lockContext={true} isSaving={isSaving} isGeneratingArt={loadingText} isGeneratingVideo={loadingReels} />
+                <CampaignEditForm
+                    campaign={campaign}
+                    store={campaign.stores}
+                    onSave={handleSaveBaseFields}
+                    onCancel={() => setViewMode("view")}
+                    onGenerateArt={(d) => handleGenerateFromEdit("art", d)}
+                    onGenerateVideo={(d) => handleGenerateFromEdit("video", d)}
+                    activeTab={activeTab}
+                    lockContext={true}
+                    isSaving={isSaving}
+                    isGeneratingArt={loadingText}
+                    isGeneratingVideo={loadingReels}
+                />
             ) : (
                 <div className="space-y-6">
-                    <div className="flex flex-col sm:flex-row items-center gap-6 rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
+                    <div className="flex flex-col items-center gap-6 rounded-3xl border border-black/5 bg-white p-6 shadow-sm sm:flex-row">
                         <div className="relative h-40 w-40 shrink-0 overflow-hidden rounded-2xl border border-black/5 bg-zinc-50">
-                            {imageUrlClean ? <img src={imageUrlClean} alt="Post" className="h-full w-full object-cover" /> : <div className="grid h-full w-full place-items-center"><ImageIcon className="h-8 w-8 text-zinc-200" /></div>}
+                            {imageUrlClean ? (
+                                <img src={imageUrlClean} alt="Post" className="h-full w-full object-cover" />
+                            ) : (
+                                <div className="grid h-full w-full place-items-center">
+                                    <ImageIcon className="h-8 w-8 text-zinc-200" />
+                                </div>
+                            )}
                         </div>
+
                         <div className="flex-1">
                             <div className="flex items-center gap-3">
                                 <h2 className="text-2xl font-bold text-zinc-900">{campaign.productName}</h2>
-                                {isFinalized && <span className="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-1 rounded ring-1 ring-inset ring-emerald-600/10 uppercase">Finalizada</span>}
+                                {isApproved && (
+                                    <span className="rounded bg-emerald-50 px-2 py-1 text-[10px] font-bold uppercase text-emerald-700 ring-1 ring-inset ring-emerald-600/10">
+                                        Aprovada
+                                    </span>
+                                )}
                             </div>
+
                             <div className="mt-2 flex flex-wrap gap-2">
-                                {priceText && <span className="px-3 py-1 bg-zinc-50 rounded-full text-xs font-semibold">{priceText}</span>}
-                                <span className="px-3 py-1 bg-zinc-50 rounded-full text-xs font-semibold uppercase">{OBJECTIVE_OPTIONS.find(o => o.value === campaign.objective)?.label || campaign.objective}</span>
+                                {priceText && (
+                                    <span className="rounded-full bg-zinc-50 px-3 py-1 text-xs font-semibold">
+                                        {priceText}
+                                    </span>
+                                )}
+                                <span className="rounded-full bg-zinc-50 px-3 py-1 text-xs font-semibold uppercase">
+                                    {OBJECTIVE_OPTIONS.find((o) => o.value === campaign.objective)?.label ||
+                                        campaign.objective}
+                                </span>
                             </div>
                         </div>
                     </div>
 
                     <div className="flex border-b border-black/5">
-                        <button onClick={() => setActiveTab("art")} className={cx("px-5 py-3 text-sm font-bold transition", activeTab === "art" ? "text-zinc-900 border-b-2 border-zinc-900" : "text-zinc-400")}>Arte</button>
-                        <button onClick={() => setActiveTab("video")} className={cx("px-5 py-3 text-sm font-bold transition", activeTab === "video" ? "text-zinc-900 border-b-2 border-zinc-900" : "text-zinc-400")}>Vídeo</button>
+                        <button
+                            onClick={() => setActiveTab("art")}
+                            className={cx(
+                                "px-5 py-3 text-sm font-bold transition",
+                                activeTab === "art"
+                                    ? "border-b-2 border-zinc-900 text-zinc-900"
+                                    : "text-zinc-400"
+                            )}
+                        >
+                            Arte
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("video")}
+                            className={cx(
+                                "px-5 py-3 text-sm font-bold transition",
+                                activeTab === "video"
+                                    ? "border-b-2 border-zinc-900 text-zinc-900"
+                                    : "text-zinc-400"
+                            )}
+                        >
+                            Vídeo
+                        </button>
                     </div>
 
-                    <div className="max-w-3xl mx-auto">
-                        {activeTab === "art" && (
-                            hasAi ? (
-                                <div className="space-y-6 bg-white p-6 rounded-3xl border border-black/5">
-                                    <div className="aspect-[4/5] relative rounded-2xl overflow-hidden shadow-lg max-w-[400px] mx-auto border border-zinc-100">{campaign.imageUrl ? <img src={imageUrlClean} alt="Arte" className="w-full h-full object-cover" /> : <div className="h-full grid place-items-center bg-zinc-50 text-zinc-300"><ImageIcon className="h-8 w-8" /></div>}</div>
+                    <div className="mx-auto max-w-3xl">
+                        {activeTab === "art" &&
+                            (hasAi ? (
+                                <div className="space-y-6 rounded-3xl border border-black/5 bg-white p-6">
+                                    <div className="relative mx-auto aspect-[4/5] max-w-[400px] overflow-hidden rounded-2xl border border-zinc-100 shadow-lg">
+                                        {campaign.imageUrl ? (
+                                            <img
+                                                src={imageUrlClean}
+                                                alt="Arte"
+                                                className="h-full w-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="grid h-full place-items-center bg-zinc-50 text-zinc-300">
+                                                <ImageIcon className="h-8 w-8" />
+                                            </div>
+                                        )}
+                                    </div>
+
                                     <div className="space-y-3">
                                         <Field label="Legenda" value={campaign.aiCaption} />
                                         <Field label="Hashtags" value={campaign.aiHashtags} />
                                         <SalesFeedbackInline contentType="campaign" campaignId={campaign.id} />
-                                        <div className="flex flex-col sm:flex-row gap-3 pt-4">
+
+                                        <div className="flex flex-col gap-3 pt-4 sm:flex-row">
                                             <button
                                                 onClick={handleCopyArt}
-                                                disabled={!campaign.imageUrl || artStatus === "copying" || artStatus === "saving"}
-                                                className="flex-1 inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-black/10 bg-white px-4 text-sm font-bold text-zinc-800 shadow-sm transition hover:bg-zinc-50 disabled:opacity-50"
+                                                disabled={
+                                                    !campaign.imageUrl ||
+                                                    artStatus === "copying" ||
+                                                    artStatus === "saving"
+                                                }
+                                                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-black/10 bg-white px-4 text-sm font-bold text-zinc-800 shadow-sm transition hover:bg-zinc-50 disabled:opacity-50"
                                             >
-                                                {artStatus === "copied" ? <><Check className="h-4 w-4 text-emerald-600" /> Copiado!</> : artStatus === "copying" ? <><ImageIcon className="h-4 w-4 animate-pulse" /> Copiando...</> : <><ImageIcon className="h-4 w-4" /> Copiar Arte</>}
+                                                {artStatus === "copied" ? (
+                                                    <>
+                                                        <Check className="h-4 w-4 text-emerald-600" /> Copiado!
+                                                    </>
+                                                ) : artStatus === "copying" ? (
+                                                    <>
+                                                        <ImageIcon className="h-4 w-4 animate-pulse" /> Copiando...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <ImageIcon className="h-4 w-4" /> Copiar Arte
+                                                    </>
+                                                )}
                                             </button>
 
                                             <button
                                                 onClick={handleDownloadArt}
-                                                disabled={!campaign.imageUrl || artStatus === "saving" || artStatus === "copying"}
-                                                className="flex-1 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-zinc-800 disabled:opacity-50"
+                                                disabled={
+                                                    !campaign.imageUrl ||
+                                                    artStatus === "saving" ||
+                                                    artStatus === "copying"
+                                                }
+                                                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-zinc-800 disabled:opacity-50"
                                             >
-                                                {artStatus === "saving" ? <><Download className="h-4 w-4 animate-bounce" /> Baixando...</> : <><Download className="h-4 w-4" /> Baixar Arte</>}
+                                                {artStatus === "saving" ? (
+                                                    <>
+                                                        <Download className="h-4 w-4 animate-bounce" /> Baixando...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Download className="h-4 w-4" /> Baixar Arte
+                                                    </>
+                                                )}
                                             </button>
 
                                             <button
@@ -543,38 +815,55 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
                                     </div>
                                 </div>
                             ) : (
-                                <div className="p-12 text-center rounded-3xl border border-dashed bg-zinc-50">
-                                    <Sparkles className="mx-auto h-8 w-8 text-zinc-300 mb-4" />
-                                    <p className="text-sm text-zinc-500 mb-6">Essa campanha não tem arte pronta, você pode gerar uma arte nova agora!</p>
-                                    <button onClick={() => { startEditing(); setActiveTab("art"); }} className="bg-zinc-900 text-white px-8 py-2.5 rounded-xl font-bold hover:bg-black transition-all">
+                                <div className="rounded-3xl border border-dashed bg-zinc-50 p-12 text-center">
+                                    <Sparkles className="mx-auto mb-4 h-8 w-8 text-zinc-300" />
+                                    <p className="mb-6 text-sm text-zinc-500">
+                                        Essa campanha não tem arte pronta, você pode gerar uma arte nova agora!
+                                    </p>
+                                    <button
+                                        onClick={() => {
+                                            startEditing();
+                                            setActiveTab("art");
+                                        }}
+                                        className="rounded-xl bg-zinc-900 px-8 py-2.5 font-bold text-white transition-all hover:bg-black"
+                                    >
                                         Gerar Conteúdo
                                     </button>
                                 </div>
-                            )
-                        )}
-                        {activeTab === "video" && (
-                            hasReels ? (
-                                <div className="space-y-6 bg-white p-6 rounded-3xl border border-black/5">
+                            ))}
+
+                        {activeTab === "video" &&
+                            (hasReels ? (
+                                <div className="space-y-6 rounded-3xl border border-black/5 bg-white p-6">
                                     <Field label="Hook" value={campaign.reelsHook} />
                                     <Field label="Roteiro" value={campaign.reelsScript} />
                                     <SalesFeedbackInline contentType="reels" campaignId={campaign.id} />
-                                    <div className="flex flex-col sm:flex-row gap-3 pt-4">
+
+                                    <div className="flex flex-col gap-3 pt-4 sm:flex-row">
                                         <button
                                             onClick={handleCopyVideoScript}
-                                            className="flex-1 inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-black/10 bg-white px-4 text-sm font-bold text-zinc-800 shadow-sm transition hover:bg-zinc-50"
+                                            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-black/10 bg-white px-4 text-sm font-bold text-zinc-800 shadow-sm transition hover:bg-zinc-50"
                                         >
-                                            {videoStatus === "copied" ? <><Check className="h-4 w-4 text-emerald-600" /> Copiado!</> : <><Copy className="h-4 w-4" /> Copiar Roteiro</>}
+                                            {videoStatus === "copied" ? (
+                                                <>
+                                                    <Check className="h-4 w-4 text-emerald-600" /> Copiado!
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Copy className="h-4 w-4" /> Copiar Roteiro
+                                                </>
+                                            )}
                                         </button>
-                                        
+
                                         <button
                                             onClick={handlePrintVideo}
-                                            className="flex-1 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-zinc-800"
+                                            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-zinc-800"
                                         >
                                             <Printer className="h-4 w-4" /> Imprimir Roteiro
                                         </button>
 
-                                        <button 
-                                            onClick={startEditing} 
+                                        <button
+                                            onClick={startEditing}
                                             className="inline-flex h-11 items-center justify-center rounded-xl border border-black/10 bg-white px-6 text-sm font-bold text-zinc-600 shadow-sm transition hover:bg-zinc-50"
                                         >
                                             Editar
@@ -582,15 +871,22 @@ export function CampaignPreviewClient({ campaign }: { campaign: Campaign }) {
                                     </div>
                                 </div>
                             ) : (
-                                <div className="p-12 text-center rounded-3xl border border-dashed bg-zinc-50">
-                                    <Video className="mx-auto h-8 w-8 text-zinc-300 mb-4" />
-                                    <p className="text-sm text-zinc-500 mb-6">Essa campanha não tem roteiro de vídeo pronto, você pode gerar um novo agora!</p>
-                                    <button onClick={() => { startEditing(); setActiveTab("video"); }} className="bg-zinc-900 text-white px-8 py-2.5 rounded-xl font-bold hover:bg-black transition-all">
+                                <div className="rounded-3xl border border-dashed bg-zinc-50 p-12 text-center">
+                                    <Video className="mx-auto mb-4 h-8 w-8 text-zinc-300" />
+                                    <p className="mb-6 text-sm text-zinc-500">
+                                        Essa campanha não tem roteiro de vídeo pronto, você pode gerar um novo agora!
+                                    </p>
+                                    <button
+                                        onClick={() => {
+                                            startEditing();
+                                            setActiveTab("video");
+                                        }}
+                                        className="rounded-xl bg-zinc-900 px-8 py-2.5 font-bold text-white transition-all hover:bg-black"
+                                    >
                                         Gerar Roteiro
                                     </button>
                                 </div>
-                            )
-                        )}
+                            ))}
                     </div>
                 </div>
             )}

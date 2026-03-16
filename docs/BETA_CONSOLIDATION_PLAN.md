@@ -493,7 +493,61 @@ Tarefas:
 - Adicionar updated_at
 - Padronizar timestamptz
 
-Status: ⬜
+Status: ✅ Concluído
+
+### ✅ Dia 4 — Hardening Pré-Beta (Concluído)
+
+Objetivo: eliminar inconsistências que aparecem apenas em uso real do sistema, principalmente nos fluxos de criação, geração de conteúdo com IA, aprovação e persistência de campanhas.
+
+Principais melhorias implementadas:
+
+• Hardening do fluxo de criação de campanha (`/campaigns/new`)
+- Aprovação bloqueada quando conteúdo obrigatório não está completo.
+- Falhas de geração de conteúdo (especialmente reels) deixam de ser silenciosas.
+- Preview de campanha isolado do banco utilizando `persist: false`.
+
+• Correção semântica dos estados de campanha
+- `draft` → campanha em construção
+- `ready` → conteúdo gerado e revisável
+- `approved` → campanha final aprovada pelo usuário
+
+A interface deixa de tratar `ready` como estado final, evitando inconsistência entre geração e aprovação.
+
+• Validação forte nas rotas de geração de IA
+- Contratos de entrada reforçados com Zod.
+- Remoção de dependência de payloads não tipados (`any`).
+- Controle mais seguro do parâmetro `persist`.
+
+• Correção estrutural do pipeline de arte final
+A geração da arte final deixou de depender exclusivamente da rota `/api/generate/og-image`.
+
+Agora a arte é renderizada no navegador via Canvas e exportada como PNG antes de ser enviada para o bucket de storage. Isso elimina falhas observadas com imagens `.webp` e melhora a compatibilidade geral.
+
+Fluxo final da arte:
+Preview → Renderização Canvas → Exportação PNG → Upload → `image_url`.
+
+• Separação definitiva entre imagem de produto e arte final
+- `product_image_url` permanece como foto do produto.
+- `image_url` passa a representar exclusivamente a arte final aprovada.
+
+Isso evita situações onde a foto do produto era salva indevidamente como arte final.
+
+Resultado do hardening:
+- Criação de campanha mais robusta.
+- Aprovação mais segura.
+- Geração de arte final confiável para `.webp`, `.jpg` e `.png`.
+- Maior consistência entre preview, persistência e exibição no dashboard.
+
+Status: **Dia 4 concluído com sucesso.**
+
+Status do Plano
+Dia 1 — Modelo de Loja        ✅ Concluído
+Dia 2 — Segurança de Rotas    ✅ Concluído
+Dia 3 — Fluxo de Campanha     ✅ Concluído
+Dia 4 — Geração de Conteúdo   ✅ Concluído
+Dia 5 — UI / UX Final         ⏳ Planejado
+Dia 6 — Segurança             ⏳ Planejado
+Dia 7 — Fechamento            ⏳ Planejado
 
 ---
 
