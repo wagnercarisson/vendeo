@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 function requireEnv(name: string) {
   const value = process.env[name];
@@ -6,13 +6,21 @@ function requireEnv(name: string) {
   return value;
 }
 
+let adminClient: SupabaseClient | null = null;
+
 /**
  * Client Supabase com service-role key.
  * Use apenas em server-side (route handlers, server actions).
  * NUNCA exponha no client.
  */
-export const supabaseAdmin = createClient(
-  requireEnv("SUPABASE_URL"),
-  requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
-  { auth: { persistSession: false } }
-);
+export function getSupabaseAdmin() {
+  if (adminClient) return adminClient;
+
+  adminClient = createClient(
+    requireEnv("SUPABASE_URL"),
+    requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
+    { auth: { persistSession: false } }
+  );
+
+  return adminClient;
+}

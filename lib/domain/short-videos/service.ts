@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { callAIWithRetry } from "@/lib/ai/parse";
 import { fetchStoreContext } from "@/lib/domain/stores/queries";
 import { ShortVideoAISchema } from "./schemas";
@@ -27,6 +27,7 @@ export async function generateShortVideoContent(
   input: GenerateShortVideoInput
 ): Promise<GenerateShortVideoResult> {
   const { campaign_id, storeId, force = false, persist = true, description } = input;
+  const supabaseAdmin = getSupabaseAdmin();
 
   // 1) Busca campanha
   const { data: campaign, error: cErr } = await supabaseAdmin

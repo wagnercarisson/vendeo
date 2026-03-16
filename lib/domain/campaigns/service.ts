@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { callAIWithRetry } from "@/lib/ai/parse";
 import { fetchStoreContext } from "@/lib/domain/stores/queries";
 import { CampaignAISchema } from "./schemas";
@@ -28,6 +28,7 @@ export async function generateCampaignContent(
   input: GenerateCampaignInput
 ): Promise<GenerateCampaignResult> {
   const { campaign_id, storeId, force = false, description, persist = true } = input;
+  const supabaseAdmin = getSupabaseAdmin();
 
   // 1) Busca campanha e normaliza para o domínio
   const { data: rawCampaign, error: cErr } = await supabaseAdmin

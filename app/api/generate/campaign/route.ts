@@ -7,7 +7,6 @@ export async function POST(req: Request) {
   const requestId = crypto.randomUUID();
 
   try {
-    // 1) Parse e validação do body
     const json = await req.json().catch(() => null);
     const body = CampaignRequestSchema.safeParse(json);
 
@@ -18,35 +17,32 @@ export async function POST(req: Request) {
       );
     }
 
-    // 2) Autenticação e autorização
     let storeId: string;
     try {
       ({ storeId } = await getUserStoreIdOrThrow());
     } catch (e: any) {
       const msg = String(e?.message || "");
       if (msg === "not_authenticated") {
-        return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
+        return NextResponse.json({ ok: false, requestId, error: "not_authenticated" }, { status: 401 });
       }
-      return NextResponse.json({ error: "store_not_found" }, { status: 403 });
+      return NextResponse.json({ ok: false, requestId, error: "store_not_found" }, { status: 403 });
     }
 
-    // 3) Delega ao service
     const result = await generateCampaignContent({
       campaign_id: body.data.campaign_id,
       storeId,
       force: body.data.force,
       description: body.data.description,
-      persist: (json as any).persist,
+      persist: body.data.persist,
     });
 
-    // 4) Retorna response
     if (result.ok === false) {
       return NextResponse.json(
-        { 
-          ok: false, 
-          requestId, 
-          error: result.error, 
-          details: result.details 
+        {
+          ok: false,
+          requestId,
+          error: result.error,
+          details: result.details,
         },
         { status: result.status }
       );
