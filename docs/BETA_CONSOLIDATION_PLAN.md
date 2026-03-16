@@ -135,6 +135,80 @@ Essa migração será planejada em uma fase posterior.
 
 ---
 
+🔒 Preparação para Dia 2 — Auditoria de Segurança de Rotas
+
+Com a consolidação do modelo owner-based finalizada no Dia 1, o próximo passo da fase beta é garantir isolamento total de dados entre lojas.
+
+Durante o desenvolvimento inicial do produto, algumas rotas utilizam Supabase service role para executar operações privilegiadas (ex.: criação de loja, geração de conteúdo, inserções internas).
+
+Embora isso seja necessário em alguns fluxos, o uso de service role pode ignorar políticas RLS, o que exige validação manual no backend.
+
+Risco Potencial
+
+Uma rota que utilize service role e aceite store_id vindo do cliente pode permitir acesso a dados de outra loja caso não haja verificação adicional.
+
+Exemplo de cenário inseguro:
+
+Cliente envia store_id → API usa service role → operação executada sem verificar ownership
+
+Se isso ocorrer, um usuário poderia teoricamente operar sobre recursos pertencentes a outra loja.
+
+Regra de Segurança do Backend
+
+Toda rota que:
+
+utilize service role
+
+execute operações relacionadas a lojas
+
+receba ou manipule store_id
+
+deve obrigatoriamente seguir este fluxo:
+
+Obter o usuário autenticado.
+
+Resolver a loja real no servidor:
+
+SELECT id
+FROM stores
+WHERE owner_user_id = auth.uid()
+
+Utilizar essa loja resolvida no servidor como fonte de verdade.
+
+Regra Importante
+store_id enviado pelo cliente nunca deve ser considerado fonte de verdade.
+
+Ele pode ser usado como hint ou validado, mas a autoridade sempre deve vir do servidor.
+
+Objetivo do Dia 2
+
+Auditar todas as rotas app/api para garantir que:
+
+nenhuma operação privilegiada dependa de store_id enviado pelo cliente
+
+todas as rotas que usam service role validem ownership corretamente
+
+o isolamento entre lojas esteja garantido mesmo com bypass de RLS
+
+Resultado Esperado
+
+Ao final do Dia 2 o sistema terá:
+
+isolamento seguro entre lojas
+
+rotas privilegiadas protegidas
+
+menor risco de vazamento de dados
+
+arquitetura consistente entre frontend, API e banco
+
+Status do Plano
+Dia 1 — Modelo de Loja        ✅ Concluído
+Dia 2 — Segurança de Rotas    ▶ Em execução
+Dia 3 — Fluxo de Campanha     ⏳ Planejado
+Dia 4 — Geração de Conteúdo   ⏳ Planejado
+Dia 5 — UI / UX Final         ⏳ Planejado
+
 # Dia 2 — Status do Domínio
 
 Objetivo: criar contrato único de status.

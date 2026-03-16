@@ -1,23 +1,89 @@
 import { NextResponse } from "next/server";
 import { WeeklyStrategyRequestSchema } from "@/lib/domain/weekly-plans/schemas";
 import { generateWeeklyStrategy } from "@/lib/domain/weekly-plans/strategy";
+import { getUserStoreIdOrThrow } from "@/lib/store/getUserStoreId";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+
+type StoreOwnershipResult =
+  | { ok: true; userId: string }
+  | { ok: false; response: NextResponse };
+
+async function assertStoreOwnership(
+  requestId: string,
+  storeId: string
+): Promise<StoreOwnershipResult> {
+  let userId: string;
+
+  try {
+    ({ userId } = await getUserStoreIdOrThrow());
+  } catch (e: any) {
+    const msg = String(e?.message || "");
+
+    if (msg === "not_authenticated") {
+      return {
+        ok: false,
+        response: NextResponse.json(
+          { ok: false, requestId, error: "not_authenticated" },
+          { status: 401 }
+        ),
+      };
+    }
+
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { ok: false, requestId, error: "store_not_found" },
+        { status: 403 }
+      ),
+    };
+  }
+
+  const { data: owned, error } = await supabaseAdmin
+    .from("stores")
+    .select("id")
+    .eq("id", storeId)
+    .eq("owner_user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!owned) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { ok: false, requestId, error: "STORE_NOT_FOUND" },
+        { status: 403 }
+      ),
+    };
+  }
+
+  return { ok: true, userId };
+}
 
 export async function POST(req: Request) {
   const requestId = crypto.randomUUID();
 
   try {
-    // 1) Parse e validação do body
     const json = await req.json().catch(() => null);
     const body = WeeklyStrategyRequestSchema.safeParse(json);
 
     if (body.success === false) {
       return NextResponse.json(
-        { ok: false, requestId, error: "INVALID_INPUT", details: body.error.flatten() },
+        {
+          ok: false,
+          requestId,
+          error: "INVALID_INPUT",
+          details: body.error.flatten(),
+        },
         { status: 400 }
       );
     }
 
-    // 2) Delega ao service de estratégia
+    const own = await assertStoreOwnership(requestId, body.data.store_id);
+    if (own.ok === false) return own.response;
+
     const result = await generateWeeklyStrategy({
       storeId: body.data.store_id,
       weekStart: body.data.week_start,
@@ -34,7 +100,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // 3) Retorna — mantém a chave strategy_summary que o WizardShell espera
     return NextResponse.json({
       ok: true,
       requestId,
@@ -43,6 +108,7 @@ export async function POST(req: Request) {
   } catch (err: any) {
     const msg = typeof err?.message === "string" ? err.message : "UNKNOWN_ERROR";
     console.error("[weekly-strategy][POST] error:", msg, err?.stack ?? err);
+
     return NextResponse.json(
       { ok: false, requestId, error: "UNHANDLED", details: msg },
       { status: 500 }
