@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useSearchParams } from "next/navigation";
+import { sanitizeNextPath } from "@/lib/security/sanitizeNextPath";
 
 import BrandLogo from "@/components/dashboard/BrandLogo";
 
@@ -17,12 +18,10 @@ export default function LoginClient() {
     modeParam === "login" ? "login" : "signup";
 
   // aceita next (novo) e redirect (legado). fallback agora é /dashboard
-  const rawNext =
-    searchParams.get("next") ?? searchParams.get("redirect") ?? "/dashboard";
-
-  const redirectTo = rawNext.startsWith("%2F")
-    ? decodeURIComponent(rawNext)
-    : rawNext;
+  const redirectTo = sanitizeNextPath(
+    searchParams.get("next") ?? searchParams.get("redirect"),
+    "/dashboard"
+  );
 
   const [mode, setMode] = useState<"signup" | "login">("signup");
   const [view, setView] = useState<View>("auth");

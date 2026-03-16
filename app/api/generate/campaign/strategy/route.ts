@@ -1,26 +1,67 @@
 import { getUserStoreIdOrThrow } from "@/lib/store/getUserStoreId";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import { z } from "zod";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+const CampaignStrategyBodySchema = z
+  .object({
+    product: z
+      .object({
+        type: z.string().trim().min(1).max(40),
+        productName: z.string().trim().min(1).max(120),
+        description: z.string().trim().max(500).optional().default(""),
+        price: z.union([z.string(), z.number()]).optional(),
+      })
+      .strict(),
+  })
+  .strict();
+
+function normalizeField(value: string, max: number) {
+  return value.replace(/\s+/g, " ").trim().slice(0, max);
+}
 
 export async function POST(req: Request) {
   const requestId = crypto.randomUUID();
 
   try {
-    const { product } = await req.json();
+    const json = await req.json().catch(() => null);
+    const body = CampaignStrategyBodySchema.safeParse(json);
 
-    const { storeId } = await getUserStoreIdOrThrow();
+    if (body.success === false) {
+      return NextResponse.json(
+        {
+          ok: false,
+          requestId,
+          error: "INVALID_INPUT",
+          details: body.error.flatten(),
+        },
+        { status: 400 }
+      );
+    }
+
+    await getUserStoreIdOrThrow();
+
+    const productType = normalizeField(body.data.product.type, 40);
+    const productName = normalizeField(body.data.product.productName, 120);
+    const description = normalizeField(body.data.product.description ?? "", 500);
+
+    const rawPrice = body.data.product.price;
+    const price =
+      typeof rawPrice === "number"
+        ? String(rawPrice)
+        : normalizeField(rawPrice ?? "", 40);
 
     const prompt = `
 Você é um estrategista de marketing para VAREJO LOCAL. Sua missão é ajudar lojistas de bairro a venderem mais.
 Evite termos genéricos de agência (ex: "brand awareness", "conscientização"). Foque em RESULTADO IMEDIATO.
 
 ITEM:
-TIPO: ${product.type}
-NOME: ${product.productName}
-DESCRIÇÃO: ${product.description || "não informada"}
-PREÇO: ${product.price || "não informado"}
+TIPO: ${productType}
+NOME: ${productName}
+DESCRIÇÃO: ${description || "não informada"}
+PREÇO: ${price || "não informado"}
 
 REGRAS DE CONTEÚDO (ESCOLHA OBRIGATORIAMENTE DAS OPÇÕES ABAIXO):
 
@@ -65,9 +106,26 @@ FORMATO:
       suggestion,
     });
   } catch (err: any) {
+    const msg = typeof err?.message === "string" ? err.message : "UNKNOWN_ERROR";
+
+    if (msg === "not_authenticated") {
+      return NextResponse.json(
+        { ok: false, requestId, error: "not_authenticated" },
+        { status: 401 }
+      );
+    }
+
+    if (msg === "store_not_found") {
+      return NextResponse.json(
+        { ok: false, requestId, error: "store_not_found" },
+        { status: 403 }
+      );
+    }
+
     console.error("[generate/campaign/strategy] error:", err);
+
     return NextResponse.json(
-      { ok: false, error: err.message || "UNKNOWN_ERROR" },
+      { ok: false, requestId, error: msg || "UNKNOWN_ERROR" },
       { status: 500 }
     );
   }

@@ -426,7 +426,61 @@ Tarefas:
 - Reorganizar pasta migrations
 - Gerar snapshot do schema
 
-Status: ⬜
+Status: ✅ Concluído
+
+### Dia 3 — Fluxo de Campanha e Plano Semanal (Concluído)
+
+Consolidação completa do fluxo de planejamento semanal e execução de campanhas.
+
+Principais ajustes realizados:
+
+- Restauração do Weekly Plan Wizard (3 etapas):
+  1. Configuração da semana
+  2. Revisão da estratégia
+  3. Execução do plano
+
+- Correção da persistência de status do plano e dos itens:
+  - weekly_plans.status
+  - weekly_plan_items.status
+
+- Implementação do fluxo real de aprovação do plano:
+  - Aprovação atualiza weekly_plans.status = "approved"
+  - Aprovação atualiza weekly_plan_items.status = "approved"
+
+- Correção de inconsistências entre UI e banco de dados:
+  - vínculo correto: weekly_plan_items.plan_id
+
+- Remoção de heurística aleatória de horários no plano semanal.
+
+- Estabilização da execução do plano:
+  - criação de campanha a partir do item
+  - geração de texto
+  - geração de reels
+  - atualização automática da UI após geração
+
+Resultado:
+
+O fluxo completo agora funciona de forma consistente:
+
+Planejamento semanal → geração de estratégia → geração do plano → execução → aprovação.
+
+Esse bloco elimina inconsistências entre:
+
+campaigns  
+weekly_plans  
+weekly_plan_items  
+UI de execução do plano.
+
+Nota: Durante a consolidação foi confirmada a estrutura final do vínculo entre plano e itens:
+
+weekly_plans.id → weekly_plan_items.plan_id
+
+Status do Plano
+Dia 1 — Modelo de Loja        ✅ Concluído
+Dia 2 — Segurança de Rotas    ✅ Concluído
+Dia 3 — Fluxo de Campanha     ✅ Concluído
+Dia 4 — Geração de Conteúdo   ▶ Em execução
+Dia 5 — UI / UX Final         ⏳ Planejado
 
 ---
 
