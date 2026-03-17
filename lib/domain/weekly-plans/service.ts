@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import {
   WeeklyPlan,
   WeeklyPlanItem,
@@ -70,6 +70,8 @@ export async function fetchWeeklyPlan(
   storeId: string,
   weekStart: string
 ): Promise<WeeklyPlanResult | null> {
+  const supabaseAdmin = getSupabaseAdmin();
+
   const { data: plan, error: planErr } = await supabaseAdmin
     .from("weekly_plans")
     .select("id, store_id, week_start, status, strategy, created_at")
@@ -163,6 +165,8 @@ export async function generateWeeklyPlan(
 
   // 2) Força → apaga itens existentes
   if (existing && force) {
+    const supabaseAdmin = getSupabaseAdmin();
+
     const { error: delItemsErr } = await supabaseAdmin
       .from("weekly_plan_items")
       .delete()
@@ -172,6 +176,8 @@ export async function generateWeeklyPlan(
   }
 
   // 3) Busca loja para snapshot
+  const supabaseAdmin = getSupabaseAdmin();
+
   const { data: store, error: sErr } = await supabaseAdmin
     .from("stores")
     .select(

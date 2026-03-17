@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { WeeklyStrategyRequestSchema } from "@/lib/domain/weekly-plans/schemas";
 import { generateWeeklyStrategy } from "@/lib/domain/weekly-plans/strategy";
 import { getUserStoreIdOrThrow } from "@/lib/store/getUserStoreId";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 type StoreOwnershipResult =
   | { ok: true; userId: string }
@@ -38,6 +38,8 @@ async function assertStoreOwnership(
     };
   }
 
+  const supabaseAdmin = getSupabaseAdmin();
+
   const { data: owned, error } = await supabaseAdmin
     .from("stores")
     .select("id")
@@ -64,6 +66,7 @@ async function assertStoreOwnership(
 
 export async function POST(req: Request) {
   const requestId = crypto.randomUUID();
+  const supabaseAdmin = getSupabaseAdmin();
 
   try {
     const json = await req.json().catch(() => null);

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getUserStoreIdOrThrow } from "@/lib/store/getUserStoreId";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import {
   WeeklyPlanPostBodySchema,
   WeeklyPlanQuerySchema,
@@ -33,6 +33,8 @@ async function assertStoreOwnership(
     return { ok: false, response: NextResponse.json({ error: "store_not_found" }, { status: 403 }) };
   }
 
+  const supabaseAdmin = getSupabaseAdmin();
+
   const { data: owned, error: ownErr } = await supabaseAdmin
     .from("stores")
     .select("id")
@@ -54,6 +56,7 @@ async function assertStoreOwnership(
 
 export async function GET(req: Request) {
   const requestId = crypto.randomUUID();
+  const supabaseAdmin = getSupabaseAdmin();
 
   try {
     const url = new URL(req.url);
@@ -93,6 +96,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const requestId = crypto.randomUUID();
+  const supabaseAdmin = getSupabaseAdmin();
 
   try {
     const json = await req.json().catch(() => null);

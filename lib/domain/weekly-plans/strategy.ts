@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { callAIWithRetry } from "@/lib/ai/parse";
 import { buildWeeklyStrategyPrompt } from "./prompts";
 import { mapAiStrategyToDomain } from "./mapper";
@@ -66,6 +66,8 @@ export async function generateWeeklyStrategy(
   const { storeId, selectedDays, holidays, city, state } = input;
 
   // 1) Busca contexto da loja
+  const supabaseAdmin = getSupabaseAdmin();
+
   const { data: store } = await supabaseAdmin
     .from("stores")
     .select("name, city, state, brand_positioning, main_segment, tone_of_voice")

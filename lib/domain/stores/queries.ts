@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { StoreContext } from "./types";
 import { mapDbStoreToDomain } from "./mapper";
 
@@ -9,6 +9,8 @@ import { mapDbStoreToDomain } from "./mapper";
 export async function fetchStoreContext(
   storeId: string
 ): Promise<StoreContext | null> {
+  const supabaseAdmin = getSupabaseAdmin();
+
   const { data, error } = await supabaseAdmin
     .from("stores")
     .select(
