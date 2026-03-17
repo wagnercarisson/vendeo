@@ -503,7 +503,7 @@ Principais melhorias implementadas:
 
 • Hardening do fluxo de criação de campanha (`/campaigns/new`)
 - Aprovação bloqueada quando conteúdo obrigatório não está completo.
-- Falhas de geração de conteúdo (especialmente reels) deixam de ser silenciosas.
+- Falhas de geração de conteúdo, especialmente reels, deixam de ser silenciosas.
 - Preview de campanha isolado do banco utilizando `persist: false`.
 
 • Correção semântica dos estados de campanha
@@ -515,28 +515,30 @@ A interface deixa de tratar `ready` como estado final, evitando inconsistência 
 
 • Validação forte nas rotas de geração de IA
 - Contratos de entrada reforçados com Zod.
-- Remoção de dependência de payloads não tipados (`any`).
+- Remoção de dependência de payloads não tipados.
 - Controle mais seguro do parâmetro `persist`.
 
 • Correção estrutural do pipeline de arte final
-A geração da arte final deixou de depender exclusivamente da rota `/api/generate/og-image`.
-
-Agora a arte é renderizada no navegador via Canvas e exportada como PNG antes de ser enviada para o bucket de storage. Isso elimina falhas observadas com imagens `.webp` e melhora a compatibilidade geral.
+A geração da arte final passou a ser feita no navegador via Canvas, com exportação em PNG antes do upload para o bucket. Isso eliminou falhas observadas com imagens `.webp` e melhorou a compatibilidade geral da composição final.
 
 Fluxo final da arte:
-Preview → Renderização Canvas → Exportação PNG → Upload → `image_url`.
+Preview → Renderização Canvas → Exportação PNG → Upload → `image_url`
 
 • Separação definitiva entre imagem de produto e arte final
 - `product_image_url` permanece como foto do produto.
 - `image_url` passa a representar exclusivamente a arte final aprovada.
 
-Isso evita situações onde a foto do produto era salva indevidamente como arte final.
+• Hardening de infraestrutura para deploy
+- Lazy init aplicado ao client admin do Supabase.
+- Lazy init aplicado ao client OpenAI.
+- Redução do risco de falhas por import-time initialization durante build/deploy.
 
 Resultado do hardening:
 - Criação de campanha mais robusta.
 - Aprovação mais segura.
 - Geração de arte final confiável para `.webp`, `.jpg` e `.png`.
 - Maior consistência entre preview, persistência e exibição no dashboard.
+- Deploy estabilizado após eliminação dos pontos sensíveis de inicialização.
 
 Status: **Dia 4 concluído com sucesso.**
 
