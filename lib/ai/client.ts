@@ -1,7 +1,23 @@
 import OpenAI from "openai";
 
+function requireEnv(name: string) {
+    const value = process.env[name];
+    if (!value) throw new Error(`MISSING_ENV:${name}`);
+    return value;
+}
+
+let openaiClient: OpenAI | null = null;
+
 /**
- * Client OpenAI singleton.
- * Importado por todos os services de geração de IA.
+ * Client OpenAI singleton com lazy init.
+ * Evita quebrar o build ao importar módulos server-side.
  */
-export const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+export function getOpenAI() {
+    if (openaiClient) return openaiClient;
+
+    openaiClient = new OpenAI({
+        apiKey: requireEnv("OPENAI_API_KEY"),
+    });
+
+    return openaiClient;
+}

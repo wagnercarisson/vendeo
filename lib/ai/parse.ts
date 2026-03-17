@@ -1,5 +1,5 @@
 import { z, ZodSchema } from "zod";
-import { openai } from "./client";
+import { getOpenAI } from "./client";
 import { AICallResult } from "./types";
 
 // ─────────────────────────────────────────────
@@ -81,6 +81,7 @@ export async function callAI(
   opts: CallAIOpts = {}
 ): Promise<string> {
   const { model = "gpt-4o-mini", temperature = 0.7, timeoutMs = 20000 } = opts;
+  const openai = getOpenAI();
 
   const completion = await withTimeout(
     openai.chat.completions.create({
