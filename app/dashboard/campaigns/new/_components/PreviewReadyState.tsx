@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Check, X, Layout, Maximize2, Columns, Phone } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Check, X, Layout, Maximize2, Columns } from "lucide-react";
 import type { CampaignPreviewData } from "./types";
 import { ReelsPreviewCard } from "./ReelsPreviewCard";
 import { CampaignQuickActions } from "./CampaignQuickActions";
@@ -10,17 +10,29 @@ type PreviewReadyStateProps = {
     onUpdatePreview: (next: CampaignPreviewData) => void;
     generatePost: boolean;
     generateReels: boolean;
+    onRegenerateArt?: () => void;
+    onRegenerateReels?: () => void;
+    isRegenerating?: boolean;
 };
 
-export function PreviewReadyState({ preview, onUpdatePreview, generatePost, generateReels }: PreviewReadyStateProps) {
+export function PreviewReadyState({
+    preview,
+    onUpdatePreview,
+    generatePost,
+    generateReels,
+    onRegenerateArt,
+    onRegenerateReels,
+    isRegenerating = false,
+}: PreviewReadyStateProps) {
     const [isEditing, setIsEditing] = useState(false);
     const [isEditingReels, setIsEditingReels] = useState(false);
     const [editData, setEditData] = useState(preview);
     const [activeLayout, setActiveLayout] = useState<"solid" | "floating" | "split">(preview.layout || "solid");
 
-    const primaryColor = preview.store?.primary_color || "#10b981";
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const secondaryColor = preview.store?.secondary_color || "#064e3b";
+    useEffect(() => {
+        setEditData(preview);
+        setActiveLayout(preview.layout || "solid");
+    }, [preview]);
 
     function handleSave() {
         onUpdatePreview({ ...editData, layout: activeLayout });
@@ -29,6 +41,7 @@ export function PreviewReadyState({ preview, onUpdatePreview, generatePost, gene
 
     function handleCancel() {
         setEditData(preview);
+        setActiveLayout(preview.layout || "solid");
         setIsEditing(false);
     }
 
@@ -41,7 +54,6 @@ export function PreviewReadyState({ preview, onUpdatePreview, generatePost, gene
 
     const formattedPrice = formatPrice(preview.price);
 
-    // Formatação do WhatsApp: add ícone e separação (XX) XXXXX-XXXX
     const formatWhatsApp = (val?: string) => {
         if (!val) return null;
         const cleaned = val.replace(/\D/g, "");
@@ -62,24 +74,36 @@ export function PreviewReadyState({ preview, onUpdatePreview, generatePost, gene
                             <div className="flex items-center gap-3">
                                 <h2 className="text-sm font-semibold text-zinc-900">Preview do Post</h2>
                                 <div className="flex rounded-lg border border-zinc-100 bg-zinc-50 p-1">
-                                    <button 
-                                        onClick={() => { setActiveLayout("solid"); onUpdatePreview({ ...preview, layout: "solid" }); }}
+                                    <button
+                                        onClick={() => {
+                                            setActiveLayout("solid");
+                                            onUpdatePreview({ ...preview, layout: "solid" });
+                                        }}
                                         className={`p-1 rounded-md transition-all ${activeLayout === "solid" ? "bg-white shadow text-emerald-600" : "text-zinc-400 hover:text-zinc-600"}`}
                                         title="Rodapé Sólido"
+                                        type="button"
                                     >
                                         <Layout className="h-4 w-4" />
                                     </button>
-                                    <button 
-                                        onClick={() => { setActiveLayout("floating"); onUpdatePreview({ ...preview, layout: "floating" }); }}
+                                    <button
+                                        onClick={() => {
+                                            setActiveLayout("floating");
+                                            onUpdatePreview({ ...preview, layout: "floating" });
+                                        }}
                                         className={`p-1 rounded-md transition-all ${activeLayout === "floating" ? "bg-white shadow text-emerald-600" : "text-zinc-400 hover:text-zinc-600"}`}
                                         title="Card Flutuante"
+                                        type="button"
                                     >
                                         <Maximize2 className="h-4 w-4" />
                                     </button>
-                                    <button 
-                                        onClick={() => { setActiveLayout("split"); onUpdatePreview({ ...preview, layout: "split" }); }}
+                                    <button
+                                        onClick={() => {
+                                            setActiveLayout("split");
+                                            onUpdatePreview({ ...preview, layout: "split" });
+                                        }}
                                         className={`p-1 rounded-md transition-all ${activeLayout === "split" ? "bg-white shadow text-emerald-600" : "text-zinc-400 hover:text-zinc-600"}`}
                                         title="Divisão Vertical"
+                                        type="button"
                                     >
                                         <Columns className="h-4 w-4" />
                                     </button>
@@ -90,12 +114,14 @@ export function PreviewReadyState({ preview, onUpdatePreview, generatePost, gene
                                 <div className="flex gap-2">
                                     <button
                                         onClick={handleCancel}
+                                        type="button"
                                         className="flex items-center gap-1 rounded-md bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-200"
                                     >
                                         <X className="h-3 w-3" /> Cancelar
                                     </button>
                                     <button
                                         onClick={handleSave}
+                                        type="button"
                                         className="flex items-center gap-1 rounded-md bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-700"
                                     >
                                         <Check className="h-3 w-3" /> Salvar
@@ -107,7 +133,9 @@ export function PreviewReadyState({ preview, onUpdatePreview, generatePost, gene
                         <div className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-900 shadow-xl max-w-[400px] mx-auto group">
                             <div className="aspect-[4/5] w-full relative">
                                 {!preview.imageUrl ? (
-                                    <div className="flex h-full items-center justify-center text-sm text-zinc-500">Arte da campanha</div>
+                                    <div className="flex h-full items-center justify-center text-sm text-zinc-500">
+                                        Arte da campanha
+                                    </div>
                                 ) : (
                                     <CampaignArtViewer
                                         layout={activeLayout}
@@ -127,28 +155,28 @@ export function PreviewReadyState({ preview, onUpdatePreview, generatePost, gene
                                 <div className="space-y-3">
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-bold uppercase text-zinc-400">Headline</label>
-                                        <input 
+                                        <input
                                             type="text"
-                                            value={editData.headline}
-                                            onChange={(e) => setEditData({...editData, headline: e.target.value})}
+                                            value={editData.headline || ""}
+                                            onChange={(e) => setEditData({ ...editData, headline: e.target.value })}
                                             className="w-full rounded-lg border border-zinc-200 p-2 text-sm outline-none focus:border-emerald-500"
                                         />
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-bold uppercase text-zinc-400">Texto Principal</label>
-                                        <textarea 
-                                            value={editData.bodyText}
-                                            onChange={(e) => setEditData({...editData, bodyText: e.target.value})}
+                                        <textarea
+                                            value={editData.bodyText || ""}
+                                            onChange={(e) => setEditData({ ...editData, bodyText: e.target.value })}
                                             rows={2}
                                             className="w-full rounded-lg border border-zinc-200 p-2 text-sm outline-none focus:border-emerald-500 resize-none"
                                         />
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-bold uppercase text-zinc-400">CTA</label>
-                                        <input 
+                                        <input
                                             type="text"
-                                            value={editData.cta}
-                                            onChange={(e) => setEditData({...editData, cta: e.target.value})}
+                                            value={editData.cta || ""}
+                                            onChange={(e) => setEditData({ ...editData, cta: e.target.value })}
                                             className="w-full rounded-lg border border-zinc-200 p-2 text-sm outline-none focus:border-emerald-500"
                                         />
                                     </div>
@@ -171,21 +199,23 @@ export function PreviewReadyState({ preview, onUpdatePreview, generatePost, gene
                         <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-left">
                             <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Legenda do Post</p>
                             {isEditing ? (
-                                <textarea 
-                                    value={editData.caption}
-                                    onChange={(e) => setEditData({...editData, caption: e.target.value})}
+                                <textarea
+                                    value={editData.caption || ""}
+                                    onChange={(e) => setEditData({ ...editData, caption: e.target.value })}
                                     rows={4}
                                     className="mt-2 w-full rounded-lg border border-zinc-200 p-2 text-sm outline-none focus:border-emerald-500 resize-none"
                                 />
                             ) : (
-                                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-zinc-700">{preview.caption || "Legenda da campanha"}</p>
+                                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-zinc-700">
+                                    {preview.caption || "Legenda da campanha"}
+                                </p>
                             )}
                             <p className="mt-4 text-xs font-medium uppercase tracking-wide text-zinc-500">Hashtags</p>
                             {isEditing ? (
-                                <input 
+                                <input
                                     type="text"
-                                    value={editData.hashtags}
-                                    onChange={(e) => setEditData({...editData, hashtags: e.target.value})}
+                                    value={editData.hashtags || ""}
+                                    onChange={(e) => setEditData({ ...editData, hashtags: e.target.value })}
                                     className="mt-2 w-full rounded-lg border border-zinc-200 p-2 text-sm outline-none focus:border-emerald-500"
                                 />
                             ) : (
@@ -193,7 +223,15 @@ export function PreviewReadyState({ preview, onUpdatePreview, generatePost, gene
                             )}
                         </div>
 
-                        {!isEditing && <CampaignQuickActions onEdit={() => setIsEditing(true)} generateReels={false} />}
+                        {!isEditing && onRegenerateArt && (
+                            <CampaignQuickActions
+                                onEdit={() => setIsEditing(true)}
+                                onRegenerateArt={onRegenerateArt}
+                                onRegenerateReels={onRegenerateReels}
+                                generateReels={false}
+                                isBusy={isRegenerating}
+                            />
+                        )}
                     </div>
                 </section>
             )}
@@ -206,13 +244,21 @@ export function PreviewReadyState({ preview, onUpdatePreview, generatePost, gene
                                 <h3 className="text-sm font-semibold text-zinc-900">Editando Roteiro</h3>
                                 <div className="flex gap-2">
                                     <button
-                                        onClick={() => { setEditData(preview); setIsEditingReels(false); }}
+                                        onClick={() => {
+                                            setEditData(preview);
+                                            setIsEditingReels(false);
+                                        }}
+                                        type="button"
                                         className="flex items-center gap-1 rounded-md bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-200"
                                     >
                                         <X className="h-3 w-3" /> Cancelar
                                     </button>
                                     <button
-                                        onClick={() => { onUpdatePreview({...editData, layout: activeLayout}); setIsEditingReels(false); }}
+                                        onClick={() => {
+                                            onUpdatePreview({ ...editData, layout: activeLayout });
+                                            setIsEditingReels(false);
+                                        }}
+                                        type="button"
                                         className="flex items-center gap-1 rounded-md bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-700"
                                     >
                                         <Check className="h-3 w-3" /> Salvar
@@ -222,27 +268,27 @@ export function PreviewReadyState({ preview, onUpdatePreview, generatePost, gene
                             <div className="space-y-3">
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-bold uppercase text-zinc-400">Hook (Gancho Vital)</label>
-                                    <textarea 
+                                    <textarea
                                         value={editData.reelsHook || ""}
-                                        onChange={(e) => setEditData({...editData, reelsHook: e.target.value})}
+                                        onChange={(e) => setEditData({ ...editData, reelsHook: e.target.value })}
                                         rows={2}
                                         className="w-full rounded-lg border border-zinc-200 p-2 text-sm outline-none focus:border-emerald-500 resize-none"
                                     />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-bold uppercase text-zinc-400">Roteiro Sugerido</label>
-                                    <textarea 
+                                    <textarea
                                         value={editData.reelsScript || ""}
-                                        onChange={(e) => setEditData({...editData, reelsScript: e.target.value})}
+                                        onChange={(e) => setEditData({ ...editData, reelsScript: e.target.value })}
                                         rows={6}
                                         className="w-full rounded-lg border border-zinc-200 p-2 text-sm outline-none focus:border-emerald-500 resize-none"
                                     />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-bold uppercase text-zinc-400">Legenda do Reels</label>
-                                    <textarea 
+                                    <textarea
                                         value={editData.reelsCaption || ""}
-                                        onChange={(e) => setEditData({...editData, reelsCaption: e.target.value})}
+                                        onChange={(e) => setEditData({ ...editData, reelsCaption: e.target.value })}
                                         rows={3}
                                         className="w-full rounded-lg border border-zinc-200 p-2 text-sm outline-none focus:border-emerald-500 resize-none"
                                     />
@@ -262,24 +308,54 @@ export function PreviewReadyState({ preview, onUpdatePreview, generatePost, gene
                             hashtags={preview.reelsHashtags}
                         />
                     )}
-                    
+
                     {!isEditingReels && (
                         <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm flex flex-wrap gap-2">
                             <button
                                 type="button"
                                 onClick={() => setIsEditingReels(true)}
-                                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:-translate-y-0.5 hover:bg-zinc-50 hover:shadow-sm hover:text-emerald-700 hover:border-emerald-200"
+                                disabled={isRegenerating}
+                                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:-translate-y-0.5 hover:bg-zinc-50 hover:shadow-sm hover:text-emerald-700 hover:border-emerald-200 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-pencil h-4 w-4"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="lucide lucide-pencil h-4 w-4"
+                                >
+                                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                                    <path d="m15 5 4 4" />
+                                </svg>
                                 Editar roteiro
                             </button>
                             <button
                                 type="button"
-                                onClick={() => alert("Gerar novo reels consumirá créditos de IA. Confirme na V2.")}
-                                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:-translate-y-0.5 hover:bg-zinc-50 hover:shadow-sm hover:text-emerald-700 hover:border-emerald-200"
+                                onClick={onRegenerateReels}
+                                disabled={isRegenerating || !onRegenerateReels}
+                                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:-translate-y-0.5 hover:bg-zinc-50 hover:shadow-sm hover:text-emerald-700 hover:border-emerald-200 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-popcorn h-4 w-4"><path d="M18 8a2 2 0 0 0 0-4 2 2 0 0 0-4 0 2 2 0 0 0-4 0 2 2 0 0 0-4 0 2 2 0 0 0 0 4"/><path d="M10 22 9 8"/><path d="m14 22 1-14"/><path d="M20 8l-2 14H6L4 8z"/></svg>
-                                Gerar novo reels
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="lucide lucide-popcorn h-4 w-4"
+                                >
+                                    <path d="M18 8a2 2 0 0 0 0-4 2 2 0 0 0-4 0 2 2 0 0 0-4 0 2 2 0 0 0-4 0 2 2 0 0 0 0 4" />
+                                    <path d="M10 22 9 8" />
+                                    <path d="m14 22 1-14" />
+                                    <path d="M20 8l-2 14H6L4 8z" />
+                                </svg>
+                                {isRegenerating ? "Gerando reels..." : "Gerar novo reels"}
                             </button>
                         </div>
                     )}

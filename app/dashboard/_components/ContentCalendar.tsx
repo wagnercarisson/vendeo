@@ -199,7 +199,8 @@ export async function ContentCalendar({ storeId }: { storeId: string }) {
                 const qAudience = encodeURIComponent(matchingItem.brief?.audience || "");
                 const qObjective = encodeURIComponent(matchingItem.brief?.objective || "");
                 const qPositioning = encodeURIComponent(matchingItem.brief?.product_positioning || "");
-                ctaLink = `/dashboard/campaigns/new?plan_item_id=${matchingItem.id}&theme=${qTheme}&audience=${qAudience}&objective=${qObjective}&positioning=${qPositioning}`;
+                const qContentType = encodeURIComponent(matchingItem.content_type || "post");
+                ctaLink = `/dashboard/campaigns/new?plan_item_id=${matchingItem.id}&theme=${qTheme}&audience=${qAudience}&objective=${qObjective}&positioning=${qPositioning}&content_type=${qContentType}`;
             } else if (cStatus === "active") {
                 if (dStr === todayStr) {
                     badgeColor = "bg-red-500";

@@ -84,14 +84,27 @@ export default function PlanDetailsPage() {
   }
 
   const campaignsById = useMemo(() => {
-    return Object.fromEntries(campaigns.map((campaign) => [campaign.id, campaign]));
+    return Object.fromEntries(
+      campaigns.map((campaign) => [
+        campaign.id,
+        {
+          id: campaign.id,
+          product_name: campaign.product_name ?? "Campanha sem nome",
+          status: campaign.status ?? null,
+          audience: campaign.audience ?? null,
+          objective: campaign.objective ?? null,
+          product_positioning: campaign.product_positioning ?? null,
+          origin: campaign.origin ?? "manual",
+        },
+      ])
+    );
   }, [campaigns]);
 
   async function generateTextForCampaign(itemId: string) {
     const item = items.find((entry) => entry.id === itemId);
 
     if (!item?.campaign_id) {
-      alert("Crie ou vincule uma campanha antes de gerar texto.");
+      alert("Crie uma campanha antes de gerar texto.");
       return;
     }
 
@@ -122,7 +135,7 @@ export default function PlanDetailsPage() {
     const item = items.find((entry) => entry.id === itemId);
 
     if (!item?.campaign_id) {
-      alert("Crie ou vincule uma campanha antes de gerar reels.");
+      alert("Crie uma campanha antes de gerar reels.");
       return;
     }
 

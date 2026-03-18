@@ -5,12 +5,11 @@ import { z } from 'zod';
  * Reutiliza definições de contracts para garantir consistência.
  */
 
-// Schema para a linha bruta do banco (snake_case literal)
 export const campaignDbRowSchema = z.object({
   id: z.string().uuid(),
   store_id: z.string().uuid(),
   product_name: z.string().nullable(),
-  price: z.coerce.number().nullable(), // Aceita números ou strings que podem ser números
+  price: z.coerce.number().nullable(),
   audience: z.string().nullable(),
   objective: z.string().nullable(),
   product_positioning: z.string().nullable(),
@@ -22,14 +21,15 @@ export const campaignDbRowSchema = z.object({
   status: z.string().nullable(),
   created_at: z.string(),
 
-  // Campos de IA
+  origin: z.enum(['manual', 'plan']),
+  weekly_plan_item_id: z.string().uuid().nullable(),
+
   ai_text: z.string().nullable(),
   ai_caption: z.string().nullable(),
   ai_hashtags: z.string().nullable(),
   ai_cta: z.string().nullable(),
   ai_generated_at: z.string().nullable(),
 
-  // Campos de Reels
   reels_hook: z.string().nullable(),
   reels_script: z.string().nullable(),
   reels_shotlist: z.array(z.any()).nullable(),
@@ -42,7 +42,6 @@ export const campaignDbRowSchema = z.object({
   reels_generated_at: z.string().nullable(),
 });
 
-// Schema para resposta estruturada da IA (Criação de Arte/Copy)
 export const campaignAiResponseSchema = z.object({
   headline: z.string(),
   text: z.string(),
@@ -51,7 +50,6 @@ export const campaignAiResponseSchema = z.object({
   hashtags: z.string(),
 });
 
-// Schema para resposta estruturada da IA (Criação de Vídeo/Reels)
 export const campaignReelsAiResponseSchema = z.object({
   hook: z.string(),
   script: z.string(),

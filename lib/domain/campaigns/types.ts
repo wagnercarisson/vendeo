@@ -1,6 +1,5 @@
 import { ShortVideoShotScene } from "../short-videos/types";
 
-/** Objeto completo de campanha vindo do banco. */
 export interface Campaign {
   id: string;
   store_id: string;
@@ -10,6 +9,10 @@ export interface Campaign {
   objective: string | null;
   product_positioning: string | null;
   status: string | null;
+
+  origin: "manual" | "plan";
+  weekly_plan_item_id: string | null;
+
   image_url: string | null;
   product_image_url: string | null;
   headline: string | null;
@@ -36,7 +39,6 @@ export interface Campaign {
   created_at: string;
 }
 
-/** Campos de campanha que os services de IA precisam (lean — não duplica o banco inteiro). */
 export interface CampaignContext {
   id: string;
   store_id: string;
@@ -47,7 +49,6 @@ export interface CampaignContext {
   product_positioning: string | null;
 }
 
-/** Output normalizado após geração de copy de campanha. */
 export interface CampaignAIOutput {
   headline: string;
   caption: string;

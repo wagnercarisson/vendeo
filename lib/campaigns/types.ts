@@ -1,11 +1,6 @@
 import { CampaignObjective, CampaignStatus, CampaignStrategy } from './contracts';
 
-/**
- * Interface central do domínio Campaign em camelCase.
- * Representa a campanha normalizada e pronta para consumo na UI.
- */
 export interface Campaign {
-  // --- DADOS ESTRUTURAIS ---
   id: string;
   storeId: string;
   productName: string | null;
@@ -16,14 +11,15 @@ export interface Campaign {
   productPositioning: string | null;
   status: CampaignStatus | string | null;
 
-  // --- CONTEÚDO GERADO (FEED/ARTE) ---
+  origin: 'manual' | 'plan';
+  weeklyPlanItemId: string | null;
+
   headline: string | null;
   bodyText: string | null;
   cta: string | null;
   imageUrl: string | null;
   productImageUrl: string | null;
 
-  // --- CONTEÚDO GERADO (VIDEO/REELS) ---
   reelsHook: string | null;
   reelsScript: string | null;
   reelsShotlist: any[] | null;
@@ -35,13 +31,11 @@ export interface Campaign {
   reelsHashtags: string | null;
   reelsGeneratedAt: string | null;
 
-  // --- METADADOS DE GERAÇÃO IA ---
   aiText: string | null;
   aiCaption: string | null;
   aiHashtags: string | null;
   aiCta: string | null;
   aiGeneratedAt: string | null;
 
-  // --- METADADOS DO SISTEMA ---
   createdAt: string;
 }

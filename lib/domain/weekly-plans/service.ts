@@ -13,6 +13,24 @@ import {
 } from "./mapper";
 import { mapDbCampaignToDomain } from "../campaigns/mapper";
 import { mapDbStoreToDomain } from "../stores/mapper";
+import {
+  OBJECTIVE_OPTIONS,
+  AUDIENCE_OPTIONS,
+  PRODUCT_POSITIONING_OPTIONS,
+} from "@/app/dashboard/campaigns/new/_components/constants";
+
+function getValidValue(
+  input: string,
+  options: readonly { value: string; label: string }[]
+) {
+  const found = options.find(
+    (opt) =>
+      opt.value === input ||
+      opt.label.toLowerCase() === input.toLowerCase()
+  );
+
+  return found?.value || input;
+}
 
 // ─── Helper de datas ──────────────────────────────────────────────────────────
 
@@ -167,6 +185,22 @@ export async function generateWeeklyPlan(
   if (existing && force) {
     const supabaseAdmin = getSupabaseAdmin();
 
+    const existingItemIds = existing.items.map((item) => item.id).filter(Boolean);
+
+    if (existingItemIds.length > 0) {
+      const { error: detachCampaignsErr } = await supabaseAdmin
+        .from("campaigns")
+        .update({
+          origin: "manual",
+          weekly_plan_item_id: null,
+        })
+        .in("weekly_plan_item_id", existingItemIds);
+
+      if (detachCampaignsErr) {
+        throw new Error(detachCampaignsErr.message);
+      }
+    }
+
     const { error: delItemsErr } = await supabaseAdmin
       .from("weekly_plan_items")
       .delete()
@@ -242,9 +276,12 @@ export async function generateWeeklyPlan(
       angle: `Focar em ${st.reasoning}`,
       hook_hint: "Atenção inicial focada na estratégia",
       cta_hint: "Chamada para ação clara",
-      audience: st.audience,
-      objective: st.objective,
-      product_positioning: st.positioning,
+      objective: getValidValue(st.objective, OBJECTIVE_OPTIONS),
+      audience: getValidValue(st.audience, AUDIENCE_OPTIONS),
+      product_positioning: getValidValue(
+        st.positioning,
+        PRODUCT_POSITIONING_OPTIONS
+      ),
     };
 
     const validBrief = WeeklyPlanItemBriefSchema.parse(brief);

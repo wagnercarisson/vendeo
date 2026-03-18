@@ -1,14 +1,19 @@
 "use client";
 
 import { useMemo } from "react";
-import { CheckCircle2, Sparkles, Video, ArrowRight } from "lucide-react";
+import { CheckCircle2, Sparkles, Video, ArrowRight, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { WeeklyPlanItem } from "@/lib/domain/weekly-plans/types";
+import { formatAudience, formatObjective, formatPositioning } from "@/lib/formatters/strategyLabels";
 
 type CampaignSummary = {
   id: string;
   product_name: string;
   status: string | null;
+  audience?: string | null;
+  objective?: string | null;
+  product_positioning?: string | null;
+  origin?: "manual" | "plan" | string | null;
 };
 
 type Props = {
@@ -37,27 +42,44 @@ function getDayLabel(day: number) {
   return labels[day] ?? `Dia ${day}`;
 }
 
+function hasStrategyMismatch(item: WeeklyPlanItem, campaign?: CampaignSummary) {
+  if (!item.brief || !campaign) return false;
+  if (campaign.origin !== "plan") return false;
+
+  return (
+    (item.brief.audience || "") !== (campaign.audience || "") ||
+    (item.brief.objective || "") !== (campaign.objective || "") ||
+    (item.brief.product_positioning || "") !== (campaign.product_positioning || "")
+  );
+}
+
 function getItemStatusBadge(item: WeeklyPlanItem, campaign?: CampaignSummary) {
+  const mismatch = hasStrategyMismatch(item, campaign);
+
   if (item.status === "approved") {
     return {
       label: "Aprovado",
-      className:
-        "border-emerald-200 bg-emerald-50 text-emerald-700",
+      className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    };
+  }
+
+  if (mismatch) {
+    return {
+      label: "Precisa atenção",
+      className: "border-amber-200 bg-amber-50 text-amber-700",
     };
   }
 
   if (item.status === "ready" || item.campaign_id || campaign) {
     return {
       label: "Campanha vinculada",
-      className:
-        "border-sky-200 bg-sky-50 text-sky-700",
+      className: "border-sky-200 bg-sky-50 text-sky-700",
     };
   }
 
   return {
     label: "Pendente",
-    className:
-      "border-zinc-200 bg-zinc-50 text-zinc-700",
+    className: "border-zinc-200 bg-zinc-50 text-zinc-700",
   };
 }
 
@@ -103,6 +125,7 @@ export function ExecutionStep({
         {orderedItems.map((item) => {
           const campaign = item.campaign_id ? campaignsById[item.campaign_id] : undefined;
           const badge = getItemStatusBadge(item, campaign);
+          const strategyMismatch = hasStrategyMismatch(item, campaign);
 
           const params = new URLSearchParams({
             plan_item_id: item.id,
@@ -111,7 +134,7 @@ export function ExecutionStep({
             theme: item.theme ?? "",
             audience: item.brief?.audience ?? "",
             objective: item.brief?.objective ?? "",
-            product_positioning: item.brief?.product_positioning ?? "",
+            positioning: item.brief?.product_positioning ?? "",
             reasoning: item.brief?.angle ?? "",
           });
 
@@ -154,21 +177,21 @@ export function ExecutionStep({
                         {item.brief.audience ? (
                           <p>
                             <span className="font-medium text-zinc-800">Público:</span>{" "}
-                            {item.brief.audience}
+                            {formatAudience(item.brief.audience)}
                           </p>
                         ) : null}
 
                         {item.brief.objective ? (
                           <p>
                             <span className="font-medium text-zinc-800">Objetivo:</span>{" "}
-                            {item.brief.objective}
+                            {formatObjective(item.brief.objective)}
                           </p>
                         ) : null}
 
                         {item.brief.product_positioning ? (
                           <p>
                             <span className="font-medium text-zinc-800">Posicionamento:</span>{" "}
-                            {item.brief.product_positioning}
+                            {formatPositioning(item.brief.product_positioning)}
                           </p>
                         ) : null}
                       </div>
@@ -179,6 +202,20 @@ export function ExecutionStep({
                     <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
                       <p className="font-medium">Campanha vinculada</p>
                       <p className="mt-1">{campaign.product_name}</p>
+                    </div>
+                  ) : null}
+
+                  {strategyMismatch ? (
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                        <div>
+                          <p className="font-medium">Estratégia em desacordo com o plano</p>
+                          <p className="mt-1">
+                            O plano foi alterado depois do vínculo. Abra a campanha e regenere o conteúdo com a nova orientação.
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   ) : null}
                 </div>

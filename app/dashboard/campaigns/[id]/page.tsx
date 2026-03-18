@@ -13,7 +13,6 @@ export default async function CampaignPreviewPage({
     const supabase = createSupabaseServerClient();
     const { storeId } = await getUserStoreIdOrThrow();
 
-    // Query unificada e limpa
     const { data: campaign, error } = await supabase
         .from("campaigns")
         .select(`
@@ -31,7 +30,6 @@ export default async function CampaignPreviewPage({
 
     if (error || !campaign) return notFound();
 
-    // Normalização centralizada no mapper
     const normalizedCampaign = {
         ...mapDbCampaignToDomain(campaign),
         stores: Array.isArray(campaign.stores) ? campaign.stores[0] : campaign.stores || null,
@@ -41,12 +39,19 @@ export default async function CampaignPreviewPage({
         <div className="space-y-6">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <h1 className="text-xl sm:text-2xl font-semibold text-zinc-900">Gerenciar campanha</h1>
-                    <p className="text-sm text-zinc-600">Edite, gere e organize o conteúdo da sua campanha.</p>
+                    <h1 className="text-xl sm:text-2xl font-semibold text-zinc-900">
+                        Gerenciar campanha
+                    </h1>
+                    <p className="text-sm text-zinc-600">
+                        Edite, gere e organize o conteúdo da sua campanha.
+                    </p>
                 </div>
             </div>
 
-            <CampaignPreviewClient campaign={normalizedCampaign} />
+            <CampaignPreviewClient
+                campaign={normalizedCampaign}
+                isPlanLinked={normalizedCampaign.origin === "plan"}
+            />
         </div>
     );
 }

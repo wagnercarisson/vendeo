@@ -45,6 +45,10 @@ export function mapDbCampaignToDomain(raw: any): Campaign {
     objective: raw.objective ?? null,
     product_positioning: raw.product_positioning ?? null,
     status: raw.status ?? null,
+
+    origin: raw.origin === "plan" ? "plan" : "manual",
+    weekly_plan_item_id: raw.weekly_plan_item_id ?? null,
+
     image_url: raw.image_url ?? null,
     product_image_url: raw.product_image_url ?? null,
     headline: raw.headline ?? null,

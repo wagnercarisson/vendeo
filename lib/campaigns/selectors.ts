@@ -34,23 +34,35 @@ export function hasGeneratedVideo(campaign: Campaign): boolean {
 /** Retorna label da estratégia baseado no objetivo */
 export function getCampaignStrategyLabel(campaign: Campaign): string {
   const o = (campaign.objective || "").toLowerCase();
-  
+
   if (o.includes("promocao") || o.includes("queima")) return "OFERTA";
   if (o.includes("combo")) return "COMBO";
   if (o.includes("sazonal")) return "MOMENTO";
   if (o.includes("presente") || o.includes("gift")) return "PRESENTE";
-  
+
   return "DESTAQUE";
 }
 
-/** Retorna string de status amigável (ex: "Arte pronta • Vídeo pronto") */
+/** Status resumido da campanha para listagem */
+export function getCampaignListStatus(campaign: Campaign): "complete" | "art" | "video" | "content" | "none" {
+  const hasArt = hasGeneratedArt(campaign);
+  const hasVideo = hasGeneratedVideo(campaign);
+  const hasContent = hasGeneratedCampaignContent(campaign);
+
+  if (hasArt && hasVideo) return "complete";
+  if (hasArt) return "art";
+  if (hasVideo) return "video";
+  if (hasContent) return "content";
+  return "none";
+}
+
+/** Retorna string de status amigável */
 export function getCampaignStatusLine(campaign: Campaign): string {
-  const parts: string[] = [];
-  
-  if (hasGeneratedArt(campaign)) parts.push("Arte pronta");
-  if (hasGeneratedVideo(campaign)) parts.push("Vídeo pronto");
-  
-  if (parts.length === 0) return "Em processamento...";
-  
-  return parts.join(" • ");
+  const status = getCampaignListStatus(campaign);
+
+  if (status === "complete") return "Campanha completa";
+  if (status === "art") return "Arte pronta";
+  if (status === "video") return "Vídeo pronto";
+  if (status === "content") return "Conteúdo gerado";
+  return "Sem conteúdo";
 }

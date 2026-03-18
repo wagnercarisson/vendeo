@@ -7,7 +7,17 @@ import Image from "next/image";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/lib/supabase";
-import { AlertTriangle, Sparkles, Video, Plus, Eye, Edit2, Copy, Loader2, Image as ImageIcon } from "lucide-react";
+import {
+  Sparkles,
+  Plus,
+  Eye,
+  Edit2,
+  Copy,
+  Loader2,
+  Image as ImageIcon,
+  CheckCircle2,
+  FileText,
+} from "lucide-react";
 import { mapDbCampaignToDomain } from "@/lib/campaigns/mapper";
 import { MotionWrapper } from "../_components/MotionWrapper";
 import { PostModal, ReelsModal } from "./_components/CampaignModals";
@@ -32,7 +42,6 @@ function formatBRL(value: number) {
   }
 }
 
-
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,16 +59,16 @@ export default function CampaignsPage() {
 
       const { data, error } = await supabase
         .from("campaigns")
-        .select("*") 
+        .select("*")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      const mapped = (data || []).map(row => {
+      const mapped = (data || []).map((row) => {
         const domain = mapDbCampaignToDomain(row);
         return {
           ...domain,
-          stores: row.stores || null
+          stores: row.stores || null,
         } as Campaign;
       });
 
@@ -74,26 +83,29 @@ export default function CampaignsPage() {
 
   const handleDuplicate = async (c: Campaign) => {
     if (duplicatingId) return;
-    
+
     try {
       setDuplicatingId(c.id);
-      
+
       const { data: newCampaign, error: insertError } = await supabase
         .from("campaigns")
-        .insert([{
-          store_id: c.storeId,
-          product_name: `${c.productName} (Cópia)`,
-          price: c.price,
-          audience: c.audience,
-          objective: c.objective,
-          product_positioning: c.productPositioning,
-          status: 'draft',
-        }])
+        .insert([
+          {
+            store_id: c.storeId,
+            product_name: `${c.productName} (Cópia)`,
+            price: c.price,
+            audience: c.audience,
+            objective: c.objective,
+            product_positioning: c.productPositioning,
+            product_image_url: c.productImageUrl,
+            status: "draft",
+          },
+        ])
         .select()
         .single();
 
       if (insertError) throw insertError;
-      
+
       router.push(`/dashboard/campaigns/${newCampaign.id}`);
     } catch (err) {
       console.error("Erro ao duplicar:", err);
@@ -106,17 +118,20 @@ export default function CampaignsPage() {
     loadCampaigns();
   }, [loadCampaigns]);
 
-  const headerLinks = useMemo(() => (
-    <Link href="/dashboard/campaigns/new">
-      <button
-        className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500"
-        type="button"
-      >
-        <Plus className="h-4 w-4" />
-        Nova campanha
-      </button>
-    </Link>
-  ), []);
+  const headerLinks = useMemo(
+    () => (
+      <Link href="/dashboard/campaigns/new">
+        <button
+          className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500"
+          type="button"
+        >
+          <Plus className="h-4 w-4" />
+          Nova campanha
+        </button>
+      </Link>
+    ),
+    []
+  );
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
@@ -139,7 +154,10 @@ export default function CampaignsPage() {
       {loading ? (
         <MotionWrapper delay={0.2} className="grid gap-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="flex flex-row items-stretch gap-6 rounded-2xl border border-black/10 bg-white p-4 shadow-sm h-[138px]">
+            <div
+              key={i}
+              className="flex flex-row items-stretch gap-6 rounded-2xl border border-black/10 bg-white p-4 shadow-sm h-[138px]"
+            >
               <div className="relative w-24 aspect-[4/5] flex-none overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 animate-pulse" />
               <div className="flex flex-1 flex-col justify-between py-0.5">
                 <div>
@@ -159,12 +177,15 @@ export default function CampaignsPage() {
           ))}
         </MotionWrapper>
       ) : campaigns.length === 0 ? (
-        <MotionWrapper delay={0.2} className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-zinc-300 bg-white/50 p-12 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-50 text-zinc-300 mb-6">
+        <MotionWrapper
+          delay={0.2}
+          className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-zinc-300 bg-white/50 p-12 text-center"
+        >
+          <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-50 text-zinc-300">
             <Sparkles className="h-8 w-8" />
           </div>
           <h3 className="text-lg font-bold text-slate-900">Nenhuma campanha encontrada</h3>
-          <p className="mt-2 text-sm text-slate-500 max-w-sm">
+          <p className="mt-2 max-w-sm text-sm text-slate-500">
             Sua lista está vazia. Comece criando sua primeira estratégia de vendas e deixe nossa IA gerar os conteúdos por você.
           </p>
           <div className="mt-8">{headerLinks}</div>
@@ -180,13 +201,37 @@ export default function CampaignsPage() {
             if (c.objective) metadataParts.push(c.objective);
             const metadataLine = metadataParts.join(" • ");
             const strategyLabel = selectors.getCampaignStrategyLabel(c);
-            const formattedDate = c.createdAt ? format(new Date(c.createdAt), "d MMM yyyy", { locale: ptBR }) : "";
+            const formattedDate = c.createdAt
+              ? format(new Date(c.createdAt), "d MMM yyyy", { locale: ptBR })
+              : "";
 
-            const status = hasVideo ? "video" : hasArt ? "art" : "none";
+            const status = selectors.getCampaignListStatus(c);
             const statusConfig = {
-              video: { label: "Vídeo pronto", classes: "bg-indigo-50 text-indigo-700 border-indigo-100" },
-              art: { label: "Arte pronta", classes: "bg-emerald-50 text-emerald-700 border-emerald-100" },
-              none: { label: "Sem conteúdo", classes: "bg-zinc-50 text-zinc-500 border-zinc-100" }
+              complete: {
+                label: "Campanha completa",
+                classes: "bg-emerald-50 text-emerald-700 border-emerald-100",
+                icon: <CheckCircle2 className="h-3.5 w-3.5" />,
+              },
+              art: {
+                label: "Arte pronta",
+                classes: "bg-emerald-50 text-emerald-700 border-emerald-100",
+                icon: <ImageIcon className="h-3.5 w-3.5" />,
+              },
+              video: {
+                label: "Vídeo pronto",
+                classes: "bg-indigo-50 text-indigo-700 border-indigo-100",
+                icon: <Eye className="h-3.5 w-3.5" />,
+              },
+              content: {
+                label: "Conteúdo gerado",
+                classes: "bg-amber-50 text-amber-700 border-amber-100",
+                icon: <FileText className="h-3.5 w-3.5" />,
+              },
+              none: {
+                label: "Sem conteúdo",
+                classes: "bg-zinc-50 text-zinc-500 border-zinc-100",
+                icon: <Sparkles className="h-3.5 w-3.5" />,
+              },
             }[status];
 
             return (
@@ -208,26 +253,33 @@ export default function CampaignsPage() {
                       <ImageIcon className="h-6 w-6 text-zinc-300" />
                     </div>
                   )}
-                  <div className="absolute inset-0 ring-1 ring-inset ring-black/5 rounded-lg" />
+                  <div className="absolute inset-0 rounded-lg ring-1 ring-inset ring-black/5" />
                 </div>
 
-                <div className="flex flex-1 flex-col justify-between min-w-0 py-0.5">
+                <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
                   <div>
                     <div className="flex items-start justify-between gap-4">
-                      <h3 className="truncate text-base font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">{c.productName}</h3>
-                      <time className="flex-none text-xs font-medium text-slate-400 whitespace-nowrap">{formattedDate}</time>
+                      <h3 className="truncate text-base font-bold text-slate-900 transition-colors group-hover:text-emerald-700">
+                        {c.productName}
+                      </h3>
+                      <time className="flex-none whitespace-nowrap text-xs font-medium text-slate-400">
+                        {formattedDate}
+                      </time>
                     </div>
 
                     <div className="mt-1">
-                      <div className="text-[13px] text-slate-500 font-medium">{metadataLine}</div>
+                      <div className="text-[13px] font-medium text-slate-500">{metadataLine}</div>
                       <div className="mt-1.5 inline-flex items-center rounded-md border border-slate-200/50 bg-slate-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-600">
                         {strategyLabel}
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-auto pt-4 flex items-center justify-between gap-4 border-t border-slate-50">
-                    <div className={`px-2 py-0.5 text-[11px] rounded-full font-semibold border ${statusConfig.classes}`}>
+                  <div className="mt-auto flex items-center justify-between gap-4 border-t border-slate-50 pt-4">
+                    <div
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${statusConfig.classes}`}
+                    >
+                      {statusConfig.icon}
                       {statusConfig.label}
                     </div>
 
@@ -266,7 +318,11 @@ export default function CampaignsPage() {
                         disabled={!!duplicatingId}
                         className="flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
                       >
-                        {duplicatingId === c.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Copy className="h-3.5 w-3.5 text-slate-400" />}
+                        {duplicatingId === c.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Copy className="h-3.5 w-3.5 text-slate-400" />
+                        )}
                         DUPLICAR
                       </button>
                     </div>
