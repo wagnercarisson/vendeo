@@ -46,8 +46,7 @@ export function WizardShell() {
   const [generatingPlan, setGeneratingPlan] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [generatingTextId, setGeneratingTextId] = useState<string | null>(null);
-  const [generatingReelsId, setGeneratingReelsId] = useState<string | null>(null);
+
   const [approvingPlan, setApprovingPlan] = useState(false);
 
   // Holidays
@@ -237,67 +236,7 @@ export function WizardShell() {
     return Object.fromEntries(campaigns.map((c) => [c.id, c]));
   }, [campaigns]);
 
-  async function generateTextForCampaign(itemId: string) {
-    const item = items.find((i) => i.id === itemId);
 
-    if (!item?.campaign_id) {
-      alert("Crie ou vincule uma campanha antes de gerar conteúdo.");
-      return;
-    }
-
-    if (generatingTextId === itemId) return;
-
-    setGeneratingTextId(itemId);
-
-    try {
-      const res = await fetch("/api/generate/campaign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ campaign_id: item.campaign_id, force: false }),
-      });
-
-      if (!res.ok) {
-        throw new Error("Erro ao gerar conteúdo.");
-      }
-
-      await loadPlan();
-    } catch (e: any) {
-      alert(e?.message || "Erro ao gerar conteúdo.");
-    } finally {
-      setGeneratingTextId(null);
-    }
-  }
-
-  async function generateReelsForCampaign(itemId: string) {
-    const item = items.find((i) => i.id === itemId);
-
-    if (!item?.campaign_id) {
-      alert("Crie ou vincule uma campanha antes de gerar reels.");
-      return;
-    }
-
-    if (generatingReelsId === itemId) return;
-
-    setGeneratingReelsId(itemId);
-
-    try {
-      const res = await fetch("/api/generate/reels", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ campaign_id: item.campaign_id, force: false }),
-      });
-
-      if (!res.ok) {
-        throw new Error("Erro ao gerar reels.");
-      }
-
-      await loadPlan();
-    } catch (e: any) {
-      alert(e?.message || "Erro ao gerar reels.");
-    } finally {
-      setGeneratingReelsId(null);
-    }
-  }
 
   async function handleApprovePlan() {
     if (!plan) return;
@@ -401,10 +340,6 @@ export function WizardShell() {
         <ExecutionStep
           items={items}
           campaignsById={campaignsById}
-          onGenerateText={generateTextForCampaign}
-          onGenerateReels={generateReelsForCampaign}
-          generatingTextId={generatingTextId}
-          generatingReelsId={generatingReelsId}
           onApprovePlan={handleApprovePlan}
           approvingPlan={approvingPlan}
         />
