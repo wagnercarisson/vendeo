@@ -43,7 +43,9 @@ export default async function CampaignPreviewPage({
                         Gerenciar campanha
                     </h1>
                     <p className="text-sm text-zinc-600">
-                        Edite, gere e organize o conteúdo da sua campanha.
+                        {normalizedCampaign.origin === "plan" 
+                            ? "Estratégia herdada do seu Plano Semanal."
+                            : "Edite, gere e organize o conteúdo da sua campanha."}
                     </p>
                 </div>
             </div>

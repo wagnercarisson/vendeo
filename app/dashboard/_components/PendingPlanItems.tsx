@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Zap, CalendarClock } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { formatAudience, formatObjective } from "@/lib/formatters/strategyLabels";
 
 export async function PendingPlanItems({
   storeId,
@@ -61,8 +62,16 @@ export async function PendingPlanItems({
                 {mapDays[item.day_of_week] || `Dia ${item.day_of_week}`}
               </div>
               <div className="min-w-0">
-                <div className="truncate text-sm font-semibold text-slate-900" title={item.theme || ""}>
-                  {item.theme || "Estratégia sugerida"}
+                <div className="truncate text-sm font-bold text-slate-900" title={item.theme || ""}>
+                  {item.brief ? (
+                    <div className="flex items-center gap-1.5 truncate">
+                      <span className="shrink-0">{formatObjective(item.brief.objective)}</span>
+                      <span className="text-slate-300">|</span>
+                      <span className="truncate font-medium text-slate-500">Público: {formatAudience(item.brief.audience)}</span>
+                    </div>
+                  ) : (
+                    item.theme || "Estratégia sugerida"
+                  )}
                 </div>
                 {item.recommended_time && (
                   <div className="text-xs text-slate-500 mt-0.5">

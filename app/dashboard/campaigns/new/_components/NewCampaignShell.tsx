@@ -145,7 +145,8 @@ export function NewCampaignShell() {
             hasRequiredPrice &&
             hasGenerationType &&
             strategy.audience.trim().length > 0 &&
-            strategy.objective.trim().length > 0
+            strategy.objective.trim().length > 0 &&
+            strategy.product_positioning.trim().length > 0
         );
     }, [product, strategy]);
 
@@ -647,6 +648,7 @@ export function NewCampaignShell() {
                         <MotionWrapper delay={0.2}>
                             <StrategyFormCard
                                 value={strategy}
+                                isDisabled={isPlanLinked}
                                 onChange={(next) => {
                                     setStrategy({
                                         ...next,

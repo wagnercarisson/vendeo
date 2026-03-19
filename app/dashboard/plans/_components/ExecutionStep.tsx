@@ -19,10 +19,6 @@ type CampaignSummary = {
 type Props = {
   items: WeeklyPlanItem[];
   campaignsById: Record<string, CampaignSummary>;
-  onGenerateText: (itemId: string) => Promise<void>;
-  onGenerateReels: (itemId: string) => Promise<void>;
-  generatingTextId?: string | null;
-  generatingReelsId?: string | null;
   onApprovePlan: () => Promise<void>;
   approvingPlan?: boolean;
 };
@@ -86,10 +82,6 @@ function getItemStatusBadge(item: WeeklyPlanItem, campaign?: CampaignSummary) {
 export function ExecutionStep({
   items,
   campaignsById,
-  onGenerateText,
-  onGenerateReels,
-  generatingTextId,
-  generatingReelsId,
   onApprovePlan,
   approvingPlan = false,
 }: Props) {
@@ -241,25 +233,7 @@ export function ExecutionStep({
                     </button>
                   )}
 
-                  <button
-                    type="button"
-                    onClick={() => onGenerateText(item.id)}
-                    disabled={generatingTextId === item.id}
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-800 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    {generatingTextId === item.id ? "Gerando texto..." : "Gerar texto"}
-                  </button>
 
-                  <button
-                    type="button"
-                    onClick={() => onGenerateReels(item.id)}
-                    disabled={generatingReelsId === item.id}
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-800 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <Video className="h-4 w-4" />
-                    {generatingReelsId === item.id ? "Gerando reels..." : "Gerar reels"}
-                  </button>
 
                   {item.status === "approved" ? (
                     <div className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700">

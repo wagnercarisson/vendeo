@@ -117,12 +117,12 @@ export function CampaignEditForm({
             setUploadingImage(false);
         }
     };
-
     const canGenerate = !!(
         formData.product_name &&
         formData.price !== "" &&
         formData.audience &&
-        formData.objective
+        formData.objective &&
+        formData.product_positioning
     );
 
     const getSubmissionData = (): CampaignSavePayload => ({
@@ -273,6 +273,7 @@ export function CampaignEditForm({
                                 disabled={lockStrategyFields}
                                 className="w-full mt-1 border border-zinc-200 rounded-xl px-4 h-11 bg-white focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 transition-all outline-none appearance-none cursor-pointer disabled:bg-zinc-100 disabled:text-zinc-500 disabled:cursor-not-allowed"
                             >
+                                <option value="">Selecione o público</option>
                                 {AUDIENCE_OPTIONS.map((o) => (
                                     <option key={o.value} value={o.value}>
                                         {o.label}
@@ -292,6 +293,7 @@ export function CampaignEditForm({
                                 disabled={lockStrategyFields}
                                 className="w-full mt-1 border border-zinc-200 rounded-xl px-4 h-11 bg-white focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 transition-all outline-none appearance-none cursor-pointer disabled:bg-zinc-100 disabled:text-zinc-500 disabled:cursor-not-allowed"
                             >
+                                <option value="">Selecione o objetivo</option>
                                 {OBJECTIVE_OPTIONS.map((o) => (
                                     <option key={o.value} value={o.value}>
                                         {o.label}
@@ -311,6 +313,7 @@ export function CampaignEditForm({
                                 disabled={lockStrategyFields}
                                 className="w-full mt-1 border border-zinc-200 rounded-xl px-4 h-11 bg-white focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 transition-all outline-none appearance-none cursor-pointer disabled:bg-zinc-100 disabled:text-zinc-500 disabled:cursor-not-allowed"
                             >
+                                <option value="">Selecione o posicionamento</option>
                                 {PRODUCT_POSITIONING_OPTIONS.map((o) => (
                                     <option key={o.value} value={o.value}>
                                         {o.label}

@@ -2,6 +2,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { WeeklyPlanItemBrief } from "@/lib/domain/weekly-plans/types";
 import Link from "next/link";
 import { Plus, Cloud, CloudDrizzle, CloudLightning, CloudRain, CloudSnow, Sun, CloudFog } from "lucide-react";
+import { formatObjective } from "@/lib/formatters/strategyLabels";
+import { formatCampaignStatus, getStatusBadgeClass } from "@/lib/formatters/statusLabels";
 
 type Day = {
     label: string;
@@ -71,26 +73,39 @@ export async function ContentCalendar({ storeId }: { storeId: string }) {
         .eq("week_start", currentWeekStart)
         .maybeSingle();
 
-    let planItems: PlanItemWithCampaign[] = [];
+    let planItems: any[] = [];
+    let campaignMap: Record<string, any> = {};
+
     if (plan) {
-        const { data } = await supabase
+        // 1. Buscar itens do plano (sem join para evitar erros silenciosos)
+        const { data: items, error: itemsErr } = await supabase
             .from("weekly_plan_items")
-            .select(`
-                id,
-                day_of_week, 
-                content_type, 
-                theme,
-                brief,
-                campaign_id,
-                campaigns (
-                    id,
-                    status,
-                    objective,
-                    product_name
-                )
-            `)
+            .select("*")
             .eq("plan_id", plan.id);
-        if (data) planItems = data as PlanItemWithCampaign[];
+
+        if (itemsErr) {
+            console.error("Erro ao buscar itens do plano:", itemsErr);
+        } else if (items) {
+            planItems = items;
+
+            // 2. Buscar campanhas vinculadas, se houver
+            const campaignIds = items
+                .map((it) => it.campaign_id)
+                .filter(Boolean) as string[];
+
+            if (campaignIds.length > 0) {
+                const { data: campaigns } = await supabase
+                    .from("campaigns")
+                    .select("id, status, objective, product_name")
+                    .in("id", campaignIds);
+
+                if (campaigns) {
+                    campaignMap = Object.fromEntries(
+                        campaigns.map((c) => [c.id, c])
+                    );
+                }
+            }
+        }
     }
 
     // Fetch store info for weather
@@ -169,27 +184,24 @@ export async function ContentCalendar({ storeId }: { storeId: string }) {
             campaignFormat = matchingItem.content_type === 'reels' ? "Vídeo Curto" : "Post";
 
             let objRaw = "Estratégia sugerida";
-            if (matchingItem.campaigns) {
-                const c = Array.isArray(matchingItem.campaigns) ? matchingItem.campaigns[0] : matchingItem.campaigns;
-                if (c && c.objective) objRaw = c.objective;
-                else if (matchingItem.brief?.objective) objRaw = matchingItem.brief.objective;
-                else if (matchingItem.theme) objRaw = matchingItem.theme;
+            const linkedCampaign = matchingItem.campaign_id ? campaignMap[matchingItem.campaign_id] : null;
+
+            if (linkedCampaign) {
+                objRaw = linkedCampaign.objective || matchingItem.brief?.objective || matchingItem.theme || "Estratégia sugerida";
             } else {
                 objRaw = matchingItem.brief?.objective || matchingItem.theme || "Estratégia sugerida";
             }
-            campaignObjective = objRaw.length > 25 ? objRaw.substring(0, 22) + "..." : objRaw;
+            // Use formatObjective to get the pretty label from constants
+            const prettyObj = formatObjective(objRaw);
+            campaignObjective = prettyObj.length > 25 ? prettyObj.substring(0, 22) + "..." : prettyObj;
 
             let cStatus = "draft";
-            let cId = null;
-            if (matchingItem.campaigns) {
-                const c = Array.isArray(matchingItem.campaigns) ? matchingItem.campaigns[0] : matchingItem.campaigns;
-                if (c) {
-                    cStatus = c.status;
-                    cId = c.id;
-                }
+            let cId = matchingItem.campaign_id;
+            if (linkedCampaign) {
+                cStatus = linkedCampaign.status || "draft";
             }
 
-            if (!matchingItem.campaign_id || cStatus === "draft") {
+            if (!matchingItem.campaign_id) {
                 badgeColor = "bg-yellow-400";
                 textColor = "text-yellow-600";
                 textHoverColor = "group-hover/link:text-yellow-700";
@@ -200,25 +212,33 @@ export async function ContentCalendar({ storeId }: { storeId: string }) {
                 const qObjective = encodeURIComponent(matchingItem.brief?.objective || "");
                 const qPositioning = encodeURIComponent(matchingItem.brief?.product_positioning || "");
                 const qContentType = encodeURIComponent(matchingItem.content_type || "post");
+                
                 ctaLink = `/dashboard/campaigns/new?plan_item_id=${matchingItem.id}&theme=${qTheme}&audience=${qAudience}&objective=${qObjective}&positioning=${qPositioning}&content_type=${qContentType}`;
-            } else if (cStatus === "active") {
-                if (dStr === todayStr) {
-                    badgeColor = "bg-red-500";
-                    textColor = "text-red-500";
-                    textHoverColor = "group-hover/link:text-red-600";
-                    titleTooltip = "Pronta. A postagem é hoje!";
-                } else if (d.getTime() < new Date(todayStr).getTime()) {
-                    badgeColor = "bg-emerald-500";
-                    textColor = "text-emerald-600";
-                    textHoverColor = "group-hover/link:text-emerald-700";
-                    titleTooltip = "Pronta. Data de postagem atingida.";
-                } else {
-                    badgeColor = "bg-orange-400";
-                    textColor = "text-orange-600";
-                    textHoverColor = "group-hover/link:text-orange-700";
-                    titleTooltip = "Pronta. Aguardando a data de postagem.";
+            } else {
+                const statusInfo = formatCampaignStatus(cStatus);
+                badgeColor = getStatusBadgeClass(statusInfo.tone).split(" ")[1]; // bg-X-Y
+                textColor = getStatusBadgeClass(statusInfo.tone).split(" ")[2]; // text-X-Y
+                
+                // Specific coloring for special days in active status
+                if (cStatus === "active" || cStatus === "ready" || cStatus === "approved") {
+                    if (dStr === todayStr) {
+                        badgeColor = "bg-red-500";
+                        textColor = "text-red-500";
+                        textHoverColor = "group-hover/link:text-red-600";
+                        titleTooltip = "Pronta. A postagem é hoje!";
+                    } else if (d.getTime() < new Date(todayStr).getTime()) {
+                        badgeColor = "bg-emerald-500";
+                        textColor = "text-emerald-600";
+                        textHoverColor = "group-hover/link:text-emerald-700";
+                        titleTooltip = "Pronta. Data de postagem atingida.";
+                    } else {
+                        badgeColor = "bg-orange-400";
+                        textColor = "text-orange-600";
+                        textHoverColor = "group-hover/link:text-orange-700";
+                        titleTooltip = "Pronta. Aguardando a data de postagem.";
+                    }
                 }
-                ctaLink = `/dashboard/campaigns/${cId || matchingItem.campaign_id}`;
+                ctaLink = `/dashboard/campaigns/${matchingItem.campaign_id}`;
             }
         }
 
@@ -284,11 +304,13 @@ export async function ContentCalendar({ storeId }: { storeId: string }) {
                             day.status === "done" ? "opacity-70" : ""
                         ].join(" ")}
                     >
-                        <div className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Link href={`/dashboard/campaigns/new?date=${day.fullDate}`} className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-emerald-100 hover:text-emerald-700 transition-colors" title="Agendar sem vincular ao plano">
-                                <Plus className="h-3 w-3" />
-                            </Link>
-                        </div>
+                        {day.status !== "done" && (
+                            <div className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Link href={`/dashboard/campaigns/new?date=${day.fullDate}`} className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-emerald-100 hover:text-emerald-700 transition-colors" title="Agendar sem vincular ao plano">
+                                    <Plus className="h-3 w-3" />
+                                </Link>
+                            </div>
+                        )}
                         <span className="text-[10px] font-bold uppercase text-vendeo-muted">{day.label}</span>
                         <div className="mt-1 flex flex-col items-center">
                             <span className="text-sm font-bold text-vendeo-text">{day.date}</span>

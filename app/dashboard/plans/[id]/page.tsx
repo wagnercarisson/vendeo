@@ -19,8 +19,6 @@ export default function PlanDetailsPage() {
   const [items, setItems] = useState<WeeklyPlanItem[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
 
-  const [generatingTextId, setGeneratingTextId] = useState<string | null>(null);
-  const [generatingReelsId, setGeneratingReelsId] = useState<string | null>(null);
   const [approvingPlan, setApprovingPlan] = useState(false);
 
   useEffect(() => {
@@ -100,67 +98,7 @@ export default function PlanDetailsPage() {
     );
   }, [campaigns]);
 
-  async function generateTextForCampaign(itemId: string) {
-    const item = items.find((entry) => entry.id === itemId);
 
-    if (!item?.campaign_id) {
-      alert("Crie uma campanha antes de gerar texto.");
-      return;
-    }
-
-    if (generatingTextId === itemId) return;
-
-    setGeneratingTextId(itemId);
-
-    try {
-      const response = await fetch("/api/generate/campaign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ campaign_id: item.campaign_id, force: false }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Falha ao gerar conteúdo da campanha.");
-      }
-
-      await loadPlanData();
-    } catch (err: any) {
-      alert(err.message || "Erro ao gerar conteúdo.");
-    } finally {
-      setGeneratingTextId(null);
-    }
-  }
-
-  async function generateReelsForCampaign(itemId: string) {
-    const item = items.find((entry) => entry.id === itemId);
-
-    if (!item?.campaign_id) {
-      alert("Crie uma campanha antes de gerar reels.");
-      return;
-    }
-
-    if (generatingReelsId === itemId) return;
-
-    setGeneratingReelsId(itemId);
-
-    try {
-      const response = await fetch("/api/generate/reels", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ campaign_id: item.campaign_id, force: false }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Falha ao gerar reels.");
-      }
-
-      await loadPlanData();
-    } catch (err: any) {
-      alert(err.message || "Erro ao gerar reels.");
-    } finally {
-      setGeneratingReelsId(null);
-    }
-  }
 
   async function handleApprovePlan() {
     if (!plan) return;
@@ -230,10 +168,6 @@ export default function PlanDetailsPage() {
       <ExecutionStep
         items={items}
         campaignsById={campaignsById}
-        onGenerateText={generateTextForCampaign}
-        onGenerateReels={generateReelsForCampaign}
-        generatingTextId={generatingTextId}
-        generatingReelsId={generatingReelsId}
         onApprovePlan={handleApprovePlan}
         approvingPlan={approvingPlan}
       />

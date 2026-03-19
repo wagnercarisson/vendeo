@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatPlanStatus, getStatusBadgeClass } from "@/lib/formatters/statusLabels";
 
 type Plan = {
   id: string;
@@ -6,29 +7,13 @@ type Plan = {
   status: string | null;
 };
 
+
 function formatWeekStart(dateStr: string) {
   const [y, m, d] = dateStr.split("-").map(Number);
   const dt = new Date(y, (m ?? 1) - 1, d ?? 1);
   return dt.toLocaleDateString("pt-BR");
 }
 
-function formatStatus(status: string | null) {
-  const s = (status ?? "").toLowerCase();
-  if (!s) return { label: "Gerado", tone: "success" as const };
-  if (s === "generated") return { label: "Gerado", tone: "success" as const };
-  if (s === "draft") return { label: "Rascunho", tone: "neutral" as const };
-  if (s === "scheduled") return { label: "Agendado", tone: "warning" as const };
-  if (s === "published") return { label: "Publicado", tone: "success" as const };
-  return { label: status ?? "Gerado", tone: "neutral" as const };
-}
-
-function badgeClass(tone: "neutral" | "success" | "warning") {
-  if (tone === "success")
-    return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  if (tone === "warning")
-    return "border-orange-200 bg-orange-50 text-orange-700";
-  return "border-slate-200 bg-slate-50 text-slate-700";
-}
 
 export function CurrentPlanCard({
   plan,
@@ -39,7 +24,7 @@ export function CurrentPlanCard({
   title?: string;
   viewAllLabel?: string;
 }) {
-  const st = formatStatus(plan?.status ?? null);
+  const st = formatPlanStatus(plan?.status ?? null);
 
   return (
     <div className="rounded-2xl border bg-white p-5 shadow-soft">
@@ -91,7 +76,7 @@ export function CurrentPlanCard({
             <span
               className={[
                 "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold",
-                badgeClass(st.tone),
+                getStatusBadgeClass(st.tone),
               ].join(" ")}
             >
               {st.label}

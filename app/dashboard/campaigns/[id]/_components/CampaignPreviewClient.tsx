@@ -13,6 +13,7 @@ import {
     Copy,
     Image as ImageIcon,
     Printer,
+    Calendar,
 } from "lucide-react";
 
 import SalesFeedbackInline from "@/components/feedback/SalesFeedbackInline";
@@ -628,24 +629,33 @@ export function CampaignPreviewClient({
                     <ArrowLeft className="h-4 w-4" /> Voltar
                 </Link>
 
-                <div
-                    className={cx(
-                        "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium shadow-sm transition",
-                        viewMode === "review"
-                            ? "border-amber-200 bg-amber-50 text-amber-800"
-                            : currentTabHasContent
-                                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                                : "border-black/5 bg-white text-zinc-700"
+                <div className="flex items-center gap-2">
+                    <div
+                        className={cx(
+                            "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium shadow-sm transition",
+                            viewMode === "review"
+                                ? "border-amber-200 bg-amber-50 text-amber-800"
+                                : currentTabHasContent
+                                    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                                    : "border-black/5 bg-white text-zinc-700"
+                        )}
+                    >
+                        <Sparkles className="h-4 w-4" />
+                        <span>
+                            {viewMode === "review"
+                                ? "Aguardando aprovação"
+                                : currentTabHasContent
+                                    ? "Conteúdo por IA"
+                                    : "Aguardando geração"}
+                        </span>
+                    </div>
+
+                    {isPlanLinked && (
+                        <div className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 shadow-sm transition">
+                            <Calendar className="h-4 w-4" />
+                            <span>Estratégia do Plano Semanal</span>
+                        </div>
                     )}
-                >
-                    <Sparkles className="h-4 w-4" />
-                    <span>
-                        {viewMode === "review"
-                            ? "Aguardando aprovação"
-                            : currentTabHasContent
-                                ? "Conteúdo por IA"
-                                : "Aguardando geração"}
-                    </span>
                 </div>
             </div>
 
@@ -731,6 +741,11 @@ export function CampaignPreviewClient({
                                 <h2 className="text-2xl font-bold text-zinc-900">
                                     {campaign.product_name}
                                 </h2>
+                                {isPlanLinked && (
+                                    <span className="rounded bg-amber-50 px-2 py-1 text-[10px] font-bold uppercase text-amber-700 ring-1 ring-inset ring-amber-600/10">
+                                        Plano Semanal
+                                    </span>
+                                )}
                                 {isApproved && (
                                     <span className="rounded bg-emerald-50 px-2 py-1 text-[10px] font-bold uppercase text-emerald-700 ring-1 ring-inset ring-emerald-600/10">
                                         Aprovada
