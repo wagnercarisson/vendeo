@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getUserStoreIdOrThrow } from "@/lib/store/getUserStoreId";
 import { CampaignPreviewClient } from "./_components/CampaignPreviewClient";
-import { mapDbCampaignToDomain } from "@/lib/campaigns/mapper";
+import { mapDbCampaignToDomain } from "@/lib/domain/campaigns/mapper";
 
 export default async function CampaignPreviewPage({
     params,

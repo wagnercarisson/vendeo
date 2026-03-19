@@ -12,9 +12,9 @@ type StoreData = {
 
 type RenderCampaignArtInput = {
     layout?: Layout;
-    imageUrl: string;
+    image_url: string;
     headline: string;
-    bodyText: string;
+    body_text: string;
     cta: string;
     price?: number | string | null;
     store?: StoreData;
@@ -184,7 +184,7 @@ function drawWrappedText(
 function drawPriceBadge(
     ctx: CanvasRenderingContext2D,
     price: string,
-    primaryColor: string,
+    primary_color: string,
     x: number,
     y: number
 ) {
@@ -198,7 +198,7 @@ function drawPriceBadge(
     ctx.shadowBlur = 24;
     ctx.shadowOffsetY = 10;
 
-    drawRoundedRectFill(ctx, x, y, w, h, 24, primaryColor);
+    drawRoundedRectFill(ctx, x, y, w, h, 24, primary_color);
     drawRoundedRectStroke(ctx, x, y, w, h, 24, "#ffffff", 4);
 
     ctx.shadowColor = "transparent";
@@ -216,9 +216,9 @@ function drawPriceBadge(
 function drawSolidLayout(
     ctx: CanvasRenderingContext2D,
     img: HTMLImageElement,
-    input: Required<RenderCampaignArtInput> & { primaryColor: string }
+    input: Required<RenderCampaignArtInput> & { primary_color: string }
 ) {
-    const { headline, bodyText, cta, store, primaryColor } = input;
+    const { headline, body_text, cta, store, primary_color } = input;
     const price = formatPrice(input.price);
     const whatsapp = formatWhatsapp(store?.whatsapp || store?.phone);
 
@@ -234,13 +234,13 @@ function drawSolidLayout(
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, WIDTH, topH);
 
-    drawPriceBadge(ctx, price, primaryColor, WIDTH - 240, 42);
+    drawPriceBadge(ctx, price, primary_color, WIDTH - 240, 42);
 
     const bodyY = topH;
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, bodyY, WIDTH, HEIGHT - bodyY);
 
-    ctx.fillStyle = primaryColor;
+    ctx.fillStyle = primary_color;
     ctx.font = "800 24px sans-serif";
     ctx.fillText((store?.name || "").toUpperCase(), 60, bodyY + 68);
 
@@ -250,7 +250,7 @@ function drawSolidLayout(
 
     ctx.fillStyle = "#52525b";
     ctx.font = "500 28px sans-serif";
-    cursorY = drawWrappedText(ctx, bodyText || "", 60, cursorY + 18, 860, 40, 3);
+    cursorY = drawWrappedText(ctx, body_text || "", 60, cursorY + 18, 860, 40, 3);
 
     ctx.strokeStyle = "#f4f4f5";
     ctx.lineWidth = 3;
@@ -280,9 +280,9 @@ function drawSolidLayout(
 function drawFloatingLayout(
     ctx: CanvasRenderingContext2D,
     img: HTMLImageElement,
-    input: Required<RenderCampaignArtInput> & { primaryColor: string }
+    input: Required<RenderCampaignArtInput> & { primary_color: string }
 ) {
-    const { headline, bodyText, cta, store, primaryColor } = input;
+    const { headline, body_text, cta, store, primary_color } = input;
     const price = formatPrice(input.price);
     const whatsapp = formatWhatsapp(store?.whatsapp || store?.phone);
 
@@ -295,7 +295,7 @@ function drawFloatingLayout(
     ctx.fillStyle = overlay;
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-    drawPriceBadge(ctx, price, primaryColor, WIDTH - 240, 42);
+    drawPriceBadge(ctx, price, primary_color, WIDTH - 240, 42);
 
     ctx.save();
     ctx.shadowColor = "rgba(0,0,0,0.25)";
@@ -305,7 +305,7 @@ function drawFloatingLayout(
     drawRoundedRectStroke(ctx, 40, HEIGHT - 430, WIDTH - 80, 350, 32, "rgba(255,255,255,0.18)", 2);
     ctx.restore();
 
-    drawRoundedRectFill(ctx, 72, HEIGHT - 388, 230, 44, 12, primaryColor);
+    drawRoundedRectFill(ctx, 72, HEIGHT - 388, 230, 44, 12, primary_color);
     ctx.fillStyle = "#ffffff";
     ctx.font = "800 18px sans-serif";
     ctx.fillText((store?.name || "").toUpperCase(), 92, HEIGHT - 358);
@@ -316,7 +316,7 @@ function drawFloatingLayout(
 
     ctx.fillStyle = "rgba(255,255,255,0.82)";
     ctx.font = "500 28px sans-serif";
-    cursorY = drawWrappedText(ctx, bodyText || "", 72, cursorY + 12, 820, 40, 3);
+    cursorY = drawWrappedText(ctx, body_text || "", 72, cursorY + 12, 820, 40, 3);
 
     ctx.strokeStyle = "rgba(255,255,255,0.12)";
     ctx.lineWidth = 2;
@@ -346,9 +346,9 @@ function drawFloatingLayout(
 function drawSplitLayout(
     ctx: CanvasRenderingContext2D,
     img: HTMLImageElement,
-    input: Required<RenderCampaignArtInput> & { primaryColor: string }
+    input: Required<RenderCampaignArtInput> & { primary_color: string }
 ) {
-    const { headline, bodyText, cta, store, primaryColor } = input;
+    const { headline, body_text, cta, store, primary_color } = input;
     const price = formatPrice(input.price);
     const whatsapp = formatWhatsapp(store?.whatsapp || store?.phone);
 
@@ -371,18 +371,18 @@ function drawSplitLayout(
     ctx.font = "900 italic 62px sans-serif";
     let cursorY = drawWrappedText(ctx, headline || "", 600, 185, 420, 70, 3);
 
-    drawRoundedRectFill(ctx, 600, cursorY + 10, 88, 8, 4, primaryColor);
+    drawRoundedRectFill(ctx, 600, cursorY + 10, 88, 8, 4, primary_color);
 
     ctx.fillStyle = "rgba(255,255,255,0.62)";
     ctx.font = "500 28px sans-serif";
-    cursorY = drawWrappedText(ctx, bodyText || "", 600, cursorY + 72, 410, 40, 4);
+    cursorY = drawWrappedText(ctx, body_text || "", 600, cursorY + 72, 410, 40, 4);
 
     if (price) {
         ctx.fillStyle = "rgba(255,255,255,0.45)";
         ctx.font = "700 20px sans-serif";
         ctx.fillText("VALOR", 600, HEIGHT - 280);
 
-        ctx.fillStyle = primaryColor;
+        ctx.fillStyle = primary_color;
         ctx.font = "900 74px sans-serif";
         ctx.fillText(price, 600, HEIGHT - 190);
     }
@@ -419,14 +419,14 @@ export async function renderCampaignArtToBlob(
         throw new Error("Renderização da arte disponível apenas no navegador.");
     }
 
-    if (!input.imageUrl) {
+    if (!input.image_url) {
         throw new Error("Imagem do produto ausente para gerar a arte final.");
     }
 
     const layout: Layout = input.layout || "solid";
-    const primaryColor = getPrimaryColor(input.store);
+    const primary_color = getPrimaryColor(input.store);
 
-    const img = await loadImage(input.imageUrl);
+    const img = await loadImage(input.image_url);
 
     const canvas = document.createElement("canvas");
     canvas.width = WIDTH;
@@ -442,13 +442,13 @@ export async function renderCampaignArtToBlob(
 
     const normalizedInput = {
         layout,
-        imageUrl: input.imageUrl,
+        image_url: input.image_url,
         headline: input.headline || "",
-        bodyText: input.bodyText || "",
+        body_text: input.body_text || "",
         cta: input.cta || "",
         price: input.price ?? "",
         store: input.store,
-        primaryColor,
+        primary_color: primary_color,
     };
 
     if (layout === "floating") {

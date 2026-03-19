@@ -98,7 +98,7 @@ export function ProductFormCard({
             if (!publicUrl) throw new Error("Falha ao obter URL pública da imagem.");
 
             setUploadProgress(100);
-            updateField("imageUrl", publicUrl);
+            updateField("image_url", publicUrl);
 
             setTimeout(() => {
                 setUploadingImage(false);
@@ -171,16 +171,16 @@ export function ProductFormCard({
             <div className="space-y-4">
                 <div className="space-y-1.5">
                     <label
-                        htmlFor="productName"
+                        htmlFor="product_name"
                         className="text-sm font-medium text-zinc-700"
                     >
                         {labels.title}
                     </label>
                     <input
-                        id="productName"
+                        id="product_name"
                         type="text"
-                        value={value.productName}
-                        onChange={(e) => updateField("productName", e.target.value)}
+                        value={value.product_name}
+                        onChange={(e) => updateField("product_name", e.target.value)}
                         placeholder={labels.placeholder}
                         className="w-full h-11 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 placeholder:text-zinc-400"
                     />
@@ -261,11 +261,11 @@ export function ProductFormCard({
                                     />
                                 </div>
                             </div>
-                        ) : value.imageUrl ? (
+                        ) : value.image_url ? (
                             <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-zinc-200 bg-white">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
-                                    src={value.imageUrl}
+                                    src={value.image_url}
                                     alt="Preview"
                                     className="w-full h-full object-contain"
                                 />
@@ -278,7 +278,7 @@ export function ProductFormCard({
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        updateField("imageUrl", "");
+                                        updateField("image_url", "");
                                     }}
                                     className="absolute top-2 right-2 p-1.5 rounded-full bg-white/90 text-zinc-600 hover:text-red-500 shadow-sm transition-colors"
                                 >
@@ -309,8 +309,8 @@ export function ProductFormCard({
 
                     <input
                         type="text"
-                        value={value.imageUrl}
-                        onChange={(e) => updateField("imageUrl", e.target.value)}
+                        value={value.image_url}
+                        onChange={(e) => updateField("image_url", e.target.value)}
                         placeholder="https://exemplo.com/imagem.jpg"
                         className="w-full h-9 mt-2 rounded-lg border border-zinc-200 px-3 text-xs text-zinc-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 placeholder:text-zinc-400"
                     />

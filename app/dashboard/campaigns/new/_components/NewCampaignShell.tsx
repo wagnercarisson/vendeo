@@ -18,20 +18,20 @@ import type {
 
 const INITIAL_CAMPAIGN: CampaignFormData = {
     type: "product",
-    productName: "",
+    product_name: "",
     description: "",
     price: "",
-    imageUrl: "",
+    image_url: "",
 };
 
 const INITIAL_STRATEGY: StrategyData = {
     audience: "",
     objective: "",
-    productPositioning: "",
+    product_positioning: "",
     reasoning: "",
     source: null,
-    generatePost: true,
-    generateReels: false,
+    generate_post: true,
+    generate_reels: false,
 };
 
 function resolvePlanGenerationFlags(
@@ -41,21 +41,21 @@ function resolvePlanGenerationFlags(
 ) {
     if (generatePostParam === "true" || generateReelsParam === "true") {
         return {
-            generatePost: generatePostParam === "true",
-            generateReels: generateReelsParam === "true",
+            generate_post: generatePostParam === "true",
+            generate_reels: generateReelsParam === "true",
         };
     }
 
     if (contentTypeParam === "reels") {
         return {
-            generatePost: false,
-            generateReels: true,
+            generate_post: false,
+            generate_reels: true,
         };
     }
 
     return {
-        generatePost: true,
-        generateReels: false,
+        generate_post: true,
+        generate_reels: false,
     };
 }
 
@@ -106,18 +106,18 @@ export function NewCampaignShell() {
                 ...prev,
                 objective: objectiveParam || prev.objective,
                 audience: audienceParam || prev.audience,
-                productPositioning:
-                    positioningParam || prev.productPositioning,
+                product_positioning:
+                    positioningParam || prev.product_positioning,
                 reasoning: planItemIdParam
                     ? "Diretriz automática vinda do Plano Semanal."
                     : "Configurado automaticamente com base na sugestão escolhida.",
                 source: planItemIdParam ? "ai" : "manual",
-                generatePost: planItemIdParam
-                    ? planFlags.generatePost
-                    : prev.generatePost,
-                generateReels: planItemIdParam
-                    ? planFlags.generateReels
-                    : prev.generateReels,
+                generate_post: planItemIdParam
+                    ? planFlags.generate_post
+                    : prev.generate_post,
+                generate_reels: planItemIdParam
+                    ? planFlags.generate_reels
+                    : prev.generate_reels,
             }));
         }
 
@@ -127,18 +127,18 @@ export function NewCampaignShell() {
                 objective: themeParam || prev.objective,
                 reasoning: "Diretriz automática vinda do Plano Semanal.",
                 source: "ai",
-                generatePost: planFlags.generatePost,
-                generateReels: planFlags.generateReels,
+                generate_post: planFlags.generate_post,
+                generate_reels: planFlags.generate_reels,
             }));
         }
     }, [searchParams]);
 
     const canGenerate = useMemo(() => {
-        const hasBasicInfo = product.productName.trim().length > 1;
+        const hasBasicInfo = product.product_name.trim().length > 1;
         const hasRequiredPrice =
             product.type === "info" || product.price.trim().length > 0;
         const hasGenerationType =
-            strategy.generatePost || strategy.generateReels;
+            strategy.generate_post || strategy.generate_reels;
 
         return (
             hasBasicInfo &&
@@ -221,7 +221,7 @@ export function NewCampaignShell() {
         const fullStore = await getFullStore(storeId);
 
         const nextImageUrl = options?.preserveArt
-            ? preview?.imageUrl ||
+            ? preview?.image_url ||
             finalCampaign.image_url ||
             finalCampaign.product_image_url ||
             ""
@@ -230,9 +230,9 @@ export function NewCampaignShell() {
             "";
 
         setPreview({
-            imageUrl: nextImageUrl,
+            image_url: nextImageUrl,
             headline: finalCampaign.headline || finalCampaign.product_name || "",
-            bodyText: finalCampaign.ai_text || "",
+            body_text: finalCampaign.ai_text || "",
             cta: finalCampaign.ai_cta || "",
             caption: finalCampaign.ai_caption || "",
             hashtags: finalCampaign.ai_hashtags || "",
@@ -251,27 +251,27 @@ export function NewCampaignShell() {
                     logo_url: fullStore.logo_url,
                 }
                 : undefined,
-            reelsHook: reelsRow?.reels_hook || preview?.reelsHook || "",
-            reelsScript: reelsRow?.reels_script || preview?.reelsScript || "",
-            reelsShotlist:
-                reelsRow?.reels_shotlist || preview?.reelsShotlist || [],
-            reelsAudioSuggestion:
+            reels_hook: reelsRow?.reels_hook || preview?.reels_hook || "",
+            reels_script: reelsRow?.reels_script || preview?.reels_script || "",
+            reels_shotlist:
+                reelsRow?.reels_shotlist || preview?.reels_shotlist || [],
+            reels_audio_suggestion:
                 reelsRow?.reels_audio_suggestion ||
-                preview?.reelsAudioSuggestion ||
+                preview?.reels_audio_suggestion ||
                 "",
-            reelsDurationSeconds:
+            reels_duration_seconds:
                 reelsRow?.reels_duration_seconds ||
-                preview?.reelsDurationSeconds ||
+                preview?.reels_duration_seconds ||
                 15,
-            reelsOnScreenText:
+            reels_on_screen_text:
                 reelsRow?.reels_on_screen_text ||
-                preview?.reelsOnScreenText ||
+                preview?.reels_on_screen_text ||
                 [],
-            reelsCaption:
-                reelsRow?.reels_caption || preview?.reelsCaption || "",
-            reelsCta: reelsRow?.reels_cta || preview?.reelsCta || "",
-            reelsHashtags:
-                reelsRow?.reels_hashtags || preview?.reelsHashtags || "",
+            reels_caption:
+                reelsRow?.reels_caption || preview?.reels_caption || "",
+            reels_cta: reelsRow?.reels_cta || preview?.reels_cta || "",
+            reels_hashtags:
+                reelsRow?.reels_hashtags || preview?.reels_hashtags || "",
         });
     }
 
@@ -283,15 +283,15 @@ export function NewCampaignShell() {
 
         const campaignData = {
             store_id: store.id,
-            product_name: product.productName,
+            product_name: product.product_name,
             price:
                 product.type === "info"
                     ? null
                     : parseFloat(product.price.replace(",", ".")) || 0,
-            product_image_url: product.imageUrl || null,
+            product_image_url: product.image_url || null,
             audience: strategy.audience,
             objective: strategy.objective,
-            product_positioning: strategy.productPositioning,
+            product_positioning: strategy.product_positioning,
             status: "draft" as const,
             origin: isPlanDerived ? ("plan" as const) : ("manual" as const),
             weekly_plan_item_id: isPlanDerived ? planItemId : null,
@@ -426,7 +426,7 @@ export function NewCampaignShell() {
 
             const { currentId, storeId } = await ensureDraftCampaign();
 
-            if (strategy.generatePost) {
+            if (strategy.generate_post) {
                 const genResponse = await fetch("/api/generate/campaign", {
                     method: "POST",
                     body: JSON.stringify({
@@ -445,7 +445,7 @@ export function NewCampaignShell() {
                 }
             }
 
-            if (strategy.generateReels) {
+            if (strategy.generate_reels) {
                 const reelsResponse = await fetch("/api/generate/reels", {
                     method: "POST",
                     body: JSON.stringify({
@@ -497,7 +497,7 @@ export function NewCampaignShell() {
         try {
             setGenerationState("generating");
 
-            if (strategy.generatePost) {
+            if (strategy.generate_post) {
                 let finalImageUrl: string | null = null;
 
                 const ogResponse = await fetch("/api/generate/og-image", {
@@ -505,17 +505,17 @@ export function NewCampaignShell() {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         layout: preview.layout || "solid",
-                        imageUrl: preview.imageUrl
-                            ? preview.imageUrl.split("#")[0]
+                        image_url: preview.image_url
+                            ? preview.image_url.split("#")[0]
                             : "",
                         headline: preview.headline,
-                        bodyText: preview.bodyText,
+                        body_text: preview.body_text,
                         cta: preview.cta,
                         price: preview.price,
-                        storeName: preview.store?.name,
-                        storeAddress: preview.store?.address,
+                        store_name: preview.store?.name,
+                        store_address: preview.store?.address,
                         whatsapp: preview.store?.whatsapp,
-                        primaryColor: preview.store?.primary_color,
+                        primary_color: preview.store?.primary_color,
                     }),
                 });
 
@@ -558,7 +558,7 @@ export function NewCampaignShell() {
                     .from("campaigns")
                     .update({
                         headline: preview.headline,
-                        ai_text: preview.bodyText,
+                        ai_text: preview.body_text,
                         ai_cta: preview.cta,
                         ai_caption: preview.caption,
                         ai_hashtags: preview.hashtags,
@@ -680,13 +680,13 @@ export function NewCampaignShell() {
                         generationState={generationState}
                         preview={preview}
                         onUpdatePreview={setPreview}
-                        generatePost={strategy.generatePost}
-                        generateReels={strategy.generateReels}
+                        generate_post={strategy.generate_post}
+                        generate_reels={strategy.generate_reels}
                         onRegenerateArt={
-                            strategy.generatePost ? regenerateArt : undefined
+                            strategy.generate_post ? regenerateArt : undefined
                         }
                         onRegenerateReels={
-                            strategy.generateReels ? regenerateReels : undefined
+                            strategy.generate_reels ? regenerateReels : undefined
                         }
                         isRegenerating={isRegenerating}
                     />

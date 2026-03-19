@@ -2,26 +2,26 @@ export type CampaignContentType = "product" | "service" | "info";
 
 export type CampaignFormData = {
     type: CampaignContentType;
-    productName: string;
+    product_name: string;
     description?: string;
     price: string;
-    imageUrl: string;
+    image_url: string;
 };
 
 export type StrategyData = {
     audience: string;
     objective: string;
-    productPositioning: string;
+    product_positioning: string;
     reasoning?: string;
     source: "ai" | "manual" | null;
-    generatePost: boolean;
-    generateReels: boolean;
+    generate_post: boolean;
+    generate_reels: boolean;
 };
 
 export type CampaignPreviewData = {
-    imageUrl?: string;
+    image_url?: string;
     headline?: string;
-    bodyText?: string;
+    body_text?: string;
     cta?: string;
     caption?: string;
     hashtags?: string;
@@ -35,20 +35,20 @@ export type CampaignPreviewData = {
         logo_url?: string;
     };
     layout?: "solid" | "floating" | "split";
-    reelsHook?: string;
-    reelsScript?: string;
-    reelsShotlist?: {
+    reels_hook?: string;
+    reels_script?: string;
+    reels_shotlist?: {
         scene: number;
         camera: string;
         action: string;
         dialogue: string;
     }[];
-    reelsAudioSuggestion?: string;
-    reelsDurationSeconds?: number;
-    reelsOnScreenText?: string[];
-    reelsCaption?: string;
-    reelsCta?: string;
-    reelsHashtags?: string;
+    reels_audio_suggestion?: string;
+    reels_duration_seconds?: number;
+    reels_on_screen_text?: string[];
+    reels_caption?: string;
+    reels_cta?: string;
+    reels_hashtags?: string;
 };
 
 export type CampaignGenerationState =

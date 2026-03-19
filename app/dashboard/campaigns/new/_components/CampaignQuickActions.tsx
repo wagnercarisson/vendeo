@@ -6,7 +6,7 @@ type CampaignQuickActionsProps = {
     onEdit: () => void;
     onRegenerateArt: () => void;
     onRegenerateReels?: () => void;
-    generateReels: boolean;
+    generate_reels: boolean;
     isBusy?: boolean;
 };
 
@@ -14,7 +14,7 @@ export function CampaignQuickActions({
     onEdit,
     onRegenerateArt,
     onRegenerateReels,
-    generateReels,
+    generate_reels,
     isBusy = false,
 }: CampaignQuickActionsProps) {
     return (
@@ -39,7 +39,7 @@ export function CampaignQuickActions({
                 {isBusy ? "Gerando arte..." : "Gerar nova arte"}
             </button>
 
-            {generateReels && onRegenerateReels && (
+            {generate_reels && onRegenerateReels && (
                 <button
                     type="button"
                     onClick={onRegenerateReels}

@@ -93,15 +93,15 @@ export function StrategyFormCard({
 
                 <div className="space-y-1.5">
                     <label
-                        htmlFor="productPositioning"
-                        className="text-sm font-medium text-zinc-700"
+                        htmlFor="product_positioning"
+                        className="text-xs font-semibold text-zinc-900"
                     >
-                        Posicionamento
+                        Posicionamento do Produto
                     </label>
                     <select
-                        id="productPositioning"
-                        value={value.productPositioning}
-                        onChange={(e) => updateField("productPositioning", e.target.value)}
+                        id="product_positioning"
+                        value={value.product_positioning}
+                        onChange={(e) => updateField("product_positioning", e.target.value)}
                         disabled={value.source === "ai"}
                         className="w-full h-11 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 bg-white disabled:opacity-50 disabled:bg-zinc-50"
                     >
@@ -122,8 +122,8 @@ export function StrategyFormCard({
                         <label className="flex items-center gap-3 rounded-xl border border-zinc-200 p-3 cursor-pointer hover:bg-zinc-50 transition">
                             <input
                                 type="checkbox"
-                                checked={value.generatePost}
-                                onChange={(e) => updateField("generatePost", e.target.checked)}
+                                checked={value.generate_post}
+                                onChange={(e) => updateField("generate_post", e.target.checked)}
                                 disabled={value.source === "ai"}
                                 className="h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-600 disabled:opacity-50"
                             />
@@ -139,8 +139,8 @@ export function StrategyFormCard({
                         <label className="flex items-center gap-3 rounded-xl border border-zinc-200 p-3 cursor-pointer hover:bg-zinc-50 transition">
                             <input
                                 type="checkbox"
-                                checked={value.generateReels}
-                                onChange={(e) => updateField("generateReels", e.target.checked)}
+                                checked={value.generate_reels}
+                                onChange={(e) => updateField("generate_reels", e.target.checked)}
                                 disabled={value.source === "ai"}
                                 className="h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-600 disabled:opacity-50"
                             />

@@ -7,9 +7,9 @@ type ReelsPreviewCardProps = {
         action: string;
         dialogue: string;
     }[];
-    audioSuggestion?: string;
-    durationSeconds?: number;
-    onScreenText?: string[];
+    audio_suggestion?: string;
+    duration_seconds?: number;
+    on_screen_text?: string[];
     caption?: string;
     cta?: string;
     hashtags?: string;
@@ -19,9 +19,9 @@ export function ReelsPreviewCard({
     hook,
     script,
     shotlist,
-    audioSuggestion,
-    durationSeconds,
-    onScreenText,
+    audio_suggestion,
+    duration_seconds,
+    on_screen_text,
     caption,
     cta,
     hashtags,
@@ -47,22 +47,22 @@ export function ReelsPreviewCard({
                         </span>
                         <div className="mt-1 flex flex-wrap gap-1.5">
                              <span className="px-2 py-0.5 bg-zinc-100 rounded text-[10px] font-medium text-zinc-600">
-                                 ⏱️ {durationSeconds ? `${durationSeconds}s` : "—"}
+                                 ⏱️ {duration_seconds ? `${duration_seconds}s` : "—"}
                              </span>
                              <span className="px-2 py-0.5 bg-zinc-100 rounded text-[10px] font-medium text-zinc-600">
-                                 🎵 {audioSuggestion || "Áudio dinâmico"}
+                                 🎵 {audio_suggestion || "Áudio dinâmico"}
                              </span>
                         </div>
                     </div>
                 </div>
 
-                {onScreenText && onScreenText.length > 0 && (
+                {on_screen_text && on_screen_text.length > 0 && (
                     <div>
                         <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
                             Texto na Tela (Overlays)
                         </span>
                         <div className="mt-1.5 flex flex-wrap gap-2">
-                            {onScreenText.map((text, i) => (
+                            {on_screen_text.map((text, i) => (
                                 <span key={i} className="px-3 py-1 bg-zinc-900 text-white rounded-lg text-[10px] font-bold uppercase italic tracking-tighter">
                                     "{text}"
                                 </span>

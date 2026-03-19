@@ -1,33 +1,33 @@
-import { Campaign } from "./types";
+import { Campaign } from "@/lib/domain/campaigns/types";
 
 /** true se a arte gerada pelo sistema estiver presente (imageUrl configurada pelo workflow) */
 export function hasGeneratedArt(campaign: Campaign): boolean {
-  return !!campaign.imageUrl;
+  return !!campaign.image_url;
 }
 
 /** true se houver qualquer imagem visual (arte gerada ou foto original do produto) */
 export function hasAnyVisualAsset(campaign: Campaign): boolean {
-  return !!(campaign.imageUrl || campaign.productImageUrl);
+  return !!(campaign.image_url || campaign.product_image_url);
 }
 
 /** true se houver qualquer conteúdo de campanha gerado (texto ou imagem) */
 export function hasGeneratedCampaignContent(campaign: Campaign): boolean {
   return !!(
-    campaign.aiCaption ||
-    campaign.aiText ||
-    campaign.aiCta ||
+    campaign.ai_caption ||
+    campaign.ai_text ||
+    campaign.ai_cta ||
     campaign.headline ||
-    campaign.imageUrl
+    campaign.image_url
   );
 }
 
 /** true se houver indícios de conteúdo de vídeo gerado */
 export function hasGeneratedVideo(campaign: Campaign): boolean {
   return !!(
-    campaign.reelsGeneratedAt ||
-    campaign.reelsScript ||
-    campaign.reelsHook ||
-    campaign.reelsCaption
+    campaign.reels_generated_at ||
+    campaign.reels_script ||
+    campaign.reels_hook ||
+    campaign.reels_caption
   );
 }
 

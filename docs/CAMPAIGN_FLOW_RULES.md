@@ -193,21 +193,112 @@ Se campanha estiver vinculada a um plano semanal:
 
 ### Bloquear:
 
-* objective
-* audience
-* positioning
+* `objective`
+* `audience`
+* `product_positioning`
 
 ### Permitir:
 
-* product_name
-* price
-* product_image_url
+* `product_name`
+* `price`
+* `product_image_url`
 
 ---
 
 ## 7.2 Objetivo
 
 Garantir consistência entre planejamento estratégico e execução.
+
+---
+
+## 7.3 Regra de normalização dos campos estratégicos
+
+Os campos estratégicos oficiais da campanha são:
+
+* `objective`
+* `audience`
+* `product_positioning`
+
+Esses campos devem sempre utilizar valores padronizados definidos na fonte de verdade do frontend:
+
+`app/dashboard/campaigns/new/_components/constants.ts`
+
+Mais especificamente:
+
+* `OBJECTIVE_OPTIONS`
+* `AUDIENCE_OPTIONS`
+* `PRODUCT_POSITIONING_OPTIONS`
+
+### Regra obrigatória
+
+UI, serviços, APIs, fluxos de plano semanal, mapeadores e futuras implementações não devem criar listas paralelas, labels soltas, valores hardcoded ou novas variações sem atualizar essa fonte de verdade.
+
+---
+
+## 7.4 Regra semântica entre loja e campanha
+
+Existe uma distinção obrigatória entre:
+
+* `stores.brand_positioning`
+* `campaigns.product_positioning`
+
+### `stores.brand_positioning`
+
+Campo textual e descritivo da identidade da loja.
+
+Exemplo:
+`"a maior variedade do bairro"`
+
+Esse campo representa contexto institucional/comercial da loja e pode ser usado como contexto de IA, mas NÃO representa um valor estratégico padronizado.
+
+### `campaigns.product_positioning`
+
+Campo estratégico padronizado da campanha.
+
+Deve aceitar apenas valores normalizados definidos em:
+
+`PRODUCT_POSITIONING_OPTIONS`
+
+Exemplos:
+* `popular`
+* `medio`
+* `premium`
+* `jovem`
+* `familia`
+
+### Regra crítica
+
+`stores.brand_positioning` nunca deve ser usado para preencher, substituir, inferir ou servir de fallback automático para `campaigns.product_positioning`.
+
+---
+
+## 7.5 Regra do estado "Padrão da loja"
+
+Na criação de campanha, a opção visual "Padrão da loja" não representa um valor estratégico persistido da campanha.
+
+No beta atual, esse estado deve ser tratado apenas como:
+
+* ausência de escolha explícita de `product_positioning`
+* uso do contexto geral da loja no processo de geração
+* sem conversão automática de `brand_positioning` para `product_positioning`
+
+### Consequência prática
+
+Se a campanha não tiver `product_positioning` definido, o sistema não deve preencher esse campo com texto livre vindo da loja.
+
+---
+
+## 7.6 Evolução futura prevista
+
+Em versão futura, o projeto poderá criar um campo estruturado específico na loja para representar o posicionamento estratégico padrão.
+
+Exemplo conceitual:
+
+`stores.default_product_positioning`
+
+Até que isso exista oficialmente, o único campo estratégico padronizado de posicionamento no domínio de campanhas permanece sendo:
+
+`campaigns.product_positioning`
 
 ---
 

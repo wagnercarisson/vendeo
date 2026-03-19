@@ -565,6 +565,179 @@ Tarefas:
 
 Status: ⬜
 
+📌 Atualização — Dia 5.1: Planos Semanais + Vínculo com Campanhas
+✅ Implementações concluídas
+1. Correção de inconsistência de estratégia (CRÍTICO)
+
+Identificado que o plano semanal estava salvando labels (ex: promoção) em vez de values técnicos (promocao)
+
+Corrigido na origem em:
+
+lib/domain/weekly-plans/service.ts
+
+Implementado getValidValue() usando constants.ts como fonte única
+
+Garantido que:
+
+audience
+
+objective
+
+product_positioning
+são sempre persistidos com valores válidos do sistema
+
+2. Alinhamento completo com constants (fonte da verdade)
+
+Confirmado que:
+
+constants.ts é a única fonte válida para estratégia
+
+Removida necessidade de mapeamentos paralelos ou normalizadores externos
+
+3. Correção de erro crítico ao regenerar plano (HTTP 500)
+
+Erro causado por constraint:
+
+campaigns_plan_origin_requires_item_check
+
+Solução implementada:
+
+antes de deletar weekly_plan_items, campanhas vinculadas são desvinculadas:
+
+origin: "manual"
+
+weekly_plan_item_id: null
+
+Local:
+
+lib/domain/weekly-plans/service.ts
+
+4. Herança completa de estratégia na criação de campanha
+
+Corrigido fluxo de navegação para nova campanha:
+
+agora sempre envia:
+
+audience
+
+objective
+
+positioning
+
+content_type
+
+Ajustes realizados em:
+
+ContentCalendar.tsx
+
+outros pontos de entrada revisados
+
+5. Correção de labels na UI do plano
+
+Implementado formatter para exibição amigável:
+
+ex: jovens_festa → Jovens / Festa
+
+Evita exposição de valores técnicos ao usuário
+
+6. Garantia de consistência entre:
+
+Plano semanal
+
+Criação de campanha
+
+UI de edição
+
+Banco de dados
+
+⚠️ Pendências (Dia 5.1 ainda aberto)
+1. Indicação visual de vínculo plano → campanha
+
+Campanha ainda não mostra claramente que:
+
+veio de um plano semanal
+
+Necessário:
+
+badge / alerta / seção informativa
+
+2. Revisão final de status e listas
+
+Validar consistência entre:
+
+plano aprovado sem campanha
+
+plano com campanha vinculada
+
+campanhas na lista geral
+
+Garantir leitura clara de estado
+
+3. Bloqueio visual da estratégia (UX)
+
+Estratégia já está logicamente travada
+
+Falta deixar explícito para o usuário:
+
+campos desabilitados
+
+mensagem: “definido pelo plano semanal”
+
+4. Validação ponta a ponta (checklist final)
+
+Criar plano
+
+Criar campanha (post)
+
+Criar campanha (reels)
+
+Editar campanha vinculada
+
+Alterar plano após vínculo
+
+Detectar inconsistência
+
+Regenerar campanha
+
+Garantir não duplicação
+
+🔮 Itens definidos para o futuro (registrar)
+1. Detecção de estratégia em desacordo com plano
+
+Se plano for alterado após campanha criada:
+
+marcar item como “fora de estratégia”
+
+sugerir regeneração
+
+Pode impactar:
+
+weekly_plan_items
+
+UI do plano
+
+UI da campanha
+
+2. Evolução da IA de horários do plano
+
+Substituir heurística atual por:
+
+horário de funcionamento da loja
+
+dias abertos
+
+picos de movimento
+
+3. Possível endurecimento da validação de estratégia
+
+Hoje: tolerante via helper
+
+Futuro:
+
+validar direto na entrada da IA
+
+evitar qualquer valor fora de constants
+
 ---
 
 # Dia 6 — Segurança

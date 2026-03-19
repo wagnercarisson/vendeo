@@ -8,8 +8,8 @@ import { CampaignArtViewer } from "@/app/dashboard/campaigns/_components/Campaig
 type PreviewReadyStateProps = {
     preview: CampaignPreviewData;
     onUpdatePreview: (next: CampaignPreviewData) => void;
-    generatePost: boolean;
-    generateReels: boolean;
+    generate_post: boolean;
+    generate_reels: boolean;
     onRegenerateArt?: () => void;
     onRegenerateReels?: () => void;
     isRegenerating?: boolean;
@@ -18,8 +18,8 @@ type PreviewReadyStateProps = {
 export function PreviewReadyState({
     preview,
     onUpdatePreview,
-    generatePost,
-    generateReels,
+    generate_post,
+    generate_reels,
     onRegenerateArt,
     onRegenerateReels,
     isRegenerating = false,
@@ -66,8 +66,8 @@ export function PreviewReadyState({
     const whatsappDisplay = formatWhatsApp(preview.store?.whatsapp);
 
     return (
-        <div className={`grid gap-6 ${generatePost && generateReels ? "xl:grid-cols-2" : "max-w-3xl mx-auto"}`}>
-            {generatePost && (
+        <div className={`grid gap-6 ${generate_post && generate_reels ? "xl:grid-cols-2" : "max-w-3xl mx-auto"}`}>
+            {generate_post && (
                 <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm h-fit">
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
@@ -132,16 +132,16 @@ export function PreviewReadyState({
 
                         <div className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-900 shadow-xl max-w-[400px] mx-auto group">
                             <div className="aspect-[4/5] w-full relative">
-                                {!preview.imageUrl ? (
+                                {!preview.image_url ? (
                                     <div className="flex h-full items-center justify-center text-sm text-zinc-500">
                                         Arte da campanha
                                     </div>
                                 ) : (
                                     <CampaignArtViewer
                                         layout={activeLayout}
-                                        imageUrl={preview.imageUrl}
+                                        image_url={preview.image_url}
                                         headline={isEditing ? editData.headline : preview.headline}
-                                        bodyText={isEditing ? editData.bodyText : preview.bodyText}
+                                        body_text={isEditing ? editData.body_text : preview.body_text}
                                         cta={isEditing ? editData.cta : preview.cta}
                                         price={preview.price}
                                         store={preview.store}
@@ -165,8 +165,8 @@ export function PreviewReadyState({
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-bold uppercase text-zinc-400">Texto Principal</label>
                                         <textarea
-                                            value={editData.bodyText || ""}
-                                            onChange={(e) => setEditData({ ...editData, bodyText: e.target.value })}
+                                            value={editData.body_text || ""}
+                                            onChange={(e) => setEditData({ ...editData, body_text: e.target.value })}
                                             rows={2}
                                             className="w-full rounded-lg border border-zinc-200 p-2 text-sm outline-none focus:border-emerald-500 resize-none"
                                         />
@@ -187,7 +187,7 @@ export function PreviewReadyState({
                                         {preview.headline || "Headline da campanha"}
                                     </h3>
                                     <p className="text-sm leading-6 text-zinc-700">
-                                        {preview.bodyText || "Texto principal da campanha."}
+                                        {preview.body_text || "Texto principal da campanha."}
                                     </p>
                                     <p className="text-sm font-medium text-emerald-700">
                                         {preview.cta || "CTA da campanha"}
@@ -228,7 +228,7 @@ export function PreviewReadyState({
                                 onEdit={() => setIsEditing(true)}
                                 onRegenerateArt={onRegenerateArt}
                                 onRegenerateReels={onRegenerateReels}
-                                generateReels={false}
+                                generate_reels={generate_reels}
                                 isBusy={isRegenerating}
                             />
                         )}
@@ -236,7 +236,7 @@ export function PreviewReadyState({
                 </section>
             )}
 
-            {generateReels && (
+            {generate_reels && (
                 <div className="h-fit space-y-4">
                     {isEditingReels ? (
                         <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
@@ -269,8 +269,8 @@ export function PreviewReadyState({
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-bold uppercase text-zinc-400">Hook (Gancho Vital)</label>
                                     <textarea
-                                        value={editData.reelsHook || ""}
-                                        onChange={(e) => setEditData({ ...editData, reelsHook: e.target.value })}
+                                        value={editData.reels_hook || ""}
+                                        onChange={(e) => setEditData({ ...editData, reels_hook: e.target.value })}
                                         rows={2}
                                         className="w-full rounded-lg border border-zinc-200 p-2 text-sm outline-none focus:border-emerald-500 resize-none"
                                     />
@@ -278,8 +278,8 @@ export function PreviewReadyState({
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-bold uppercase text-zinc-400">Roteiro Sugerido</label>
                                     <textarea
-                                        value={editData.reelsScript || ""}
-                                        onChange={(e) => setEditData({ ...editData, reelsScript: e.target.value })}
+                                        value={editData.reels_script || ""}
+                                        onChange={(e) => setEditData({ ...editData, reels_script: e.target.value })}
                                         rows={6}
                                         className="w-full rounded-lg border border-zinc-200 p-2 text-sm outline-none focus:border-emerald-500 resize-none"
                                     />
@@ -287,8 +287,8 @@ export function PreviewReadyState({
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-bold uppercase text-zinc-400">Legenda do Reels</label>
                                     <textarea
-                                        value={editData.reelsCaption || ""}
-                                        onChange={(e) => setEditData({ ...editData, reelsCaption: e.target.value })}
+                                        value={editData.reels_caption || ""}
+                                        onChange={(e) => setEditData({ ...editData, reels_caption: e.target.value })}
                                         rows={3}
                                         className="w-full rounded-lg border border-zinc-200 p-2 text-sm outline-none focus:border-emerald-500 resize-none"
                                     />
@@ -297,15 +297,15 @@ export function PreviewReadyState({
                         </div>
                     ) : (
                         <ReelsPreviewCard
-                            hook={preview.reelsHook}
-                            script={preview.reelsScript}
-                            shotlist={preview.reelsShotlist}
-                            audioSuggestion={preview.reelsAudioSuggestion}
-                            durationSeconds={preview.reelsDurationSeconds}
-                            onScreenText={preview.reelsOnScreenText}
-                            caption={preview.reelsCaption}
-                            cta={preview.reelsCta}
-                            hashtags={preview.reelsHashtags}
+                            hook={preview.reels_hook}
+                            script={preview.reels_script}
+                            shotlist={preview.reels_shotlist}
+                            audio_suggestion={preview.reels_audio_suggestion}
+                            duration_seconds={preview.reels_duration_seconds}
+                            on_screen_text={preview.reels_on_screen_text}
+                            caption={preview.reels_caption}
+                            cta={preview.reels_cta}
+                            hashtags={preview.reels_hashtags}
                         />
                     )}
 

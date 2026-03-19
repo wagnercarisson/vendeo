@@ -18,13 +18,13 @@ import {
   CheckCircle2,
   FileText,
 } from "lucide-react";
-import { mapDbCampaignToDomain } from "@/lib/campaigns/mapper";
+import { mapDbCampaignToDomain } from "@/lib/domain/campaigns/mapper";
 import { MotionWrapper } from "../_components/MotionWrapper";
 import { PostModal, ReelsModal } from "./_components/CampaignModals";
-import * as selectors from "@/lib/campaigns/selectors";
+import * as selectors from "@/lib/domain/campaigns/logic";
 
 import { Store } from "@/lib/domain/stores/types";
-import { Campaign as CampaignModel } from "@/lib/campaigns/types";
+import { Campaign as CampaignModel } from "@/lib/domain/campaigns/types";
 
 /** Campanha com relação de loja incluída (para listagem). */
 export type Campaign = CampaignModel & {
@@ -91,13 +91,13 @@ export default function CampaignsPage() {
         .from("campaigns")
         .insert([
           {
-            store_id: c.storeId,
-            product_name: `${c.productName} (Cópia)`,
+            store_id: c.store_id,
+            product_name: `${c.product_name} (Cópia)`,
             price: c.price,
             audience: c.audience,
             objective: c.objective,
-            product_positioning: c.productPositioning,
-            product_image_url: c.productImageUrl,
+            product_positioning: c.product_positioning,
+            product_image_url: c.product_image_url,
             status: "draft",
           },
         ])
@@ -201,8 +201,8 @@ export default function CampaignsPage() {
             if (c.objective) metadataParts.push(c.objective);
             const metadataLine = metadataParts.join(" • ");
             const strategyLabel = selectors.getCampaignStrategyLabel(c);
-            const formattedDate = c.createdAt
-              ? format(new Date(c.createdAt), "d MMM yyyy", { locale: ptBR })
+            const formattedDate = c.created_at
+              ? format(new Date(c.created_at), "d MMM yyyy", { locale: ptBR })
               : "";
 
             const status = selectors.getCampaignListStatus(c);
@@ -242,8 +242,8 @@ export default function CampaignsPage() {
                 <div className="relative w-24 aspect-[4/5] flex-none overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 shadow-sm">
                   {selectors.hasAnyVisualAsset(c) ? (
                     <Image
-                      src={c.imageUrl || c.productImageUrl || ""}
-                      alt={c.productName || "Campanha"}
+                      src={c.image_url || c.product_image_url || ""}
+                      alt={c.product_name || "Campanha"}
                       fill
                       className="object-cover transition-transform duration-500 group-hover:scale-[1.08]"
                       sizes="96px"
@@ -260,7 +260,7 @@ export default function CampaignsPage() {
                   <div>
                     <div className="flex items-start justify-between gap-4">
                       <h3 className="truncate text-base font-bold text-slate-900 transition-colors group-hover:text-emerald-700">
-                        {c.productName}
+                        {c.product_name}
                       </h3>
                       <time className="flex-none whitespace-nowrap text-xs font-medium text-slate-400">
                         {formattedDate}

@@ -19,8 +19,7 @@ import SalesFeedbackInline from "@/components/feedback/SalesFeedbackInline";
 import { CampaignEditForm, CampaignSavePayload } from "./CampaignEditForm";
 import { OBJECTIVE_OPTIONS } from "../../new/_components/constants";
 import { Store } from "@/lib/domain/stores/types";
-import { Campaign as CampaignModel } from "@/lib/campaigns/types";
-import { ActiveTab, ViewMode } from "@/lib/domain/campaigns/types";
+import { Campaign as CampaignModel, ActiveTab, ViewMode } from "@/lib/domain/campaigns/types";
 import { CampaignPreviewData } from "../../new/_components/types";
 import { PreviewReadyState } from "../../new/_components/PreviewReadyState";
 import { renderCampaignArtToBlob } from "@/app/dashboard/campaigns/_components/renderCampaignArt";
@@ -56,8 +55,8 @@ export function CampaignPreviewClient({
     const searchParams = useSearchParams();
     const modeParam = searchParams.get("mode");
 
-    const hasArt = !!(campaign.imageUrl || campaign.aiGeneratedAt);
-    const hasVideo = !!(campaign.reelsScript || campaign.reelsGeneratedAt);
+    const hasArt = !!(campaign.image_url || campaign.ai_generated_at);
+    const hasVideo = !!(campaign.reels_script || campaign.reels_generated_at);
     const isApproved = campaign.status === "approved";
     const isEmptyDraft = !hasArt && !hasVideo;
 
@@ -83,8 +82,8 @@ export function CampaignPreviewClient({
     const hasReels = hasVideo;
     const currentTabHasContent = activeTab === "art" ? hasAi : hasReels;
 
-    const finalArtUrlClean = (campaign.imageUrl || "").split("#")[0];
-    const heroImageUrlClean = (campaign.imageUrl || campaign.productImageUrl || "").split("#")[0];
+    const finalArtUrlClean = (campaign.image_url || "").split("#")[0];
+    const heroImageUrlClean = (campaign.image_url || campaign.product_image_url || "").split("#")[0];
 
     const priceText = useMemo(() => {
         if (campaign.price == null) return null;
@@ -95,7 +94,7 @@ export function CampaignPreviewClient({
     }, [campaign.price]);
 
     const canGenerate = !!(
-        campaign.productName &&
+        campaign.product_name &&
         campaign.price != null &&
         campaign.audience &&
         campaign.objective
@@ -127,8 +126,8 @@ export function CampaignPreviewClient({
             setErrorMsg(null);
             setIsSaving(true);
 
-            const hasExistingArt = !!(campaign.imageUrl || campaign.aiGeneratedAt);
-            const hasExistingVideo = !!(campaign.reelsScript || campaign.reelsGeneratedAt);
+            const hasExistingArt = !!(campaign.image_url || campaign.ai_generated_at);
+            const hasExistingVideo = !!(campaign.reels_script || campaign.reels_generated_at);
 
             const isEditingArt = activeTab === "art";
             const isEditingVideo = activeTab === "video";
@@ -227,14 +226,14 @@ export function CampaignPreviewClient({
                 .from("campaigns")
                 .update(
                     buildStrategySafeBaseUpdate({
-                        product_name: overrides?.product_name ?? campaign.productName ?? "",
+                        product_name: overrides?.product_name ?? campaign.product_name ?? "",
                         price: overrides?.price ?? campaign.price ?? null,
                         audience: overrides?.audience ?? campaign.audience ?? "",
                         objective: overrides?.objective ?? campaign.objective ?? "",
                         product_positioning:
-                            overrides?.product_positioning ?? campaign.productPositioning ?? "",
+                            overrides?.product_positioning ?? campaign.product_positioning ?? "",
                         product_image_url:
-                            overrides?.product_image_url ?? campaign.productImageUrl ?? "",
+                            overrides?.product_image_url ?? campaign.product_image_url ?? "",
                     })
                 )
                 .eq("id", campaign.id);
@@ -259,16 +258,16 @@ export function CampaignPreviewClient({
             const rawStore = campaign.stores;
 
             setPreviewData({
-                imageUrl: overrides?.product_image_url || campaign.productImageUrl || "",
+                image_url: overrides?.product_image_url || campaign.product_image_url || "",
                 headline:
                     aiOutput?.headline ||
                     overrides?.product_name ||
-                    campaign.productName ||
+                    campaign.product_name ||
                     "",
-                bodyText: aiOutput?.text || "",
+                body_text: aiOutput?.text || "",
                 cta: aiOutput?.cta || "",
-                caption: aiOutput?.caption || "",
-                hashtags: aiOutput?.hashtags || "",
+                caption: campaign.ai_caption || "",
+                hashtags: campaign.ai_hashtags || "",
                 price:
                     overrides?.price !== undefined ? overrides.price : campaign.price,
                 layout: "solid",
@@ -300,14 +299,14 @@ export function CampaignPreviewClient({
 
         try {
             setIsSaving(true);
-            let finalImageUrl = previewData.imageUrl;
+            let finalImageUrl = previewData.image_url;
 
             if (activeTab === "art") {
                 const blob = await renderCampaignArtToBlob({
                     layout: previewData.layout || "solid",
-                    imageUrl: previewData.imageUrl?.split("#")[0] || "",
+                    image_url: previewData.image_url?.split("#")[0] || "",
                     headline: previewData.headline || "",
-                    bodyText: previewData.bodyText || "",
+                    body_text: previewData.body_text || "",
                     cta: previewData.cta || "",
                     price: previewData.price,
                     store: previewData.store,
@@ -332,14 +331,14 @@ export function CampaignPreviewClient({
             }
 
             const artData = {
-                product_name: previewData.headline || campaign.productName,
+                product_name: previewData.headline || campaign.product_name,
                 price: previewData.price,
                 audience: campaign.audience,
                 objective: campaign.objective,
-                product_positioning: campaign.productPositioning,
-                product_image_url: campaign.productImageUrl,
+                product_positioning: campaign.product_positioning,
+                product_image_url: campaign.product_image_url,
                 headline: previewData.headline,
-                ai_text: previewData.bodyText,
+                ai_text: previewData.body_text,
                 ai_cta: previewData.cta,
                 ai_caption: previewData.caption,
                 ai_hashtags: previewData.hashtags,
@@ -349,15 +348,15 @@ export function CampaignPreviewClient({
             };
 
             const videoPayload = {
-                reels_hook: previewData.reelsHook,
-                reels_script: previewData.reelsScript,
-                reels_shotlist: previewData.reelsShotlist,
-                reels_on_screen_text: previewData.reelsOnScreenText,
-                reels_audio_suggestion: previewData.reelsAudioSuggestion,
-                reels_duration_seconds: previewData.reelsDurationSeconds,
-                reels_caption: previewData.reelsCaption,
-                reels_cta: previewData.reelsCta,
-                reels_hashtags: previewData.reelsHashtags,
+                reels_hook: previewData.reels_hook,
+                reels_script: previewData.reels_script,
+                reels_shotlist: previewData.reels_shotlist,
+                reels_on_screen_text: previewData.reels_on_screen_text,
+                reels_audio_suggestion: previewData.reels_audio_suggestion,
+                reels_duration_seconds: previewData.reels_duration_seconds,
+                reels_caption: previewData.reels_caption,
+                reels_cta: previewData.reels_cta,
+                reels_hashtags: previewData.reels_hashtags,
                 reels_generated_at: new Date().toISOString(),
                 status: "approved" as const,
             };
@@ -398,14 +397,14 @@ export function CampaignPreviewClient({
                 .from("campaigns")
                 .update(
                     buildStrategySafeBaseUpdate({
-                        product_name: overrides?.product_name ?? campaign.productName ?? "",
+                        product_name: overrides?.product_name ?? campaign.product_name ?? "",
                         price: overrides?.price ?? campaign.price ?? null,
                         audience: overrides?.audience ?? campaign.audience ?? "",
                         objective: overrides?.objective ?? campaign.objective ?? "",
                         product_positioning:
-                            overrides?.product_positioning ?? campaign.productPositioning ?? "",
+                            overrides?.product_positioning ?? campaign.product_positioning ?? "",
                         product_image_url:
-                            overrides?.product_image_url ?? campaign.productImageUrl ?? "",
+                            overrides?.product_image_url ?? campaign.product_image_url ?? "",
                     })
                 )
                 .eq("id", campaign.id);
@@ -429,19 +428,18 @@ export function CampaignPreviewClient({
             const reels = genData.reels;
 
             setPreviewData({
-                imageUrl: overrides?.product_image_url || campaign.productImageUrl || "",
-                headline: overrides?.product_name || campaign.productName || "",
+                image_url: overrides?.product_image_url || campaign.product_image_url || "",
+                headline: overrides?.product_name || campaign.product_name || "",
                 price:
                     overrides?.price !== undefined ? overrides.price : campaign.price,
-                reelsHook: reels.hook,
-                reelsScript: reels.script,
-                reelsShotlist: reels.shotlist,
-                reelsOnScreenText: reels.on_screen_text,
-                reelsAudioSuggestion: reels.audio_suggestion,
-                reelsDurationSeconds: reels.duration_seconds,
-                reelsCaption: reels.caption,
-                reelsCta: reels.cta,
-                reelsHashtags: reels.hashtags,
+                reels_hook: campaign.reels_hook,
+                reels_script: campaign.reels_script,
+                reels_shotlist: reels.shotlist,
+                reels_on_screen_text: reels.on_screen_text,
+                reels_audio_suggestion: reels.audio_suggestion,
+                reels_duration_seconds: reels.duration_seconds,
+                reels_cta: reels.cta,
+                reels_hashtags: reels.hashtags,
                 store: campaign.stores
                     ? {
                         name: campaign.stores.name,
@@ -461,30 +459,30 @@ export function CampaignPreviewClient({
     }
 
     async function handleCopyVideoScript() {
-        if (!campaign.reelsScript) return;
+        if (!campaign.reels_script) return;
 
         const allText = [
             "HOOK:",
-            campaign.reelsHook,
+            campaign.reels_hook,
             "",
             "ROTEIRO:",
-            campaign.reelsScript,
+            campaign.reels_script,
             "",
-            campaign.reelsDurationSeconds
-                ? `FOCO DO VÍDEO:\n⏱️ ${campaign.reelsDurationSeconds}s${campaign.reelsAudioSuggestion
-                    ? ` · 🎵 ${campaign.reelsAudioSuggestion}`
+            campaign.reels_duration_seconds
+                ? `FOCO DO VÍDEO:\n⏱️ ${campaign.reels_duration_seconds}s${campaign.reels_audio_suggestion
+                    ? ` · 🎵 ${campaign.reels_audio_suggestion}`
                     : ""
                 }`
                 : null,
             "",
-            Array.isArray(campaign.reelsOnScreenText) && campaign.reelsOnScreenText.length
-                ? `TEXTO NA TELA:\n${campaign.reelsOnScreenText
+            Array.isArray(campaign.reels_on_screen_text) && campaign.reels_on_screen_text.length
+                ? `TEXTO NA TELA:\n${campaign.reels_on_screen_text
                     .map((t: string) => `"${t}"`)
                     .join(" · ")}`
                 : null,
             "",
-            Array.isArray(campaign.reelsShotlist) && campaign.reelsShotlist.length
-                ? `CENAS SUGERIDAS:\n${campaign.reelsShotlist
+            Array.isArray(campaign.reels_shotlist) && campaign.reels_shotlist.length
+                ? `CENAS SUGERIDAS:\n${campaign.reels_shotlist
                     .map(
                         (s: any) =>
                             `Cena ${s.scene} [${s.camera}]\nAção: ${s.action}\n"${s.dialogue}"`
@@ -493,13 +491,13 @@ export function CampaignPreviewClient({
                 : null,
             "",
             "LEGENDA:",
-            campaign.reelsCaption,
+            campaign.reels_caption,
             "",
             "CTA:",
-            campaign.reelsCta,
+            campaign.reels_cta,
             "",
             "HASHTAGS:",
-            campaign.reelsHashtags,
+            campaign.reels_hashtags,
         ]
             .filter((v) => v !== null)
             .join("\n");
@@ -514,16 +512,16 @@ export function CampaignPreviewClient({
     }
 
     function handlePrintVideo() {
-        if (!campaign.reelsScript) return;
+        if (!campaign.reels_hook) return;
 
-        const productName = campaign.productName || "Campanha";
+        const product_name = campaign.product_name || "Campanha";
         const printWindow = window.open("", "_blank");
         if (!printWindow) return;
 
         printWindow.document.write(`
             <html>
             <head>
-                <title>Roteiro — ${productName}</title>
+                <title>Roteiro — ${product_name}</title>
                 <style>
                     body { font-family: Georgia, serif; max-width: 700px; margin: 40px auto; color: #18181b; line-height: 1.6; }
                     h1 { font-size: 18px; border-bottom: 2px solid #18181b; padding-bottom: 8px; margin-bottom: 24px; }
@@ -536,53 +534,15 @@ export function CampaignPreviewClient({
                 </style>
             </head>
             <body>
-                <h1>Roteiro de Vídeo Curto — ${productName}</h1>
-                ${campaign.reelsHook
-                ? `<section><div class="label">🎯 Hook (Gancho Vital)</div><div class="content" style="font-weight:700; font-style:italic; font-size:16px">${campaign.reelsHook}</div></section>`
-                : ""
-            }
-                ${campaign.reelsDurationSeconds || campaign.reelsAudioSuggestion
-                ? `<section><div class="label">📽️ Foco do Vídeo</div><div class="content">${campaign.reelsDurationSeconds
-                    ? `⏱️ ${campaign.reelsDurationSeconds}s`
-                    : ""
-                } ${campaign.reelsAudioSuggestion
-                    ? `🎵 ${campaign.reelsAudioSuggestion}`
-                    : ""
-                }</div></section>`
-                : ""
-            }
-                ${Array.isArray(campaign.reelsOnScreenText) &&
-                campaign.reelsOnScreenText.length
-                ? `<section><div class="label">📝 Texto na Tela</div><div class="content">${campaign.reelsOnScreenText
-                    .map((t: string) => `• "${t}"`)
-                    .join("<br>")}</div></section>`
-                : ""
-            }
-                ${campaign.reelsScript
-                ? `<section><div class="label">🎬 Roteiro Sugerido</div><div class="content">${campaign.reelsScript.replace(/\n/g, "<br>")}</div></section>`
-                : ""
-            }
-                ${Array.isArray(campaign.reelsShotlist) && campaign.reelsShotlist.length
-                ? `<section><div class="label">📋 Cenas Sugeridas</div>${campaign.reelsShotlist
-                    .map(
-                        (s: any) =>
-                            `<div class="scene"><div class="scene-num">Cena ${s.scene} — ${s.camera}</div><div>Ação: ${s.action}</div><div style="color:#52525b;font-style:italic">"${s.dialogue}"</div></div>`
-                    )
-                    .join("")}</section>`
-                : ""
-            }
-                ${campaign.reelsCaption
-                ? `<section><div class="label">💬 Legenda</div><div class="content">${campaign.reelsCaption}</div></section>`
-                : ""
-            }
-                ${campaign.reelsCta
-                ? `<section><div class="label">📣 CTA</div><div class="content" style="font-weight:700">${campaign.reelsCta}</div></section>`
-                : ""
-            }
-                ${campaign.reelsHashtags
-                ? `<section><div class="label">#️⃣ Hashtags</div><div class="content" style="color:#52525b">${campaign.reelsHashtags}</div></section>`
-                : ""
-            }
+                <h1>Roteiro de Vídeo Curto — ${product_name}</h1>
+                ${campaign.reels_hook ? `<section><div class="label">🎯 Hook (Gancho Vital)</div><div class="content" style="font-weight:700; font-style:italic; font-size:16px">${campaign.reels_hook}</div></section>` : ""}
+                ${campaign.reels_duration_seconds || campaign.reels_audio_suggestion ? `<section><div class="label">📽️ Foco do Vídeo</div><div class="content">${campaign.reels_duration_seconds ? `⏱️ ${campaign.reels_duration_seconds}s` : ""} ${campaign.reels_audio_suggestion ? `🎵 ${campaign.reels_audio_suggestion}` : ""}</div></section>` : ""}
+                ${Array.isArray(campaign.reels_on_screen_text) && campaign.reels_on_screen_text.length ? `<section><div class="label">📝 Texto na Tela</div><div class="content">${campaign.reels_on_screen_text.map((t: string) => `• "${t}"`).join("<br>")}</div></section>` : ""}
+                ${campaign.reels_script ? `<section><div class="label">🎬 Roteiro Sugerido</div><div class="content">${campaign.reels_script.replace(/\n/g, "<br>")}</div></section>` : ""}
+                ${Array.isArray(campaign.reels_shotlist) && campaign.reels_shotlist.length ? `<section><div class="label">📋 Cenas Sugeridas</div>${campaign.reels_shotlist.map((s: any) => `<div class="scene"><div class="scene-num">Cena ${s.scene} — ${s.camera}</div><div>Ação: ${s.action}</div><div style="color:#52525b;font-style:italic">"${s.dialogue}"</div></div>`).join("")}</section>` : ""}
+                ${campaign.reels_caption ? `<section><div class="label">💬 Legenda</div><div class="content">${campaign.reels_caption}</div></section>` : ""}
+                ${campaign.reels_cta ? `<section><div class="label">📣 CTA</div><div class="content" style="font-weight:700">${campaign.reels_cta}</div></section>` : ""}
+                ${campaign.reels_hashtags ? `<section><div class="label">#️⃣ Hashtags</div><div class="content" style="color:#52525b">${campaign.reels_hashtags}</div></section>` : ""}
             </body>
             </html>
         `);
@@ -621,7 +581,7 @@ export function CampaignPreviewClient({
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = `arte-${campaign.productName?.replace(/\s+/g, "-").toLowerCase() || "campanha"
+            a.download = `arte-${campaign.product_name?.replace(/\s+/g, "-").toLowerCase() || "campanha"
                 }.png`;
             document.body.appendChild(a);
             a.click();
@@ -730,8 +690,8 @@ export function CampaignPreviewClient({
                     <PreviewReadyState
                         preview={previewData}
                         onUpdatePreview={setPreviewData}
-                        generatePost={activeTab === "art"}
-                        generateReels={activeTab === "video"}
+                        generate_post={activeTab === "art"}
+                        generate_reels={activeTab === "video"}
                     />
                 </div>
             ) : viewMode === "edit" ? (
@@ -769,7 +729,7 @@ export function CampaignPreviewClient({
                         <div className="flex-1">
                             <div className="flex items-center gap-3">
                                 <h2 className="text-2xl font-bold text-zinc-900">
-                                    {campaign.productName}
+                                    {campaign.product_name}
                                 </h2>
                                 {isApproved && (
                                     <span className="rounded bg-emerald-50 px-2 py-1 text-[10px] font-bold uppercase text-emerald-700 ring-1 ring-inset ring-emerald-600/10">
@@ -846,7 +806,7 @@ export function CampaignPreviewClient({
                                     (hasAi ? (
                                         <div className="space-y-6 rounded-3xl border border-black/5 bg-white p-6">
                                             <div className="aspect-[4/5] relative rounded-2xl overflow-hidden shadow-lg max-w-[400px] mx-auto border border-zinc-100">
-                                                {campaign.imageUrl ? (
+                                                {campaign.image_url ? (
                                                     <img
                                                         src={finalArtUrlClean}
                                                         alt="Arte"
@@ -860,10 +820,10 @@ export function CampaignPreviewClient({
                                             </div>
 
                                             <div className="space-y-3">
-                                                <Field label="Legenda" value={campaign.aiCaption} />
+                                                <Field label="Legenda" value={campaign.ai_caption} />
                                                 <Field
                                                     label="Hashtags"
-                                                    value={campaign.aiHashtags}
+                                                    value={campaign.ai_hashtags}
                                                 />
                                                 <SalesFeedbackInline
                                                     contentType="campaign"
@@ -874,7 +834,7 @@ export function CampaignPreviewClient({
                                                     <button
                                                         onClick={handleCopyArt}
                                                         disabled={
-                                                            !campaign.imageUrl ||
+                                                            !campaign.image_url ||
                                                             artStatus === "copying" ||
                                                             artStatus === "saving"
                                                         }
@@ -901,7 +861,7 @@ export function CampaignPreviewClient({
                                                     <button
                                                         onClick={handleDownloadArt}
                                                         disabled={
-                                                            !campaign.imageUrl ||
+                                                            !campaign.image_url ||
                                                             artStatus === "saving" ||
                                                             artStatus === "copying"
                                                         }
@@ -950,8 +910,8 @@ export function CampaignPreviewClient({
                                 {activeTab === "video" &&
                                     (hasReels ? (
                                         <div className="space-y-6 rounded-3xl border border-black/5 bg-white p-6">
-                                            <Field label="Hook" value={campaign.reelsHook} />
-                                            <Field label="Roteiro" value={campaign.reelsScript} />
+                                            <Field label="Hook" value={campaign.reels_hook} />
+                                            <Field label="Roteiro" value={campaign.reels_script} />
                                             <SalesFeedbackInline
                                                 contentType="reels"
                                                 campaignId={campaign.id}

@@ -4,7 +4,7 @@ import { fetchStoreContext } from "@/lib/domain/stores/queries";
 import { CampaignAISchema } from "./schemas";
 import { buildCampaignPrompt } from "./prompts";
 import { mapAiCampaignToDomain, mapDbCampaignToAIContext } from "./mapper";
-import { mapDbCampaignToDomain } from "@/lib/campaigns/mapper";
+import { mapDbCampaignToDomain } from "./mapper";
 import { CampaignAIOutput } from "./types";
 
 export type GenerateCampaignInput = {
@@ -48,14 +48,14 @@ export async function generateCampaignContent(
   // Mapeamento de contexto técnico para a IA (mantemos para compatibilidade com prompts legados)
   const campaignCtx = mapDbCampaignToAIContext(rawCampaign);
 
-  // 2) Idempotência (usa a versão camelCase mapeada)
-  const already = !!(campaign.aiCaption && campaign.aiCaption.trim().length > 0);
+  // 2) Idempotência (usa a versão snake_case mapeada)
+  const already = !!(campaign.ai_caption && campaign.ai_caption.trim().length > 0);
   if (!force && already) {
     return { ok: true, reused: true };
   }
 
   // 3) Validação mínima dos dados da campanha
-  const nameOk = !!(campaign.productName || "").trim();
+  const nameOk = !!(campaign.product_name || "").trim();
   const audOk = !!(campaign.audience || "").trim();
   const objOk = !!(campaign.objective || "").trim();
   if (!nameOk || !audOk || !objOk) {

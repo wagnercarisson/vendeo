@@ -54,7 +54,7 @@ export function StrategySuggestionCard({
                         Posicionamento
                     </p>
                     <p className="mt-1 text-sm font-semibold text-zinc-900">
-                        {getLabel(suggestion.productPositioning, PRODUCT_POSITIONING_OPTIONS)}
+                        {getLabel(suggestion.product_positioning, PRODUCT_POSITIONING_OPTIONS)}
                     </p>
                 </div>
             </div>

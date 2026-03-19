@@ -12,15 +12,15 @@ export async function POST(req: NextRequest) {
 
         const {
             layout = "solid",
-            imageUrl,
+            image_url: imageUrl,
             headline = "",
-            bodyText = "",
+            body_text: bodyText = "",
             cta = "",
             price = "",
-            storeName = "",
-            storeAddress = "",
+            store_name: storeName = "",
+            store_address: storeAddress = "",
             whatsapp = "",
-            primaryColor = "#10b981",
+            primary_color: primaryColor = "#10b981",
         } = body;
 
         const formatPrice = (p: string | number) => {

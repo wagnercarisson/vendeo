@@ -8,7 +8,7 @@ import {
     PRODUCT_POSITIONING_OPTIONS
 } from "../../new/_components/constants";
 import { supabase } from "@/lib/supabase";
-import { Campaign } from "@/lib/campaigns/types";
+import { Campaign } from "@/lib/domain/campaigns/types";
 import { Store } from "@/lib/domain/stores/types";
 
 export type CampaignSavePayload = {
@@ -64,12 +64,12 @@ export function CampaignEditForm({
     }, [activeTab]);
 
     const initialPositioning = useMemo(() => {
-        if (campaign.productPositioning) return campaign.productPositioning;
+        if (campaign.product_positioning) return campaign.product_positioning;
         return store?.brand_positioning || "";
-    }, [campaign.productPositioning, store]);
+    }, [campaign.product_positioning, store]);
 
     const [formData, setFormData] = useState({
-        product_name: campaign.productName || "",
+        product_name: campaign.product_name || "",
         price:
             campaign.price != null
                 ? new Intl.NumberFormat("pt-BR", {
@@ -80,12 +80,12 @@ export function CampaignEditForm({
         audience: campaign.audience || AUDIENCE_OPTIONS[0]?.value || "",
         objective: campaign.objective || OBJECTIVE_OPTIONS[0]?.value || "",
         product_positioning: initialPositioning || PRODUCT_POSITIONING_OPTIONS[0]?.value || "",
-        product_image_url: campaign.productImageUrl || "",
-        reels_hook: campaign.reelsHook || "",
-        reels_script: campaign.reelsScript || "",
-        reels_caption: campaign.reelsCaption || "",
-        reels_cta: campaign.reelsCta || "",
-        reels_hashtags: campaign.reelsHashtags || "",
+        product_image_url: campaign.product_image_url || "",
+        reels_hook: campaign.reels_hook || "",
+        reels_script: campaign.reels_script || "",
+        reels_caption: campaign.reels_caption || "",
+        reels_cta: campaign.reels_cta || "",
+        reels_hashtags: campaign.reels_hashtags || "",
     });
 
     const handleChange = (
