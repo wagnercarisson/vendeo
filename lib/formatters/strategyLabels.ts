@@ -33,4 +33,44 @@ function humanize(value: string) {
             return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
         })
         .join(" ");
-}
+}
+
+/**
+ * Normaliza um valor de estratégia buscando por valor exato ou label aproximada.
+ * Utilizado para garantir que parâmetros de URL e herança de plano usem os IDs técnicos (value)
+ * mesmo quando o dado de origem vem formatado ou sugerido pela IA como texto.
+ */
+export function normalizeStrategyValue(
+    input: string | null | undefined,
+    options: readonly { value: string; label: string }[]
+): string {
+    if (!input) return "";
+    
+    const normalizedInput = input.trim().toLowerCase();
+
+    const found = options.find((opt) => {
+        const val = opt.value.toLowerCase();
+        const lab = opt.label.toLowerCase();
+        
+        return (
+            val === normalizedInput ||
+            lab === normalizedInput ||
+            lab.startsWith(normalizedInput) ||
+            normalizedInput.startsWith(lab.split(" (")[0].toLowerCase())
+        );
+    });
+
+    return found?.value || input;
+}
+
+export function normalizeAudience(input?: string | null) {
+    return normalizeStrategyValue(input, AUDIENCE_OPTIONS);
+}
+
+export function normalizeObjective(input?: string | null) {
+    return normalizeStrategyValue(input, OBJECTIVE_OPTIONS);
+}
+
+export function normalizePositioning(input?: string | null) {
+    return normalizeStrategyValue(input, PRODUCT_POSITIONING_OPTIONS);
+}

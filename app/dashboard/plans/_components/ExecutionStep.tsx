@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { CheckCircle2, Sparkles, Video, ArrowRight, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { WeeklyPlanItem } from "@/lib/domain/weekly-plans/types";
-import { formatAudience, formatObjective, formatPositioning } from "@/lib/formatters/strategyLabels";
+import { formatAudience, formatObjective, formatPositioning, normalizeAudience, normalizeObjective, normalizePositioning } from "@/lib/formatters/strategyLabels";
 
 type CampaignSummary = {
   id: string;
@@ -42,10 +42,22 @@ function hasStrategyMismatch(item: WeeklyPlanItem, campaign?: CampaignSummary) {
   if (!item.brief || !campaign) return false;
   if (campaign.origin !== "plan") return false;
 
+  const normalizedPlan = {
+    audience: normalizeAudience(item.brief.audience),
+    objective: normalizeObjective(item.brief.objective),
+    positioning: normalizePositioning(item.brief.product_positioning),
+  };
+
+  const normalizedCampaign = {
+    audience: normalizeAudience(campaign.audience),
+    objective: normalizeObjective(campaign.objective),
+    positioning: normalizePositioning(campaign.product_positioning),
+  };
+
   return (
-    (item.brief.audience || "") !== (campaign.audience || "") ||
-    (item.brief.objective || "") !== (campaign.objective || "") ||
-    (item.brief.product_positioning || "") !== (campaign.product_positioning || "")
+    normalizedPlan.audience !== normalizedCampaign.audience ||
+    normalizedPlan.objective !== normalizedCampaign.objective ||
+    normalizedPlan.positioning !== normalizedCampaign.positioning
   );
 }
 
@@ -66,10 +78,17 @@ function getItemStatusBadge(item: WeeklyPlanItem, campaign?: CampaignSummary) {
     };
   }
 
-  if (item.status === "ready" || item.campaign_id || campaign) {
+  if (campaign) {
+    if (campaign.status === "approved") {
+      return {
+        label: "Campanha pronta",
+        className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+      };
+    }
+
     return {
-      label: "Campanha vinculada",
-      className: "border-sky-200 bg-sky-50 text-sky-700",
+      label: "Aguardando aprovação",
+      className: "border-amber-200 bg-amber-50 text-amber-700",
     };
   }
 
@@ -124,9 +143,9 @@ export function ExecutionStep({
             day_of_week: String(item.day_of_week),
             content_type: item.content_type,
             theme: item.theme ?? "",
-            audience: item.brief?.audience ?? "",
-            objective: item.brief?.objective ?? "",
-            positioning: item.brief?.product_positioning ?? "",
+            audience: normalizeAudience(item.brief?.audience),
+            objective: normalizeObjective(item.brief?.objective),
+            positioning: normalizePositioning(item.brief?.product_positioning),
             reasoning: item.brief?.angle ?? "",
           });
 
@@ -161,7 +180,7 @@ export function ExecutionStep({
 
                   <div>
                     <h3 className="text-base font-semibold text-zinc-900">
-                      {item.theme || "Item do plano semanal"}
+                      {item.brief?.angle || item.theme || "Item do plano semanal"}
                     </h3>
 
                     {item.brief ? (
@@ -225,7 +244,7 @@ export function ExecutionStep({
                   ) : (
                     <button
                       type="button"
-                      onClick={() => router.push(`/dashboard/campaigns/${campaign.id}`)}
+                      onClick={() => router.push(`/dashboard/campaigns/${campaign.id}${campaign.status === "approved" ? "" : "?mode=edit"}`)}
                       className="inline-flex items-center justify-center gap-2 rounded-2xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-800 transition hover:bg-zinc-50"
                     >
                       Abrir campanha

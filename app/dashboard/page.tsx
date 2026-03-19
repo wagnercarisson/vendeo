@@ -123,44 +123,89 @@ export default async function DashboardPage() {
     .maybeSingle();
 
   // =========================
-  // MÉTRICAS (últimos 30 dias)
+  // MÉTRICAS (Evolução real)
   // =========================
   const since30 = new Date();
   since30.setDate(since30.getDate() - 30);
   const since30Iso = since30.toISOString();
-  const startOfWeekIso = getStartOfWeekBrazilISO();
+
+  const since60 = new Date();
+  since60.setDate(since60.getDate() - 60);
+  const since60Iso = since60.toISOString();
+
+  const since7 = new Date();
+  since7.setDate(since7.getDate() - 7);
+  const since7Iso = since7.toISOString();
+
+  const since14 = new Date();
+  since14.setDate(since14.getDate() - 14);
+  const since14Iso = since14.toISOString();
 
   const [
     { count: campaignsWeek },
+    { count: campaignsPrevWeek },
     { count: campaigns30 },
+    { count: campaignsPrev30 },
     { count: ai30 },
+    { count: aiPrev30 },
     { count: reels30 },
+    { count: reelsPrev30 },
   ] = await Promise.all([
+    // Week vs Prev Week
     supabase
       .from("campaigns")
       .select("id", { count: "exact", head: true })
       .eq("store_id", store.id)
-      .gte("created_at", startOfWeekIso),
+      .gte("created_at", since7Iso),
+    supabase
+      .from("campaigns")
+      .select("id", { count: "exact", head: true })
+      .eq("store_id", store.id)
+      .gte("created_at", since14Iso)
+      .lt("created_at", since7Iso),
 
+    // 30 vs Prev 30 (60-30)
     supabase
       .from("campaigns")
       .select("id", { count: "exact", head: true })
       .eq("store_id", store.id)
       .gte("created_at", since30Iso),
+    supabase
+      .from("campaigns")
+      .select("id", { count: "exact", head: true })
+      .eq("store_id", store.id)
+      .gte("created_at", since60Iso)
+      .lt("created_at", since30Iso),
 
+    // AI 30 vs Prev 30
     supabase
       .from("campaigns")
       .select("id", { count: "exact", head: true })
       .eq("store_id", store.id)
       .not("ai_generated_at", "is", null)
       .gte("ai_generated_at", since30Iso),
+    supabase
+      .from("campaigns")
+      .select("id", { count: "exact", head: true })
+      .eq("store_id", store.id)
+      .not("ai_generated_at", "is", null)
+      .gte("ai_generated_at", since60Iso)
+      .lt("ai_generated_at", since30Iso),
 
+    // Reels 30 vs Prev 30
     supabase
       .from("campaigns")
       .select("id", { count: "exact", head: true })
       .eq("store_id", store.id)
       .not("reels_generated_at", "is", null)
       .gte("reels_generated_at", since30Iso),
+    supabase
+      .from("campaigns")
+      .select("id", { count: "exact", head: true })
+      .eq("store_id", store.id)
+      .not("reels_generated_at", "is", null)
+      .gte("reels_generated_at", since60Iso)
+      .lt("reels_generated_at", since30Iso),
   ]);
 
   const hasCampaigns = (campaigns?.length ?? 0) > 0;
@@ -184,9 +229,13 @@ export default async function DashboardPage() {
           <MotionWrapper delay={0.1}>
             <MetricsRow
               campaignsWeek={campaignsWeek ?? 0}
+              campaignsPrevWeek={campaignsPrevWeek ?? 0}
               campaigns30={campaigns30 ?? 0}
+              campaignsPrev30={campaignsPrev30 ?? 0}
               ai30={ai30 ?? 0}
+              aiPrev30={aiPrev30 ?? 0}
               reels30={reels30 ?? 0}
+              reelsPrev30={reelsPrev30 ?? 0}
               hasPlan={hasPlan}
             />
           </MotionWrapper>

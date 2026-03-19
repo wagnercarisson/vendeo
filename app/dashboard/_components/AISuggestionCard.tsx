@@ -50,6 +50,9 @@ export async function AISuggestionCard({ storeName, city }: { storeName: string;
     let timeGreeting = "Oportunidade Perfeita!";
     let timeIcon = "☀️";
     let suggestionText = `Que tal focar em produtos que costumam vender bem hoje? Crie uma campanha para engajar seus clientes.`;
+    let genPost = true;
+    let genReels = false;
+    let obj = "venda_direta";
 
     // Se não houver clima, usa lógica baseada APENAS na hora
     if (!weather) {
@@ -57,14 +60,23 @@ export async function AISuggestionCard({ storeName, city }: { storeName: string;
             timeGreeting = "Prepare-se para amanhã! ✨";
             timeIcon = "🌙";
             suggestionText = `O dia está terminando, mas amanhã há novas chances. Vamos criar algo de "Bom dia" e surpreender logo cedo?`;
+            genPost = true;
+            genReels = false;
+            obj = "venda_direta";
         } else if (hour >= 12 && hour < 18) {
             timeGreeting = "Boa tarde produtiva!";
             timeIcon = "☕";
             suggestionText = `Tarde movimentada? Reforce sua presença digital com um Vídeo Curto dos produtos mais populares da sua loja.`;
+            genPost = false;
+            genReels = true;
+            obj = "divulgacao";
         } else {
             timeGreeting = "Bom dia, excelentes vendas!";
             timeIcon = "🌅";
             suggestionText = `Aproveite a energia da manhã. Uma campanha relâmpago hoje atrai clientes para a loja à tarde!`;
+            genPost = true;
+            genReels = false;
+            obj = "venda_direta";
         }
     } else {
         // Lógica COMBINADA (Hora + Clima)
@@ -72,24 +84,46 @@ export async function AISuggestionCard({ storeName, city }: { storeName: string;
             timeGreeting = "Tempo chuvoso lá fora! 🌧️";
             timeIcon = "☔";
             suggestionText = `A chuva em ${weather.cityName} deixa as pessoas mais conectadas. Destaque produtos de "conforto em casa" ou reforce seu serviço de delivery!`;
+            genPost = true;
+            genReels = false;
+            obj = "venda_direta";
         } else if (weather.temp > 30) {
             timeGreeting = "Dia muito quente! 🌡️";
             timeIcon = "🔥";
             suggestionText = `Fazendo incríveis ${weather.temp}°C em ${weather.cityName}! Promova itens refrescantes, de verão ou mais leves. O calor atrai esse desejo imediato!`;
+            genPost = true;
+            genReels = false;
+            obj = "promocao";
         } else if (weather.temp < 15) {
             timeGreeting = "Esfriou por aí! 🥶";
             timeIcon = "❄️";
             suggestionText = `${weather.temp}°C em ${weather.cityName}... Oportunidade gigante para postar sobre novidades térmicas, conforto e se aquecer neste friozinho!`;
+            genPost = true;
+            genReels = false;
+            obj = "venda_direta";
         } else if (!weather.isDay) {
             timeGreeting = "A noite é das ideias! 🌙";
             timeIcon = "🦉";
             suggestionText = `A noite em ${weather.cityName} já chegou (${weather.temp}°C). Muitas pessoas relaxam olhando o feed agora. Agende uma campanha visual para estarem prontos amanhã!`;
+            genPost = true;
+            genReels = false;
+            obj = "venda_direta";
         } else {
             timeGreeting = "Dia lindo perfeito para vendas! ☀️";
             timeIcon = "🌞";
             suggestionText = `Aproveite o dia agradável em ${weather.cityName}. Perfeito para convidar clientes a visitarem seu espaço ou mostrar um lançamento exclusivo!`;
+            genPost = true;
+            genReels = false;
+            obj = "divulgacao";
         }
     }
+
+    const queryParams = new URLSearchParams({
+        source: "ai_weather",
+        generatePost: genPost.toString(),
+        generateReels: genReels.toString(),
+        objective: obj
+    });
 
     return (
         <div className="group relative overflow-hidden rounded-2xl border bg-gradient-to-br from-emerald-600 to-emerald-800 p-6 shadow-premium text-white transition-all hover:shadow-lg hover:-translate-y-[1px]">
@@ -111,7 +145,7 @@ export async function AISuggestionCard({ storeName, city }: { storeName: string;
                 </p>
 
                 <Link
-                    href="/dashboard/campaigns/new?source=ai_weather"
+                    href={`/dashboard/campaigns/new?${queryParams.toString()}`}
                     className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-emerald-700 shadow-xl shadow-emerald-900/20 hover:bg-slate-50 transition-all active:scale-95"
                 >
                     Preparar campanha <span className="ml-1">→</span>

@@ -33,6 +33,7 @@ interface CampaignEditFormProps {
     onCancel: () => void;
     onGenerateArt: (data: CampaignSavePayload) => Promise<void>;
     onGenerateVideo: (data: CampaignSavePayload) => Promise<void>;
+    onApprove?: (data: CampaignSavePayload) => Promise<void>;
     isSaving: boolean;
     isGeneratingArt: boolean;
     isGeneratingVideo: boolean;
@@ -48,6 +49,7 @@ export function CampaignEditForm({
     onCancel,
     onGenerateArt,
     onGenerateVideo,
+    onApprove,
     isSaving,
     isGeneratingArt,
     isGeneratingVideo,
@@ -125,6 +127,12 @@ export function CampaignEditForm({
         formData.product_positioning
     );
 
+    const hasContentReady = localTab === "art" 
+        ? !!(campaign.image_url || formData.product_image_url)
+        : !!(formData.reels_hook && formData.reels_script);
+
+    const canApprove = canGenerate && hasContentReady && campaign.status !== 'approved';
+
     const getSubmissionData = (): CampaignSavePayload => ({
         ...formData,
         price:
@@ -145,40 +153,58 @@ export function CampaignEditForm({
             className="space-y-6 bg-white rounded-3xl border border-black/5 p-6 shadow-sm"
         >
             <div className="flex items-center justify-between border-b border-black/5 -mx-6 px-6">
-                {lockContext ? (
-                    <h2 className="px-5 py-3 text-sm font-bold text-zinc-900 border-b-2 border-zinc-900">
-                        {localTab === "art" ? "Editar Arte" : "Editar Roteiro de Vídeo"}
-                    </h2>
-                ) : (
-                    <div className="flex items-center">
-                        <button
-                            type="button"
-                            onClick={() => setLocalTab("art")}
-                            className={`px-5 py-3 text-sm font-bold ${localTab === "art"
-                                    ? "text-zinc-900 border-b-2 border-zinc-900"
-                                    : "text-zinc-400"
-                                }`}
-                        >
-                            Arte
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setLocalTab("video")}
-                            className={`px-5 py-3 text-sm font-bold ${localTab === "video"
-                                    ? "text-zinc-900 border-b-2 border-zinc-900"
-                                    : "text-zinc-400"
-                                }`}
-                        >
-                            Vídeo
-                        </button>
-                    </div>
-                )}
+                <div className="flex items-center">
+                    {lockContext ? (
+                        <h2 className="px-5 py-3 text-sm font-bold text-zinc-900 border-b-2 border-zinc-900">
+                            {localTab === "art" ? "Editar Arte" : "Editar Roteiro de Vídeo"}
+                        </h2>
+                    ) : (
+                        <div className="flex items-center">
+                            <button
+                                type="button"
+                                onClick={() => setLocalTab("art")}
+                                className={`px-5 py-3 text-sm font-bold ${localTab === "art"
+                                        ? "text-zinc-900 border-b-2 border-zinc-900"
+                                        : "text-zinc-400"
+                                    }`}
+                            >
+                                Arte
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setLocalTab("video")}
+                                className={`px-5 py-3 text-sm font-bold ${localTab === "video"
+                                        ? "text-zinc-900 border-b-2 border-zinc-900"
+                                        : "text-zinc-400"
+                                    }`}
+                            >
+                                Vídeo
+                            </button>
+                        </div>
+                    )}
 
-                {!lockContext && lockStrategyFields && (
-                    <div className="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] font-medium text-amber-800">
-                        <Lock className="h-3.5 w-3.5" />
-                        Estratégia herdada do plano semanal
-                    </div>
+                    {!lockContext && lockStrategyFields && (
+                        <div className="ml-4 inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] font-medium text-amber-800">
+                            <Lock className="h-3.5 w-3.5" />
+                            Estratégia herdada
+                        </div>
+                    )}
+                </div>
+
+                {onApprove && hasContentReady && campaign.status !== 'approved' && (
+                    <button
+                        type="button"
+                        onClick={() => onApprove(getSubmissionData())}
+                        disabled={isSaving || !canGenerate}
+                        className="my-2 h-9 px-4 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-500 transition-colors disabled:opacity-50 flex items-center gap-2"
+                    >
+                        {isSaving ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                            <Sparkles className="h-3.5 w-3.5" />
+                        )}
+                        Aprovar e salvar
+                    </button>
                 )}
             </div>
 

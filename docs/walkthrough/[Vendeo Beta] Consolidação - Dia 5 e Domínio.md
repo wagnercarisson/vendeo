@@ -29,6 +29,7 @@ Transformamos dados técnicos em informações amigáveis para o usuário.
 ## 🛠️ Detalhes Técnicos
 - **Fonte Única de Verdade**: Criado [strategy.ts](file:///g:/Projetos/vendeo/lib/constants/strategy.ts) para centralizar opções de estratégia.
 - **Formatadores Globais**: Criados formatadores em `lib/formatters/` para garantir que as labels sejam idênticas em qualquer parte da aplicação.
+- **Correção de Build**: Limpeza de código morto em [WizardShell.tsx](file:///g:/Projetos/vendeo/app/dashboard/plans/_components/WizardShell.tsx) para alinhar com a nova interface simplificada do `ExecutionStep`.
 
 ---
 **Próxima Fase: Dia 6 — Segurança e Auditoria (RLS)**

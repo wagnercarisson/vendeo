@@ -195,6 +195,42 @@ export function CampaignPreviewClient({
         }
     }
 
+    async function handleApproveFromEdit(data: CampaignSavePayload) {
+        try {
+            setErrorMsg(null);
+            setIsSaving(true);
+
+            const payload = {
+                product_name: data.product_name,
+                price: data.price,
+                audience: data.audience,
+                objective: data.objective,
+                product_positioning: data.product_positioning,
+                product_image_url: data.product_image_url,
+                reels_hook: data.reels_hook,
+                reels_script: data.reels_script,
+                reels_caption: data.reels_caption,
+                reels_cta: data.reels_cta,
+                reels_hashtags: data.reels_hashtags,
+                status: "approved" as const,
+            };
+
+            const { error } = await supabase
+                .from("campaigns")
+                .update(payload)
+                .eq("id", campaign.id);
+
+            if (error) throw error;
+
+            setViewMode("view");
+            router.refresh();
+        } catch (err: any) {
+            setErrorMsg(err.message);
+        } finally {
+            setIsSaving(false);
+        }
+    }
+
     async function handleGenerateFromEdit(type: "art" | "video", data: CampaignSavePayload) {
         try {
             setErrorMsg(null);
@@ -712,6 +748,7 @@ export function CampaignPreviewClient({
                     onCancel={() => setViewMode("view")}
                     onGenerateArt={(d) => handleGenerateFromEdit("art", d)}
                     onGenerateVideo={(d) => handleGenerateFromEdit("video", d)}
+                    onApprove={handleApproveFromEdit}
                     activeTab={activeTab}
                     lockContext={true}
                     lockStrategyFields={isPlanLinked}
@@ -782,6 +819,7 @@ export function CampaignPreviewClient({
                                 setActiveTab("video");
                                 return handleGenerateFromEdit("video", d);
                             }}
+                            onApprove={handleApproveFromEdit}
                             activeTab={activeTab}
                             lockContext={false}
                             lockStrategyFields={isPlanLinked}

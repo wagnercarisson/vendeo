@@ -69,15 +69,19 @@ export function getCampaignStrategyLabel(campaign: Campaign): string {
 /**
  * Retorna o status resumido da campanha para listagem.
  */
-export function getCampaignListStatus(campaign: Campaign): "complete" | "art" | "video" | "content" | "none" {
+export function getCampaignListStatus(campaign: Campaign): "approved" | "pending" | "none" {
   const hasArt = hasGeneratedArt(campaign);
   const hasVideo = hasGeneratedVideo(campaign);
   const hasContent = hasGeneratedCampaignContent(campaign);
 
-  if (hasArt && hasVideo) return "complete";
-  if (hasArt) return "art";
-  if (hasVideo) return "video";
-  if (hasContent) return "content";
+  if (campaign.status === "approved") {
+    return "approved";
+  }
+
+  if (hasArt || hasVideo || hasContent) {
+    return "pending";
+  }
+  
   return "none";
 }
 
@@ -87,9 +91,17 @@ export function getCampaignListStatus(campaign: Campaign): "complete" | "art" | 
 export function getCampaignStatusLine(campaign: Campaign): string {
   const status = getCampaignListStatus(campaign);
 
-  if (status === "complete") return "Campanha completa";
-  if (status === "art") return "Arte pronta";
-  if (status === "video") return "Vídeo pronto";
-  if (status === "content") return "Conteúdo gerado";
+  if (status === "approved") {
+    const hasArt = hasGeneratedArt(campaign);
+    const hasVideo = hasGeneratedVideo(campaign);
+    
+    if (hasArt && hasVideo) return "Campanha completa";
+    if (hasArt) return "Arte pronta";
+    if (hasVideo) return "Vídeo pronto";
+    return "Aprovada";
+  }
+  
+  if (status === "pending") return "Aguardando aprovação";
+  
   return "Sem conteúdo";
 }

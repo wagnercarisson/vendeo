@@ -175,6 +175,12 @@ export default function LoginClient() {
     }
   }
 
+  function handleClearFields() {
+    setEmail("");
+    setPassword("");
+    setError(null);
+  }
+
   return (
     <main className="min-h-screen text-zinc-900">
       {/* fundo premium (bem sutil) */}
@@ -279,7 +285,18 @@ export default function LoginClient() {
               {view === "auth" ? (
                 <form onSubmit={handleSubmit} className="grid gap-3">
                   <div className="grid gap-1">
-                    <label className="text-sm font-medium">E-mail</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium">E-mail</label>
+                      <button
+                        type="button"
+                        onClick={handleClearFields}
+                        tabIndex={1}
+                        className="text-xs font-medium text-emerald-700 hover:underline disabled:opacity-60"
+                        disabled={loading || oauthLoading}
+                      >
+                        Limpar campos
+                      </button>
+                    </div>
                     <input
                       className="h-11 rounded-xl border border-zinc-200 px-3 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200"
                       type="email"
@@ -288,6 +305,8 @@ export default function LoginClient() {
                       onChange={(e) => setEmail(e.target.value)}
                       required
                       autoComplete="email"
+                      autoFocus
+                      tabIndex={2}
                     />
                   </div>
 
@@ -303,6 +322,7 @@ export default function LoginClient() {
                             setError(null);
                             setResetSent(false);
                           }}
+                          tabIndex={5}
                           className="text-xs font-medium text-emerald-700 hover:underline disabled:opacity-60"
                           disabled={loading || oauthLoading}
                         >
@@ -321,12 +341,14 @@ export default function LoginClient() {
                       autoComplete={
                         mode === "signup" ? "new-password" : "current-password"
                       }
+                      tabIndex={3}
                     />
                   </div>
 
                   <button
                     type="submit"
                     disabled={loading || oauthLoading}
+                    tabIndex={4}
                     className="mt-2 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 font-medium text-white transition hover:bg-emerald-700 disabled:opacity-60"
                   >
                     {loading
@@ -339,7 +361,17 @@ export default function LoginClient() {
               ) : (
                 <form onSubmit={handleSendReset} className="grid gap-3">
                   <div className="grid gap-1">
-                    <label className="text-sm font-medium">E-mail</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium">E-mail</label>
+                      <button
+                        type="button"
+                        onClick={handleClearFields}
+                        className="text-xs font-medium text-emerald-700 hover:underline disabled:opacity-60"
+                        disabled={loading || oauthLoading}
+                      >
+                        Limpar campos
+                      </button>
+                    </div>
                     <input
                       className="h-11 rounded-xl border border-zinc-200 px-3 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200"
                       type="email"

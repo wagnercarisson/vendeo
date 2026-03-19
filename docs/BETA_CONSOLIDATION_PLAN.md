@@ -14,7 +14,7 @@ Dia 1 — Modelo de Loja
 Dia 2 — Status do Domínio  
 Dia 3 — Baseline e Migrations  
 Dia 4 — Auditoria Temporal  
-Dia 5 — Semântica de Imagens  
+Dia 5 — UI / UX e Semântica de Status  
 Dia 6 — Segurança e Storage  
 Dia 7 — Documentação Final
 
@@ -207,7 +207,7 @@ Dia 1 — Modelo de Loja        ✅ Concluído
 Dia 2 — Segurança de Rotas    ▶ Em execução
 Dia 3 — Fluxo de Campanha     ⏳ Planejado
 Dia 4 — Geração de Conteúdo   ⏳ Planejado
-Dia 5 — UI / UX Final         ⏳ Planejado
+Dia 5 — UI / UX Final         ✅ Concluído
 
 # Dia 2 — Status do Domínio
 
@@ -412,7 +412,7 @@ Dia 1 — Modelo de Loja        ✅ Concluído
 Dia 2 — Segurança de Rotas    ✅ Concluído
 Dia 3 — Fluxo de Campanha     ▶ Em execução
 Dia 4 — Geração de Conteúdo   ⏳ Planejado
-Dia 5 — UI / UX Final         ⏳ Planejado
+Dia 5 — UI / UX Final         ✅ Concluído
 
 ---
 
@@ -480,7 +480,7 @@ Dia 1 — Modelo de Loja        ✅ Concluído
 Dia 2 — Segurança de Rotas    ✅ Concluído
 Dia 3 — Fluxo de Campanha     ✅ Concluído
 Dia 4 — Geração de Conteúdo   ▶ Em execução
-Dia 5 — UI / UX Final         ⏳ Planejado
+Dia 5 — UI / UX Final         ✅ Concluído
 
 ---
 
@@ -547,7 +547,7 @@ Dia 1 — Modelo de Loja        ✅ Concluído
 Dia 2 — Segurança de Rotas    ✅ Concluído
 Dia 3 — Fluxo de Campanha     ✅ Concluído
 Dia 4 — Geração de Conteúdo   ✅ Concluído
-Dia 5 — UI / UX Final         ⏳ Planejado
+Dia 5 — UI / UX Final         ✅ Concluído
 Dia 6 — Segurança             ⏳ Planejado
 Dia 7 — Fechamento            ⏳ Planejado
 
@@ -563,7 +563,7 @@ Tarefas:
 - Confirmar papel de image_url
 - Auditar código
 
-Status: ⬜
+Status: ✅
 
 📌 Atualização — Dia 5.1: Planos Semanais + Vínculo com Campanhas
 ✅ Implementações concluídas
@@ -650,93 +650,54 @@ UI de edição
 
 Banco de dados
 
-⚠️ Pendências (Dia 5.1 ainda aberto)
-1. Indicação visual de vínculo plano → campanha
+### 📌 Atualização — Dia 5.2: UI / UX e Semântica de Status (Concluído)
 
-Campanha ainda não mostra claramente que:
+Foco em alinhar a UX com os estados reais de aprovação da campanha e consolidar a terminologia na Dashboard.
 
-veio de um plano semanal
+#### 1. Implementação do Status "Aguardando Aprovação" (Amber)
+- **O Problema**: Campanhas com conteúdo gerado mas não aprovado eram marcadas como "Prontas" (Verde), confundindo o usuário e o plano semanal.
+- **A Solução**: Criado o estado `pending` (Aguardando Aprovação) com cor âmbar.
+- **Impacto**: O Plano Semanal agora reflete fielmente se a campanha está pronta para postar ou apenas aguardando revisão.
 
-Necessário:
+#### 2. Refinamento de Navegação em Rascunhos
+- **Botão "Abrir" Inteligente**: Para rascunhos e aguardando aprovação, o botão agora direciona automaticamente para o modo de edição (`?mode=edit`).
+- **Inibição de Botões "Ver"**: Botões de visualizar vídeo/arte foram ocultados para rascunhos, forçando o fluxo correto de aprovação via edição.
+- **Aprovação em Edição**: Adicionado o botão **"Aprovar e salvar"** (verde) dentro do formulário de edição, permitindo aprovação direta sem precisar gerar novo conteúdo.
 
-badge / alerta / seção informativa
+#### 3. Consolidação de Terminologia Dashboard
+- **Metricas**: Renomeado "Conteúdo IA" para **"Artes"** (plural) para clareza semântica.
+- **Subtítulo**: Atualizado para **"Legendas/Copies criadas"**, dando contexto à métrica.
 
-2. Revisão final de status e listas
+#### 4. Herança de Contexto (Dica de IA → Wizard)
+- **Tagging**: Mapeamento de intenção nas dicas da Dashboard (ex: sugestão de vídeo curta já envia parâmetros de vídeo).
+- **Default Editável**: O Wizard herda o objetivo e tipo sugeridos, mas mantém campos abertos para alteração manual.
 
-Validar consistência entre:
+#### 5. Polimento Visual
+- **Botões Desabilitados**: Padronização da cor verde suave (opacidade 50%) para botões de ação pendentes de validação, unificando a identidade visual.
 
-plano aprovado sem campanha
+### Resultado:
+- Fluxo de aprovação 100% blindado contra erros de estado.
+- Navegação fluida entre Dashboard, Plano e Edição.
+- Terminologia consistente em todo o produto.
 
-plano com campanha vinculada
+Status do Plano
+Dia 1 — Modelo de Loja        ✅ Concluído
+Dia 2 — Segurança de Rotas    ✅ Concluído
+Dia 3 — Fluxo de Campanha     ✅ Concluído
+Dia 4 — Geração de Conteúdo   ✅ Concluído
+Dia 5 — UI / UX e Status      ✅ Concluído
+Dia 6 — Segurança e Storage   ▶ Em execução (Planejado)
+Dia 7 — Fechamento            ⏳ Planejado
 
-campanhas na lista geral
-
-Garantir leitura clara de estado
-
-3. Bloqueio visual da estratégia (UX)
-
-Estratégia já está logicamente travada
-
-Falta deixar explícito para o usuário:
-
-campos desabilitados
-
-mensagem: “definido pelo plano semanal”
-
-4. Validação ponta a ponta (checklist final)
-
-Criar plano
-
-Criar campanha (post)
-
-Criar campanha (reels)
-
-Editar campanha vinculada
-
-Alterar plano após vínculo
-
-Detectar inconsistência
-
-Regenerar campanha
-
-Garantir não duplicação
-
-🔮 Itens definidos para o futuro (registrar)
+🧪 Itens definidos para o futuro (registrar)
 1. Detecção de estratégia em desacordo com plano
-
-Se plano for alterado após campanha criada:
-
-marcar item como “fora de estratégia”
-
-sugerir regeneração
-
-Pode impactar:
-
-weekly_plan_items
-
-UI do plano
-
-UI da campanha
+Se plano for alterado após campanha criada: marcar item como “fora de estratégia”, sugerir regeneração. Pode impactar: `weekly_plan_items`, UI do plano, UI da campanha.
 
 2. Evolução da IA de horários do plano
-
-Substituir heurística atual por:
-
-horário de funcionamento da loja
-
-dias abertos
-
-picos de movimento
+Substituir heurística atual por: horário de funcionamento da loja, dias abertos, picos de movimento.
 
 3. Possível endurecimento da validação de estratégia
-
-Hoje: tolerante via helper
-
-Futuro:
-
-validar direto na entrada da IA
-
-evitar qualquer valor fora de constants
+Hoje: tolerante via helper. Futuro: validar direto na entrada da IA, evitar qualquer valor fora de constants.
 
 ---
 

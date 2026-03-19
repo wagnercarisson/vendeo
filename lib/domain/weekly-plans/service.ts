@@ -17,19 +17,16 @@ import {
   OBJECTIVE_OPTIONS,
   AUDIENCE_OPTIONS,
   PRODUCT_POSITIONING_OPTIONS,
-} from "@/app/dashboard/campaigns/new/_components/constants";
+} from "@/lib/constants/strategy";
 
-function getValidValue(
-  input: string,
+import { normalizeStrategyValue } from "@/lib/formatters/strategyLabels";
+
+function getLabel(
+  value: string,
   options: readonly { value: string; label: string }[]
 ) {
-  const found = options.find(
-    (opt) =>
-      opt.value === input ||
-      opt.label.toLowerCase() === input.toLowerCase()
-  );
-
-  return found?.value || input;
+  const found = options.find((opt) => opt.value === value);
+  return found?.label || value;
 }
 
 // ─── Helper de datas ──────────────────────────────────────────────────────────
@@ -270,15 +267,15 @@ export async function generateWeeklyPlan(
 
   // 6) Insere items
   const itemsToInsert = approvedStrategy.map((st) => {
-    const theme = `Diretriz Prática:\nObjetivo: ${st.objective}\nPúblico: ${st.audience}\nTom: ${st.positioning}`;
+    const theme = `Focar em ${st.reasoning}`;
 
     const brief: WeeklyPlanItemBrief = {
       angle: `Focar em ${st.reasoning}`,
       hook_hint: "Atenção inicial focada na estratégia",
       cta_hint: "Chamada para ação clara",
-      objective: getValidValue(st.objective, OBJECTIVE_OPTIONS),
-      audience: getValidValue(st.audience, AUDIENCE_OPTIONS),
-      product_positioning: getValidValue(
+      objective: normalizeStrategyValue(st.objective, OBJECTIVE_OPTIONS),
+      audience: normalizeStrategyValue(st.audience, AUDIENCE_OPTIONS),
+      product_positioning: normalizeStrategyValue(
         st.positioning,
         PRODUCT_POSITIONING_OPTIONS
       ),

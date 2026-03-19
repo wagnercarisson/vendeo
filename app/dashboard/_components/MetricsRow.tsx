@@ -1,13 +1,34 @@
 type MetricsRowProps = {
     campaignsWeek: number;
+    campaignsPrevWeek: number;
     campaigns30: number;
+    campaignsPrev30: number;
     ai30: number;
+    aiPrev30: number;
     reels30: number;
+    reelsPrev30: number;
     hasPlan: boolean;
 };
 
 function formatNumber(n: number) {
     return new Intl.NumberFormat("pt-BR").format(n);
+}
+
+function calculateTrend(current: number, previous: number) {
+    if (current === 0 && previous === 0) return null;
+    
+    // Se era 0 e agora tem algo, consideramos 100% de crescimento (ou apenas positivo)
+    if (previous === 0) {
+        return { value: 100, isPositive: true };
+    }
+
+    const diff = current - previous;
+    const percentage = Math.round((diff / previous) * 100);
+
+    return {
+        value: Math.abs(percentage),
+        isPositive: percentage >= 0,
+    };
 }
 
 function MetricCard({
@@ -22,7 +43,7 @@ function MetricCard({
     trend?: {
         value: number;
         isPositive: boolean;
-    };
+    } | null;
 }) {
     return (
         <div className="group relative overflow-hidden rounded-2xl border bg-white p-5 shadow-soft transition-all hover:shadow-md hover:-translate-y-[1px]">
@@ -34,7 +55,7 @@ function MetricCard({
                         fill="none"
                         stroke="currentColor"
                         strokeWidth="3"
-                        className="text-emerald-500"
+                        className={trend?.isPositive === false ? "text-red-500" : "text-emerald-500"}
                     />
                 </svg>
             </div>
@@ -66,9 +87,13 @@ function MetricCard({
 
 export function MetricsRow({
     campaignsWeek,
+    campaignsPrevWeek,
     campaigns30,
+    campaignsPrev30,
     ai30,
+    aiPrev30,
     reels30,
+    reelsPrev30,
     hasPlan,
 }: MetricsRowProps) {
     return (
@@ -76,7 +101,7 @@ export function MetricsRow({
             <MetricCard
                 label="Campanhas (semana)"
                 value={formatNumber(campaignsWeek)}
-                trend={{ value: 12, isPositive: true }} // Mock trend
+                trend={calculateTrend(campaignsWeek, campaignsPrevWeek)}
                 sub={
                     <>
                         Últimos 30 dias:{" "}
@@ -88,16 +113,16 @@ export function MetricsRow({
             />
 
             <MetricCard
-                label="Conteúdo IA (30 dias)"
+                label="Artes (30 dias)"
                 value={formatNumber(ai30)}
-                trend={{ value: 5, isPositive: true }} // Mock trend
-                sub="Legendas / textos gerados"
+                trend={calculateTrend(ai30, aiPrev30)}
+                sub="Legendas/Copies criadas"
             />
 
             <MetricCard
                 label="Vídeos Curtos (30 dias)"
                 value={formatNumber(reels30)}
-                trend={{ value: 8, isPositive: true }} // Mock trend
+                trend={calculateTrend(reels30, reelsPrev30)}
                 sub="Ideias/roteiros criados"
             />
 
@@ -108,4 +133,4 @@ export function MetricsRow({
             />
         </div>
     );
-}
+}

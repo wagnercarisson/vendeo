@@ -12,6 +12,9 @@ Este documento serve como fonte de verdade para o comportamento e tomada de deci
     *   Confirmar que a alteração respeita os padrões consolidados na documentação.
 3.  **Proibição de "Achismo"**: Se uma implementação não tiver padrões documentados ou houver dúvida sobre o caminho a seguir, **PARE E CONSULTE** o usuário. Entregue o problema encontrado e sua ação recomendada antes de prosseguir.
 4.  **Plano de Implementação Prévio**: ANTES de qualquer intervenção (escrita de código), entregue um **plano de implementação claro** para avaliação e aprovação do usuário.
+5.  **Adesão Estrita ao Escopo**: SEMPRE manter as alterações a serem realizadas após a aprovação de um plano de implementação, ou mesmo alguma de tarefa avulsa, ESTRITAMENTE dentro do escopo do que foi solicitado, não alterando layout, fluxo, lógica ou qualquer outro elemento sem o consentimento do usuário.
+6.  **Reporte Proativo de Inconsistências**: Caso encontre algum componente, layout, fluxo, lógica ou detalhe em desacordo com os padrões do projeto ou que possa causar quebras, mas que não esteja no escopo da tarefa aprovada, **PREPARAR** uma apresentação detalhada do problema com um plano sugerido e aguardar aprovação antes de corrigir.
+7.  **Controle Total do Usuário**: O usuário deve ter total controle sobre todas as intervenções realizadas no código.
 
 ---
 

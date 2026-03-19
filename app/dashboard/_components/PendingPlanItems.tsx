@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { Zap, CalendarClock } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { formatAudience, formatObjective } from "@/lib/formatters/strategyLabels";
+import { 
+  formatAudience, 
+  formatObjective, 
+  normalizeAudience, 
+  normalizeObjective, 
+  normalizePositioning 
+} from "@/lib/formatters/strategyLabels";
 
 export async function PendingPlanItems({
   storeId,
@@ -82,7 +88,7 @@ export async function PendingPlanItems({
             </div>
 
             <Link
-              href={`/dashboard/campaigns/new?plan_item_id=${item.id}&theme=${encodeURIComponent(item.theme || "")}&audience=${encodeURIComponent(item.brief?.audience || "")}&objective=${encodeURIComponent(item.brief?.objective || "")}&positioning=${encodeURIComponent(item.brief?.product_positioning || "")}&content_type=${encodeURIComponent(item.content_type || "post")}`}
+              href={`/dashboard/campaigns/new?plan_item_id=${item.id}&theme=${encodeURIComponent(item.theme || "")}&audience=${encodeURIComponent(normalizeAudience(item.brief?.audience))}&objective=${encodeURIComponent(normalizeObjective(item.brief?.objective))}&positioning=${encodeURIComponent(normalizePositioning(item.brief?.product_positioning))}&content_type=${encodeURIComponent(item.content_type || "post")}`}
               className="shrink-0 inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#0B2E22] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#0F3D2E]"
             >
               <Zap className="h-3 w-3 text-orange-400" />

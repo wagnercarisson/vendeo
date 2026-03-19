@@ -207,23 +207,13 @@ export default function CampaignsPage() {
 
             const status = selectors.getCampaignListStatus(c);
             const statusConfig = {
-              complete: {
-                label: "Campanha completa",
+              approved: {
+                label: selectors.getCampaignStatusLine(c),
                 classes: "bg-emerald-50 text-emerald-700 border-emerald-100",
                 icon: <CheckCircle2 className="h-3.5 w-3.5" />,
               },
-              art: {
-                label: "Arte pronta",
-                classes: "bg-emerald-50 text-emerald-700 border-emerald-100",
-                icon: <ImageIcon className="h-3.5 w-3.5" />,
-              },
-              video: {
-                label: "Vídeo pronto",
-                classes: "bg-indigo-50 text-indigo-700 border-indigo-100",
-                icon: <Eye className="h-3.5 w-3.5" />,
-              },
-              content: {
-                label: "Conteúdo gerado",
+              pending: {
+                label: "Aguardando aprovação",
                 classes: "bg-amber-50 text-amber-700 border-amber-100",
                 icon: <FileText className="h-3.5 w-3.5" />,
               },
@@ -232,7 +222,11 @@ export default function CampaignsPage() {
                 classes: "bg-zinc-50 text-zinc-500 border-zinc-100",
                 icon: <Sparkles className="h-3.5 w-3.5" />,
               },
-            }[status];
+            }[status as "approved" | "pending" | "none"] || {
+              label: "Status desconhecido",
+              classes: "bg-zinc-50 text-zinc-500 border-zinc-100",
+              icon: <Sparkles className="h-3.5 w-3.5" />,
+            };
 
             return (
               <div
@@ -284,7 +278,7 @@ export default function CampaignsPage() {
                     </div>
 
                     <div className="flex flex-none items-center gap-2">
-                      {hasArt && (
+                      {hasArt && c.status === "approved" && (
                         <button
                           onClick={() => setSelectedPostCampaign(c)}
                           className="flex h-9 items-center gap-2 rounded-lg bg-zinc-900 px-4 text-xs font-bold text-white shadow-sm transition hover:bg-zinc-800"
@@ -295,7 +289,7 @@ export default function CampaignsPage() {
                         </button>
                       )}
 
-                      {hasVideo && (
+                      {hasVideo && c.status === "approved" && (
                         <button
                           onClick={() => setSelectedReelsCampaign(c)}
                           className="flex h-9 items-center gap-2 rounded-lg bg-zinc-900 px-4 text-xs font-bold text-white shadow-sm transition hover:bg-zinc-800"
@@ -306,7 +300,7 @@ export default function CampaignsPage() {
                         </button>
                       )}
 
-                      <Link href={`/dashboard/campaigns/${c.id}`}>
+                      <Link href={`/dashboard/campaigns/${c.id}${c.status === "approved" ? "" : "?mode=edit"}`}>
                         <button className="flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 shadow-sm transition hover:bg-slate-50">
                           <Edit2 className="h-3.5 w-3.5 text-slate-400" />
                           ABRIR

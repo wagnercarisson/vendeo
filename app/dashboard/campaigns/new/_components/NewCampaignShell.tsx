@@ -101,7 +101,7 @@ export function NewCampaignShell() {
             }));
         }
 
-        if (objectiveParam || audienceParam || positioningParam) {
+        if (objectiveParam || audienceParam || positioningParam || generatePostParam || generateReelsParam) {
             setStrategy((prev) => ({
                 ...prev,
                 objective: objectiveParam || prev.objective,
@@ -110,12 +110,14 @@ export function NewCampaignShell() {
                     positioningParam || prev.product_positioning,
                 reasoning: planItemIdParam
                     ? "Diretriz automática vinda do Plano Semanal."
-                    : "Configurado automaticamente com base na sugestão escolhida.",
+                    : searchParams.get("source") === "ai_weather"
+                        ? "Dica contextualizada baseada em IA para sua loja."
+                        : "Configurado automaticamente com base na sugestão escolhida.",
                 source: planItemIdParam ? "ai" : "manual",
-                generate_post: planItemIdParam
+                generate_post: (planItemIdParam || generatePostParam || generateReelsParam)
                     ? planFlags.generate_post
                     : prev.generate_post,
-                generate_reels: planItemIdParam
+                generate_reels: (planItemIdParam || generatePostParam || generateReelsParam)
                     ? planFlags.generate_reels
                     : prev.generate_reels,
             }));

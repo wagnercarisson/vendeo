@@ -1,7 +1,7 @@
 import { Store } from "./types";
 import { MotionWrapper } from "@/app/dashboard/_components/MotionWrapper";
 import { CalendarRange, Sparkles, Building2, AlertCircle } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 
 interface Props {
   stores: Store[];
@@ -40,15 +40,38 @@ export function WeekConfigStep({
   holidays,
   hasExistingPlan,
 }: Props) {
-  const todayMondayISO = useMemo(() => {
+  const { todayMondayISO, todayDayId } = useMemo(() => {
     const d = new Date();
     const jsDay = d.getDay();
     const diff = (jsDay + 6) % 7;
-    d.setDate(d.getDate() - diff);
-    return d.toISOString().split("T")[0];
+    
+    // Dia da semana 1 (Seg) a 7 (Dom)
+    const dayId = diff + 1;
+    
+    const monday = new Date(d);
+    monday.setDate(d.getDate() - diff);
+    
+    return {
+      todayMondayISO: monday.toISOString().split("T")[0],
+      todayDayId: dayId
+    };
   }, []);
 
+  const isCurrentWeek = weekStart === todayMondayISO;
+
+  // Limpa dias passados se o usuário voltar para a semana atual
+  useEffect(() => {
+    if (isCurrentWeek) {
+      const validSelectedDays = selectedDays.filter(dayId => dayId >= todayDayId);
+      if (validSelectedDays.length !== selectedDays.length) {
+        onSelectedDaysChange(validSelectedDays);
+      }
+    }
+  }, [isCurrentWeek, weekStart, todayDayId, selectedDays, onSelectedDaysChange]);
+
   const toggleDay = (dayId: number) => {
+    if (isCurrentWeek && dayId < todayDayId) return;
+
     if (selectedDays.includes(dayId)) {
       onSelectedDaysChange(selectedDays.filter((d) => d !== dayId));
     } else {
@@ -57,8 +80,17 @@ export function WeekConfigStep({
   };
 
   const handleSuggestDays = () => {
-    // Basic heuristic: Tue, Thu, Sat
-    onSelectedDaysChange([2, 4, 6]);
+    let suggested = [2, 4, 6]; // Ter, Qui, Sáb
+    
+    if (isCurrentWeek) {
+      suggested = suggested.filter(d => d >= todayDayId);
+      // Se a sugestão padrão sumiu (ex: já é domingo), sugere hoje ou amanhã se possível
+      if (suggested.length === 0 && todayDayId <= 7) {
+        suggested = [todayDayId];
+      }
+    }
+    
+    onSelectedDaysChange(suggested);
   };
 
   const selectedStore = stores.find((s) => s.id === storeId);
@@ -166,18 +198,23 @@ export function WeekConfigStep({
                      }
                   }
 
+                  const isPast = isCurrentWeek && day.id < todayDayId;
+
                   return (
                     <div key={day.id} className="relative flex flex-col items-center group">
                       <button
                         onClick={() => toggleDay(day.id)}
+                        disabled={isPast}
                         className={`flex h-[60px] w-full flex-col items-center justify-center rounded-xl border text-xs font-semibold transition-all relative overflow-hidden ${
-                          isSelected
-                            ? isHoliday 
-                               ? "border-orange-500 bg-orange-50 text-orange-700 shadow-sm"
-                               : "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm"
-                            : isHoliday
-                               ? "border-orange-200 bg-white text-orange-600 hover:border-orange-300 hover:bg-orange-50/50"
-                               : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                          isPast
+                            ? "border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed opacity-60"
+                            : isSelected
+                              ? isHoliday 
+                                 ? "border-orange-500 bg-orange-50 text-orange-700 shadow-sm"
+                                 : "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm"
+                              : isHoliday
+                                 ? "border-orange-200 bg-white text-orange-600 hover:border-orange-300 hover:bg-orange-50/50"
+                                 : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
                         }`}
                       >
                          {day.short}
