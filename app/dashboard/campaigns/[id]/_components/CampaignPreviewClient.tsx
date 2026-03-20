@@ -120,6 +120,7 @@ export function CampaignPreviewClient({
                 product_name: data.product_name,
                 price: data.price,
                 product_image_url: data.product_image_url,
+                body_text: data.description,
             };
         }
 
@@ -130,13 +131,19 @@ export function CampaignPreviewClient({
             objective: data.objective,
             product_positioning: data.product_positioning,
             product_image_url: data.product_image_url,
+            body_text: data.description,
         };
     }
 
     async function handleSaveBaseFields(data: CampaignSavePayload) {
+        if (!confirm("Deseja salvar esta campanha como rascunho para finalizar depois?")) {
+            return;
+        }
+
         try {
             setErrorMsg(null);
             setIsSaving(true);
+
 
             const hasExistingArt = !!(campaign.image_url || campaign.ai_generated_at);
             const hasExistingVideo = !!(campaign.reels_script || campaign.reels_generated_at);
@@ -166,9 +173,10 @@ export function CampaignPreviewClient({
 
             if (error) throw error;
 
-            router.refresh();
-            setViewMode("view");
+            alert("Campanha salva como rascunho com sucesso!");
+            router.push("/dashboard");
             // Nota: mantemos o previewData para que a transição para View/Review seja suave
+
         } catch (err: any) {
             setErrorMsg(err.message);
         } finally {
@@ -176,7 +184,15 @@ export function CampaignPreviewClient({
         }
     }
 
+    function handleCancelEdit() {
+        if (confirm("Deseja cancelar a edição desta campanha? As alterações não salvas serão perdidas.")) {
+            router.back();
+        }
+    }
+
+
     async function handleApproveFromEdit(data: CampaignSavePayload) {
+
         try {
             setErrorMsg(null);
             setIsSaving(true);
@@ -786,8 +802,9 @@ export function CampaignPreviewClient({
                     campaign={campaign}
                     store={campaign.stores}
                     onSave={handleSaveBaseFields}
-                    onCancel={() => setViewMode("view")}
+                    onCancel={handleCancelEdit}
                     onGenerateArt={(d) => handleGenerateFromEdit("art", d)}
+
                     onGenerateVideo={(d) => handleGenerateFromEdit("video", d)}
                     onApprove={handleApproveFromEdit}
                     activeTab={activeTab}

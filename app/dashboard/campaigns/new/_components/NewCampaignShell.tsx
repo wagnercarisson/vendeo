@@ -343,10 +343,12 @@ export function NewCampaignShell() {
             audience: strategy.audience,
             objective: strategy.objective,
             product_positioning: strategy.product_positioning,
+            body_text: product.description || null,
             status: "draft" as const,
             origin: isPlanDerived ? ("plan" as const) : ("manual" as const),
             weekly_plan_item_id: isPlanDerived ? planItemId : null,
         };
+
 
         let currentId = campaignId;
 
