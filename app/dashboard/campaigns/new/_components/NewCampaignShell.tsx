@@ -15,6 +15,8 @@ import type {
     CampaignFormData,
     StrategyData,
 } from "./types";
+import { parseBRLToNumber } from "@/lib/formatters/priceMask";
+
 
 const INITIAL_CAMPAIGN: CampaignFormData = {
     type: "product",
@@ -67,7 +69,9 @@ export function NewCampaignShell() {
     const [strategy, setStrategy] = useState<StrategyData>(INITIAL_STRATEGY);
     const [generationState, setGenerationState] =
         useState<CampaignGenerationState>("idle");
-    const [preview, setPreview] = useState<CampaignPreviewData | null>(null);
+    const [artPreview, setArtPreview] = useState<CampaignPreviewData | null>(null);
+    const [isChildEditing, setIsChildEditing] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const [campaignId, setCampaignId] = useState<string | null>(null);
     const [isRegenerating, setIsRegenerating] = useState(false);
 
@@ -135,6 +139,48 @@ export function NewCampaignShell() {
         }
     }, [searchParams]);
 
+    function handleCancel() {
+        const confirmed = confirm(
+            "Deseja cancelar a criação desta campanha? As informações preenchidas serão perdidas."
+        );
+        if (confirmed) {
+            router.back();
+        }
+    }
+
+    async function handleSaveDraft() {
+        if (!product.product_name.trim()) {
+            alert("Informe o nome da oferta para salvar o rascunho.");
+            return;
+        }
+
+        const confirmed = confirm(
+            "Deseja salvar esta campanha como rascunho para finalizar depois?"
+        );
+        if (!confirmed) return;
+
+        try {
+            setIsSaving(true);
+            await ensureDraftCampaign();
+            router.push("/dashboard");
+        } catch (err: any) {
+            console.error(err);
+            alert(err?.message || "Não conseguimos salvar seu rascunho agora.");
+        } finally {
+            setIsSaving(false);
+        }
+    }
+
+    const isFormDirty = useMemo(() => {
+        return (
+            product.product_name.trim().length > 0 ||
+            product.price.trim().length > 0 ||
+            (product.description && product.description.trim().length > 0) ||
+            !!product.image_url
+        );
+    }, [product]);
+
+
     const canGenerate = useMemo(() => {
         const hasBasicInfo = product.product_name.trim().length > 1;
         const hasRequiredPrice =
@@ -151,6 +197,7 @@ export function NewCampaignShell() {
             strategy.product_positioning.trim().length > 0
         );
     }, [product, strategy]);
+
 
     async function getStore() {
         const { data: auth } = await supabase.auth.getUser();
@@ -224,7 +271,7 @@ export function NewCampaignShell() {
         const fullStore = await getFullStore(storeId);
 
         const nextImageUrl = options?.preserveArt
-            ? preview?.image_url ||
+            ? artPreview?.image_url ||
             finalCampaign.image_url ||
             finalCampaign.product_image_url ||
             ""
@@ -232,7 +279,7 @@ export function NewCampaignShell() {
             finalCampaign.product_image_url ||
             "";
 
-        setPreview({
+        setArtPreview({
             image_url: nextImageUrl,
             headline: finalCampaign.headline || finalCampaign.product_name || "",
             body_text: finalCampaign.ai_text || "",
@@ -240,13 +287,13 @@ export function NewCampaignShell() {
             caption: finalCampaign.ai_caption || "",
             hashtags: finalCampaign.ai_hashtags || "",
             price: finalCampaign.price,
-            layout: preview?.layout || "solid",
+            layout: artPreview?.layout || "solid",
             store: fullStore
                 ? {
                     name: fullStore.name,
                     address: `${fullStore.address || ""}${fullStore.neighborhood
-                            ? `, ${fullStore.neighborhood}`
-                            : ""
+                        ? `, ${fullStore.neighborhood}`
+                        : ""
                         }`,
                     whatsapp: fullStore.whatsapp || fullStore.phone || "",
                     primary_color: fullStore.primary_color,
@@ -254,27 +301,27 @@ export function NewCampaignShell() {
                     logo_url: fullStore.logo_url,
                 }
                 : undefined,
-            reels_hook: reelsRow?.reels_hook || preview?.reels_hook || "",
-            reels_script: reelsRow?.reels_script || preview?.reels_script || "",
+            reels_hook: reelsRow?.reels_hook || artPreview?.reels_hook || "",
+            reels_script: reelsRow?.reels_script || artPreview?.reels_script || "",
             reels_shotlist:
-                reelsRow?.reels_shotlist || preview?.reels_shotlist || [],
+                reelsRow?.reels_shotlist || artPreview?.reels_shotlist || [],
             reels_audio_suggestion:
                 reelsRow?.reels_audio_suggestion ||
-                preview?.reels_audio_suggestion ||
+                artPreview?.reels_audio_suggestion ||
                 "",
             reels_duration_seconds:
                 reelsRow?.reels_duration_seconds ||
-                preview?.reels_duration_seconds ||
+                artPreview?.reels_duration_seconds ||
                 15,
             reels_on_screen_text:
                 reelsRow?.reels_on_screen_text ||
-                preview?.reels_on_screen_text ||
+                artPreview?.reels_on_screen_text ||
                 [],
             reels_caption:
-                reelsRow?.reels_caption || preview?.reels_caption || "",
-            reels_cta: reelsRow?.reels_cta || preview?.reels_cta || "",
+                reelsRow?.reels_caption || artPreview?.reels_caption || "",
+            reels_cta: reelsRow?.reels_cta || artPreview?.reels_cta || "",
             reels_hashtags:
-                reelsRow?.reels_hashtags || preview?.reels_hashtags || "",
+                reelsRow?.reels_hashtags || artPreview?.reels_hashtags || "",
         });
     }
 
@@ -290,7 +337,8 @@ export function NewCampaignShell() {
             price:
                 product.type === "info"
                     ? null
-                    : parseFloat(product.price.replace(",", ".")) || 0,
+                    : parseBRLToNumber(product.price),
+
             product_image_url: product.image_url || null,
             audience: strategy.audience,
             objective: strategy.objective,
@@ -417,7 +465,7 @@ export function NewCampaignShell() {
     async function handleGenerateCampaign() {
         try {
             if (
-                preview &&
+                artPreview &&
                 !confirm(
                     "Você já possui uma campanha gerada. Deseja gerar uma nova? Isso consumirá créditos de IA."
                 )
@@ -467,6 +515,13 @@ export function NewCampaignShell() {
             }
 
             await buildPreview(currentId, storeId);
+            
+            // Marca como pronta no banco ao finalizar a geração
+            await supabase
+                .from("campaigns")
+                .update({ status: "ready" })
+                .eq("id", currentId);
+
             setGenerationState("ready");
 
             const planItemId = searchParams.get("plan_item_id");
@@ -495,35 +550,33 @@ export function NewCampaignShell() {
     }
 
     async function handleApprove() {
-        if (!campaignId || !preview) return;
+        if (!campaignId || !artPreview) return;
 
         try {
+            setIsSaving(true);
             setGenerationState("generating");
 
             if (strategy.generate_post) {
-                let finalImageUrl: string | null = null;
-
                 const ogResponse = await fetch("/api/generate/og-image", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        layout: preview.layout || "solid",
-                        image_url: preview.image_url
-                            ? preview.image_url.split("#")[0]
+                        layout: artPreview.layout || "solid",
+                        image_url: artPreview.image_url
+                            ? artPreview.image_url.split("#")[0]
                             : "",
-                        headline: preview.headline,
-                        body_text: preview.body_text,
-                        cta: preview.cta,
-                        price: preview.price,
-                        store_name: preview.store?.name,
-                        store_address: preview.store?.address,
-                        whatsapp: preview.store?.whatsapp,
-                        primary_color: preview.store?.primary_color,
+                        headline: artPreview.headline,
+                        body_text: artPreview.body_text,
+                        cta: artPreview.cta,
+                        price: artPreview.price,
+                        store_name: artPreview.store?.name,
+                        store_address: artPreview.store?.address,
+                        whatsapp: artPreview.store?.whatsapp,
+                        primary_color: artPreview.store?.primary_color,
                     }),
                 });
 
                 if (!ogResponse.ok) {
-                    await ogResponse.text().catch(() => "");
                     throw new Error(
                         "Não conseguimos gerar a arte final com essa imagem. Tente novamente ou use JPG/PNG. Código: VND-NC-OG-01"
                     );
@@ -549,7 +602,7 @@ export function NewCampaignShell() {
                     .from("campaign-images")
                     .getPublicUrl(fileName);
 
-                finalImageUrl = publicUrlData.publicUrl;
+                const finalImageUrl = publicUrlData.publicUrl;
 
                 if (!finalImageUrl) {
                     throw new Error(
@@ -560,13 +613,19 @@ export function NewCampaignShell() {
                 const { error } = await supabase
                     .from("campaigns")
                     .update({
-                        headline: preview.headline,
-                        ai_text: preview.body_text,
-                        ai_cta: preview.cta,
-                        ai_caption: preview.caption,
-                        ai_hashtags: preview.hashtags,
+                        headline: artPreview.headline,
+                        ai_text: artPreview.body_text,
+                        ai_cta: artPreview.cta,
+                        ai_caption: artPreview.caption,
+                        ai_hashtags: artPreview.hashtags,
                         image_url: finalImageUrl,
                         status: "approved",
+                        price:
+                            product.type === "info"
+                                ? null
+                                : typeof artPreview.price === "string"
+                                    ? parseFloat(artPreview.price.replace(",", ".")) || 0
+                                    : artPreview.price,
                     })
                     .eq("id", campaignId);
 
@@ -580,6 +639,12 @@ export function NewCampaignShell() {
                     .from("campaigns")
                     .update({
                         status: "approved",
+                        price:
+                            product.type === "info"
+                                ? null
+                                : typeof artPreview.price === "string"
+                                    ? parseFloat(artPreview.price.replace(",", ".")) || 0
+                                    : artPreview.price,
                     })
                     .eq("id", campaignId);
 
@@ -598,56 +663,88 @@ export function NewCampaignShell() {
                 err?.message ||
                 "Não conseguimos salvar sua campanha agora. Código: VND-NC-APPROVE-00"
             );
+        } finally {
+            setIsSaving(false);
+        }
+    }
+
+    async function handleSaveDraftReview() {
+        if (!campaignId || !artPreview) return;
+
+        const confirmed = confirm(
+            "Deseja salvar as alterações feitas nesta campanha como rascunho?"
+        );
+        if (!confirmed) return;
+
+        try {
+            setIsSaving(true);
+            setGenerationState("generating");
+
+            const { error } = await supabase
+                .from("campaigns")
+                .update({
+                    price:
+                        product.type === "info"
+                            ? null
+                            : typeof artPreview.price === "string"
+                                ? parseFloat(artPreview.price.replace(",", ".")) || 0
+                                : artPreview.price,
+                    headline: artPreview.headline,
+                    ai_text: artPreview.body_text,
+                    ai_cta: artPreview.cta,
+                    ai_caption: artPreview.caption,
+                    ai_hashtags: artPreview.hashtags,
+                    reels_hook: artPreview.reels_hook,
+                    reels_script: artPreview.reels_script,
+                    reels_caption: artPreview.reels_caption,
+                    reels_cta: artPreview.reels_cta,
+                    reels_hashtags: artPreview.reels_hashtags,
+                    status: "ready",
+                })
+                .eq("id", campaignId);
+
+            if (error) throw error;
+
+            router.push("/dashboard");
+        } catch (err: any) {
+            console.error(err);
+            setGenerationState("ready");
+            alert(err?.message || "Não conseguimos salvar seu rascunho agora.");
+        } finally {
+            setIsSaving(false);
         }
     }
 
     const isPlanLinked = !!searchParams.get("plan_item_id");
     const planContentType = searchParams.get("content_type");
-    const planContentLabel =
-        planContentType === "reels" ? "reels" : "post";
+    const planContentLabel = planContentType === "reels" ? "reels" : "post";
 
     return (
         <main className="mx-auto max-w-6xl space-y-6 px-6 py-6">
-            <MotionWrapper delay={0.1}>
-                <NewCampaignHeader />
-                {isPlanLinked && generationState !== "ready" && (
-                    <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-                        <p className="text-sm font-medium text-emerald-800">
-                            <strong>Plano Semanal:</strong> esta campanha já veio
-                            com a estratégia herdada do plano e com foco em{" "}
-                            <strong>{planContentLabel}</strong>. Basta preencher o
-                            produto e gerar.
-                        </p>
-                    </div>
-                )}
-            </MotionWrapper>
-
-            {generationState === "ready" && (
-                <MotionWrapper delay={0.15}>
-                    <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm sm:flex-row">
-                        <div>
-                            <h2 className="text-lg font-bold text-zinc-900">
-                                Revisão da Campanha
-                            </h2>
-                            <p className="text-sm text-zinc-500">
-                                Você pode editar os textos, regenerar e depois
-                                aprovar.
-                            </p>
-                        </div>
-                        <button
-                            onClick={handleApprove}
-                            className="w-full rounded-xl bg-emerald-600 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-emerald-700 sm:w-auto"
-                        >
-                            Aprovar e Salvar
-                        </button>
-                    </div>
-                </MotionWrapper>
-            )}
-
             {generationState === "idle" || generationState === "error" ? (
-                <div className="grid gap-6 md:grid-cols-2">
-                    <div className="space-y-5">
-                        <MotionWrapper delay={0.2}>
+                <div className="space-y-8">
+                    {/* Cabeçalho */}
+                    <MotionWrapper delay={0.1}>
+                        <NewCampaignHeader />
+                    </MotionWrapper>
+
+
+                    {isPlanLinked && (
+                        <MotionWrapper delay={0.15}>
+                            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                                <p className="text-sm font-medium text-emerald-800">
+                                    <strong>Plano Semanal:</strong> esta campanha já veio
+                                    com a estratégia herdada do plano e com foco em{" "}
+                                    <strong>{planContentLabel}</strong>. Basta preencher o
+                                    produto e gerar.
+                                </p>
+                            </div>
+                        </MotionWrapper>
+                    )}
+
+                    {/* Grid de Formulários Alinhada */}
+                    <div className="grid gap-6 md:grid-cols-2">
+                        <MotionWrapper delay={0.25}>
                             <StrategyFormCard
                                 value={strategy}
                                 isDisabled={isPlanLinked}
@@ -659,42 +756,137 @@ export function NewCampaignShell() {
                                 }}
                             />
                         </MotionWrapper>
-                    </div>
 
-                    <div className="space-y-5">
                         <MotionWrapper delay={0.3}>
                             <ProductFormCard
                                 value={product}
                                 onChange={setProduct}
                             />
                         </MotionWrapper>
-
-                        <MotionWrapper delay={0.4}>
-                            <GenerateCampaignCard
-                                generationState={generationState}
-                                canGenerate={canGenerate}
-                                onGenerate={handleGenerateCampaign}
-                            />
-                        </MotionWrapper>
                     </div>
+
+                    {/* Ações de Rodapé Centralizadas */}
+                    <div className="mt-12 space-y-8 rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm">
+                        <div className="mx-auto max-w-lg text-center">
+                            <p className="text-sm font-medium text-zinc-500">
+                                O Vendeo vai criar arte, copy e reels em uma única geração.
+                            </p>
+                            <div className="mt-6 flex flex-col gap-4">
+                                <button
+                                    onClick={handleGenerateCampaign}
+                                    disabled={!canGenerate || isSaving || isChildEditing}
+                                    className={`relative flex h-14 items-center justify-center gap-3 overflow-hidden rounded-2xl px-8 font-bold text-white transition-all active:scale-95 shadow-lg shadow-emerald-200/50 ${
+                                        !canGenerate || isSaving || isChildEditing
+                                            ? "bg-zinc-300 cursor-not-allowed opacity-70"
+                                            : "bg-emerald-600 hover:bg-emerald-700 hover:shadow-emerald-300/50"
+                                    }`}
+                                >
+                                    <span className="relative z-10 flex items-center gap-2">
+                                        ✨ Gerar Campanha Completa
+                                    </span>
+                                </button>
+
+                                <div className="flex items-center justify-center gap-4 pt-2">
+                                    <button
+                                        onClick={handleCancel}
+                                        type="button"
+                                        disabled={isSaving || isChildEditing}
+                                        className={`h-11 px-6 rounded-xl border font-bold transition-all text-sm ${
+                                            isSaving || isChildEditing
+                                                ? "border-zinc-100 text-zinc-300 cursor-not-allowed"
+                                                : "border-zinc-200 text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700"
+                                        }`}
+                                    >
+                                        Cancelar
+                                    </button>
+
+                                    <button
+                                        onClick={handleSaveDraft}
+                                        type="button"
+                                        disabled={!isFormDirty || isSaving || isChildEditing}
+                                        className={`h-11 rounded-xl px-6 font-bold transition-all text-sm border ${
+                                            !isFormDirty || isSaving || isChildEditing
+                                                ? "border-zinc-100 bg-zinc-50 text-zinc-300 cursor-not-allowed"
+                                                : "bg-zinc-900 text-white hover:bg-zinc-800 shadow-sm"
+                                        }`}
+                                    >
+                                        {isSaving ? "Salvando..." : "Salvar rascunho"}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Placeholder do Preview (vazio por enquanto) */}
+                    <MotionWrapper delay={0.4} className="rounded-2xl border-2 border-dashed border-zinc-100 py-20 text-center">
+                        <div className="mx-auto max-w-xs space-y-3">
+                            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-zinc-50">
+                                <span className="text-2xl">✨</span>
+                            </div>
+                            <p className="text-sm font-medium text-zinc-400">
+                                Sua arte e roteiro aparecerão aqui após a geração
+                            </p>
+                        </div>
+                    </MotionWrapper>
+
                 </div>
             ) : (
-                <MotionWrapper delay={0.2}>
-                    <CampaignPreviewPanel
-                        generationState={generationState}
-                        preview={preview}
-                        onUpdatePreview={setPreview}
-                        generate_post={strategy.generate_post}
-                        generate_reels={strategy.generate_reels}
-                        onRegenerateArt={
-                            strategy.generate_post ? regenerateArt : undefined
-                        }
-                        onRegenerateReels={
-                            strategy.generate_reels ? regenerateReels : undefined
-                        }
-                        isRegenerating={isRegenerating}
-                    />
-                </MotionWrapper>
+                <div className="space-y-6">
+                    <NewCampaignHeader />
+                    {generationState === "ready" && (
+                        <MotionWrapper delay={0.15}>
+                            <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm sm:flex-row">
+                                <div>
+                                    <h2 className="text-lg font-bold text-zinc-900">
+                                        Revisão da Campanha
+                                    </h2>
+                                    <p className="text-sm text-zinc-500">
+                                        Você pode editar os textos, regenerar e depois
+                                        aprovar.
+                                    </p>
+                                </div>
+                                <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+                                    <button
+                                        onClick={handleSaveDraftReview}
+                                        disabled={isSaving || isChildEditing}
+                                        className={`rounded-xl border border-zinc-900 bg-white px-6 py-2.5 text-sm font-bold shadow-sm transition-all sm:w-auto ${
+                                            isChildEditing ? "opacity-50 cursor-not-allowed border-zinc-200 text-zinc-400" : "text-zinc-900 hover:bg-zinc-50"
+                                        }`}
+                                    >
+                                        {isSaving ? "Salvando..." : "Salvar rascunho"}
+                                    </button>
+                                    <button
+                                        onClick={handleApprove}
+                                        disabled={isSaving || isChildEditing}
+                                        className={`rounded-xl px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-all sm:w-auto ${
+                                            isChildEditing ? "bg-zinc-300 cursor-not-allowed shadow-none" : "bg-emerald-600 hover:bg-emerald-700"
+                                        }`}
+                                    >
+                                        Aprovar e Salvar
+                                    </button>
+                                </div>
+                            </div>
+                        </MotionWrapper>
+                    )}
+
+                    <MotionWrapper delay={0.2}>
+                        <CampaignPreviewPanel
+                            generationState={generationState}
+                            preview={artPreview}
+                            onUpdatePreview={setArtPreview}
+                            generate_post={strategy.generate_post}
+                            generate_reels={strategy.generate_reels}
+                            onRegenerateArt={
+                                strategy.generate_post ? regenerateArt : undefined
+                            }
+                            onRegenerateReels={
+                                strategy.generate_reels ? regenerateReels : undefined
+                            }
+                            isRegenerating={isRegenerating}
+                            onEditingChange={setIsChildEditing}
+                        />
+                    </MotionWrapper>
+                </div>
             )}
         </main>
     );

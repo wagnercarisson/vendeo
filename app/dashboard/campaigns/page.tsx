@@ -22,6 +22,7 @@ import { mapDbCampaignToDomain } from "@/lib/domain/campaigns/mapper";
 import { MotionWrapper } from "../_components/MotionWrapper";
 import { PostModal, ReelsModal } from "./_components/CampaignModals";
 import * as selectors from "@/lib/domain/campaigns/logic";
+import { formatAudience, formatObjective } from "@/lib/formatters/strategyLabels";
 
 import { Store } from "@/lib/domain/stores/types";
 import { Campaign as CampaignModel } from "@/lib/domain/campaigns/types";
@@ -197,8 +198,8 @@ export default function CampaignsPage() {
             const hasVideo = selectors.hasGeneratedVideo(c);
             const metadataParts = [];
             if (c.price) metadataParts.push(formatBRL(c.price));
-            if (c.audience) metadataParts.push(c.audience);
-            if (c.objective) metadataParts.push(c.objective);
+            if (c.audience) metadataParts.push(formatAudience(c.audience));
+            if (c.objective) metadataParts.push(formatObjective(c.objective));
             const metadataLine = metadataParts.join(" • ");
             const strategyLabel = selectors.getCampaignStrategyLabel(c);
             const formattedDate = c.created_at
@@ -300,12 +301,17 @@ export default function CampaignsPage() {
                         </button>
                       )}
 
-                      <Link href={`/dashboard/campaigns/${c.id}${c.status === "approved" ? "" : "?mode=edit"}`}>
-                        <button className="flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 shadow-sm transition hover:bg-slate-50">
-                          <Edit2 className="h-3.5 w-3.5 text-slate-400" />
-                          ABRIR
-                        </button>
-                      </Link>
+                      <button
+                        onClick={() => {
+                          const isReady = c.status === "ready" || c.status === "approved" || selectors.hasAnyVisualAsset(c);
+                          const url = `/dashboard/campaigns/${c.id}${!isReady ? "?mode=edit" : ""}`;
+                          router.push(url);
+                        }}
+                        className="flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 shadow-sm transition hover:bg-slate-50"
+                      >
+                        <Edit2 className="h-3.5 w-3.5 text-slate-400" />
+                        ABRIR
+                      </button>
 
                       <button
                         onClick={() => handleDuplicate(c)}

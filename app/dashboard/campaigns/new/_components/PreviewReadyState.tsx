@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { Check, X, Layout, Maximize2, Columns } from "lucide-react";
 import type { CampaignPreviewData } from "./types";
 import { ReelsPreviewCard } from "./ReelsPreviewCard";
+import { formatBRLMask, parseBRLToNumber } from "@/lib/formatters/priceMask";
 import { CampaignQuickActions } from "./CampaignQuickActions";
+
 import { CampaignArtViewer } from "@/app/dashboard/campaigns/_components/CampaignArtViewer";
 
 type PreviewReadyStateProps = {
@@ -13,6 +15,7 @@ type PreviewReadyStateProps = {
     onRegenerateArt?: () => void;
     onRegenerateReels?: () => void;
     isRegenerating?: boolean;
+    onEditingChange?: (isEditing: boolean) => void;
 };
 
 export function PreviewReadyState({
@@ -23,6 +26,7 @@ export function PreviewReadyState({
     onRegenerateArt,
     onRegenerateReels,
     isRegenerating = false,
+    onEditingChange,
 }: PreviewReadyStateProps) {
     const [isEditing, setIsEditing] = useState(false);
     const [isEditingReels, setIsEditingReels] = useState(false);
@@ -35,14 +39,21 @@ export function PreviewReadyState({
     }, [preview]);
 
     function handleSave() {
-        onUpdatePreview({ ...editData, layout: activeLayout });
+        const normalizedPrice = typeof editData.price === "string" 
+            ? parseBRLToNumber(editData.price) 
+            : editData.price;
+
+            
+        onUpdatePreview({ ...editData, price: normalizedPrice, layout: activeLayout });
         setIsEditing(false);
+        onEditingChange?.(false);
     }
 
     function handleCancel() {
         setEditData(preview);
         setActiveLayout(preview.layout || "solid");
         setIsEditing(false);
+        onEditingChange?.(false);
     }
 
     const formatPrice = (p?: number | string) => {
@@ -143,7 +154,7 @@ export function PreviewReadyState({
                                         headline={isEditing ? editData.headline : preview.headline}
                                         body_text={isEditing ? editData.body_text : preview.body_text}
                                         cta={isEditing ? editData.cta : preview.cta}
-                                        price={preview.price}
+                                        price={isEditing ? editData.price : preview.price}
                                         store={preview.store}
                                     />
                                 )}
@@ -170,6 +181,17 @@ export function PreviewReadyState({
                                             rows={2}
                                             className="w-full rounded-lg border border-zinc-200 p-2 text-sm outline-none focus:border-emerald-500 resize-none"
                                         />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold uppercase text-zinc-400">Preço</label>
+                                        <input
+                                            type="text"
+                                            value={editData.price || ""}
+                                            onChange={(e) => setEditData({ ...editData, price: formatBRLMask(e.target.value) })}
+                                            placeholder="Ex: 99,90"
+                                            className="w-full rounded-lg border border-zinc-200 p-2 text-sm outline-none focus:border-emerald-500"
+                                        />
+
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-bold uppercase text-zinc-400">CTA</label>
@@ -225,7 +247,12 @@ export function PreviewReadyState({
 
                         {!isEditing && onRegenerateArt && (
                             <CampaignQuickActions
-                                onEdit={() => setIsEditing(true)}
+                                onEdit={() => {
+                                    const displayPrice = preview.price?.toString().replace(".", ",") || "";
+                                    setEditData({ ...preview, price: displayPrice });
+                                    setIsEditing(true);
+                                    onEditingChange?.(true);
+                                }}
                                 onRegenerateArt={onRegenerateArt}
                                 onRegenerateReels={onRegenerateReels}
                                 generate_reels={generate_reels}
@@ -247,6 +274,7 @@ export function PreviewReadyState({
                                         onClick={() => {
                                             setEditData(preview);
                                             setIsEditingReels(false);
+                                            onEditingChange?.(false);
                                         }}
                                         type="button"
                                         className="flex items-center gap-1 rounded-md bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-200"
@@ -257,6 +285,7 @@ export function PreviewReadyState({
                                         onClick={() => {
                                             onUpdatePreview({ ...editData, layout: activeLayout });
                                             setIsEditingReels(false);
+                                            onEditingChange?.(false);
                                         }}
                                         type="button"
                                         className="flex items-center gap-1 rounded-md bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-700"
@@ -313,7 +342,10 @@ export function PreviewReadyState({
                         <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm flex flex-wrap gap-2">
                             <button
                                 type="button"
-                                onClick={() => setIsEditingReels(true)}
+                                onClick={() => {
+                                    setIsEditingReels(true);
+                                    onEditingChange?.(true);
+                                }}
                                 disabled={isRegenerating}
                                 className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:-translate-y-0.5 hover:bg-zinc-50 hover:shadow-sm hover:text-emerald-700 hover:border-emerald-200 disabled:cursor-not-allowed disabled:opacity-60"
                             >

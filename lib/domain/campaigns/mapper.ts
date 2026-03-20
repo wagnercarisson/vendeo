@@ -90,3 +90,39 @@ export function mapDbCampaignToAIContext(raw: any): CampaignContext {
     product_positioning: raw.product_positioning ?? null,
   };
 }
+
+/**
+ * Mapeia uma campanha do domínio para o formato de preview usado no editor/review.
+ */
+export function mapCampaignToPreviewData(
+  campaign: Campaign,
+  store?: any
+): any {
+  return {
+    image_url: campaign.image_url || campaign.product_image_url || "",
+    headline: campaign.headline || campaign.product_name || "",
+    body_text: campaign.ai_text || "",
+    cta: campaign.ai_cta || "",
+    caption: campaign.ai_caption || "",
+    hashtags: campaign.ai_hashtags || "",
+    price: campaign.price,
+    layout: "solid", // default
+    reels_hook: campaign.reels_hook,
+    reels_script: campaign.reels_script,
+    reels_shotlist: campaign.reels_shotlist,
+    reels_on_screen_text: campaign.reels_on_screen_text,
+    reels_audio_suggestion: campaign.reels_audio_suggestion,
+    reels_duration_seconds: campaign.reels_duration_seconds,
+    reels_caption: campaign.reels_caption,
+    reels_cta: campaign.reels_cta,
+    reels_hashtags: campaign.reels_hashtags,
+    store: store ? {
+      name: store.name,
+      address: `${store.address || ""}${store.neighborhood ? `, ${store.neighborhood}` : ""}`,
+      whatsapp: store.whatsapp || store.phone || "",
+      primary_color: store.primary_color,
+      secondary_color: store.secondary_color,
+      logo_url: store.logo_url,
+    } : undefined,
+  };
+}

@@ -10,6 +10,9 @@ import {
 import { supabase } from "@/lib/supabase";
 import { Campaign } from "@/lib/domain/campaigns/types";
 import { Store } from "@/lib/domain/stores/types";
+import { formatBRLMask, parseBRLToNumber } from "@/lib/formatters/priceMask";
+
+
 
 export type CampaignSavePayload = {
     product_name: string;
@@ -94,8 +97,16 @@ export function CampaignEditForm({
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
     ) => {
         const { name, value } = e.target;
+        
+        if (name === "price") {
+            const masked = formatBRLMask(value);
+            setFormData((prev) => ({ ...prev, [name]: masked }));
+            return;
+        }
+
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
+
 
     const handleFileSelected = async (file: File | null) => {
         if (!file) return;
@@ -128,20 +139,16 @@ export function CampaignEditForm({
     );
 
     const hasContentReady = localTab === "art" 
-        ? !!(campaign.image_url || formData.product_image_url)
-        : !!(formData.reels_hook && formData.reels_script);
+        ? !!(campaign.image_url || campaign.ai_generated_at || campaign.headline)
+        : !!(campaign.reels_generated_at || (formData.reels_hook && formData.reels_script && formData.reels_script.length > 10));
 
     const canApprove = canGenerate && hasContentReady && campaign.status !== 'approved';
 
     const getSubmissionData = (): CampaignSavePayload => ({
         ...formData,
-        price:
-            formData.price === ""
-                ? null
-                : parseFloat(
-                    formData.price.replace(/[^\d,]/g, "").replace(",", ".")
-                ) || 0,
+        price: parseBRLToNumber(formData.price),
         description: formData.product_positioning,
+
     });
 
     return (

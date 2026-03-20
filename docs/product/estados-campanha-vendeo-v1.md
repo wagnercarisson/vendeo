@@ -1,181 +1,57 @@
-# Estados da Campanha - Vendeo v1
+# Estados da Campanha — Vendeo v1
 
-Status: Ativo
-Versão: 1.0
+## 1. Visão Geral
+Este documento define os estados oficiais das campanhas, distinguindo entre a **persistência técnica** (Banco de Dados) e a **experiência do usuário** (Interface).
 
-Este documento define os estados possíveis de uma campanha dentro do sistema Vendeo.
+A distinção clara evita confusão entre o valor salvo no sistema e o que o usuário visualiza na Dashboard.
 
-A definição clara de estados evita inconsistências entre frontend, backend e banco de dados.
+---
 
+## 2. Estados de Persistência (Sistema/Banco)
+Estes são os valores reais salvos na coluna `status` da tabela `campaigns`.
 
---------------------------------------------------
-1. OBJETIVO DOS ESTADOS
---------------------------------------------------
+*   **`draft`**: Estado inicial. A campanha foi criada, mas ainda não possui conteúdo gerado ou revisado.
+*   **`ready`**: Conteúdo (arte/vídeo/texto) foi gerado pela IA e está aguardando revisão.
+    *   *Nota: Este estado substitui o termo antigo "generated".*
+*   **`approved`**: O usuário revisou e aprovou o conteúdo final. A campanha está pronta para uso.
 
-Estados permitem que o sistema saiba exatamente em que momento do ciclo de vida uma campanha está.
+---
 
-Isso garante:
+## 3. Estados de Experiência (Interface/UX)
+São estados "calculados" pela lógica do frontend (`lib/domain/campaigns/logic.ts`) para oferecer uma linguagem mais amigável ao usuário.
 
-controle do fluxo
-prevenção de bugs
-consistência da interface
+*   **"Sem conteúdo" (interno: `none`)**
+    *   Representa campanhas em estado `draft` sem nenhum asset associado.
+*   **"Aguardando aprovação" (interno: `pending`)**
+    *   Representa campanhas que já possuem conteúdo gerado (status `ready` ou assets presentes), mas que ainda não foram finalizadas pelo usuário. 
+    *   **Cor na UI**: Âmbar/Amarelo.
+*   **"Aprovada" / "Arte pronta" / "Vídeo pronto" (interno: `approved`)**
+    *   Representa campanhas que o usuário validou explicitamente.
+    *   **Cor na UI**: Verde.
 
+---
 
---------------------------------------------------
-2. CICLO DE VIDA DA CAMPANHA
---------------------------------------------------
+## 4. Estados Transientes (Processamento)
+Estados efêmeros que indicam processamento em tempo real.
 
-Uma campanha passa pelos seguintes estados.
+*   **`generating`**: Indica que a IA está trabalhando na geração de texto, arte ou vídeo. Geralmente representado por loaders e desabilitação de botões.
 
-draft
-generating
-generated
-editing
-approved
+---
 
+## 5. Matriz de Transição Oficial
 
-Fluxo completo:
+| Estado Atual | Ação do Usuário | Status no Banco | Comportamento na UI |
+| :--- | :--- | :--- | :--- |
+| **`DRAFT`** | Editar campos base | **`DRAFT`** | Continua "Sem conteúdo" |
+| **`DRAFT`** | Gerar Conteúdo (IA) | **`READY`** | Passa a "Aguardando aprovação" |
+| **`READY`** | Editar ou Regerar | **`READY`** | Mantém "Aguardando aprovação" |
+| **`READY`** | Aprovar | **`APPROVED`** | Passa a "Aprovada" |
+| **`APPROVED`** | Editar ou Regerar | **`READY`** | Volta para "Aguardando aprovação" |
 
-draft
- ↓
-generating
- ↓
-generated
- ↓
-editing
- ↓
-approved
 
+---
 
---------------------------------------------------
-3. ESTADO DRAFT
---------------------------------------------------
-
-Significa que a campanha foi criada, mas ainda não teve conteúdo gerado.
-
-Exemplo:
-
-usuário preenche formulário
-campanha é salva
-
-
-Conteúdo ainda não existe.
-
-
---------------------------------------------------
-4. ESTADO GENERATING
---------------------------------------------------
-
-Indica que o sistema está gerando conteúdo.
-
-Exemplos:
-
-gerando arte
-gerando vídeo
-
-
-Esse estado evita múltiplas gerações simultâneas.
-
-
---------------------------------------------------
-5. ESTADO GENERATED
---------------------------------------------------
-
-Significa que a campanha já possui conteúdo gerado.
-
-Conteúdos possíveis:
-
-arte
-vídeo
-copy
-legenda
-
-
-O usuário pode visualizar e iniciar edição.
-
-
---------------------------------------------------
-6. ESTADO EDITING
---------------------------------------------------
-
-Indica que o usuário está revisando ou modificando o conteúdo.
-
-Possíveis ações:
-
-editar texto
-regenerar arte
-regenerar vídeo
-aprovar conteúdo
-
-
---------------------------------------------------
-7. ESTADO APPROVED
---------------------------------------------------
-
-Indica que o conteúdo foi aprovado pelo usuário.
-
-A campanha está pronta para uso.
-
-
---------------------------------------------------
-8. APROVAÇÃO DE CONTEÚDO
---------------------------------------------------
-
-Arte e vídeo podem ser aprovados separadamente.
-
-Exemplo:
-
-Arte ✓
-Vídeo •
-
-
-A campanha só entra em estado final quando todos os conteúdos necessários estiverem aprovados.
-
-
---------------------------------------------------
-9. TRANSIÇÕES DE ESTADO
---------------------------------------------------
-
-As transições devem seguir regras claras.
-
-draft → generating
-
-generating → generated
-
-generated → editing
-
-editing → approved
-
-
-Evitar transições fora desse fluxo.
-
-
---------------------------------------------------
-10. REGENERAÇÃO DE CONTEÚDO
---------------------------------------------------
-
-Quando o usuário solicita regeneração:
-
-estado volta para generating.
-
-Fluxo:
-
-editing
- ↓
-generating
- ↓
-generated
-
-
---------------------------------------------------
-11. PRINCÍPIO DOS ESTADOS
---------------------------------------------------
-
-Estados devem ser:
-
-claros
-previsíveis
-consistentes
-
-
-Qualquer nova funcionalidade do Vendeo deve respeitar esse fluxo.
+## 6. Princípios de Decisão
+1.  **Prioridade da UI**: O rótulo em tela deve sempre priorizar a clareza sobre o termo técnico.
+2.  **Transparência**: O sistema deve deixar claro se o conteúdo atual veio da IA (Aguardando aprovação) ou se já foi validado pelo humano (Aprovada).
+3.  **Consistência**: Toda nova funcionalidade deve respeitar o mapeamento entre o status do banco e o rótulo de UI definido neste documento.

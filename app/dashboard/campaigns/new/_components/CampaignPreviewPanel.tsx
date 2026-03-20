@@ -15,6 +15,7 @@ type CampaignPreviewPanelProps = {
     onRegenerateArt?: () => void;
     onRegenerateReels?: () => void;
     isRegenerating?: boolean;
+    onEditingChange?: (isEditing: boolean) => void;
 };
 
 export function CampaignPreviewPanel({
@@ -26,6 +27,7 @@ export function CampaignPreviewPanel({
     onRegenerateArt,
     onRegenerateReels,
     isRegenerating = false,
+    onEditingChange,
 }: CampaignPreviewPanelProps) {
     if (generationState === "generating") {
         return <PreviewLoadingState />;
@@ -41,6 +43,7 @@ export function CampaignPreviewPanel({
                 onRegenerateArt={onRegenerateArt}
                 onRegenerateReels={onRegenerateReels}
                 isRegenerating={isRegenerating}
+                onEditingChange={onEditingChange}
             />
         );
     }

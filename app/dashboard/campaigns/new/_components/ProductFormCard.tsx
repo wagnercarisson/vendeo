@@ -4,6 +4,8 @@ import { useRef, useState } from "react";
 import { Upload, Loader2, Image as ImageIcon, X, Package, Ruler, Megaphone } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { CampaignFormData, CampaignContentType } from "./types";
+import { formatBRLMask } from "@/lib/formatters/priceMask";
+
 
 type ProductFormCardProps = {
     value: CampaignFormData;
@@ -212,10 +214,11 @@ export function ProductFormCard({
                             id="price"
                             type="text"
                             value={value.price}
-                            onChange={(e) => updateField("price", e.target.value)}
+                            onChange={(e) => updateField("price", formatBRLMask(e.target.value))}
                             placeholder="Ex.: 8,99"
                             className="w-full h-11 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 placeholder:text-zinc-400"
                         />
+
                     </div>
                 )}
 

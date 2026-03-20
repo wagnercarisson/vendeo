@@ -24,6 +24,7 @@ import { Campaign as CampaignModel, ActiveTab, ViewMode } from "@/lib/domain/cam
 import { CampaignPreviewData } from "../../new/_components/types";
 import { PreviewReadyState } from "../../new/_components/PreviewReadyState";
 import { renderCampaignArtToBlob } from "@/app/dashboard/campaigns/_components/renderCampaignArt";
+import { mapCampaignToPreviewData } from "@/lib/domain/campaigns/mapper";
 
 export type Campaign = CampaignModel & {
     stores?: Store | null;
@@ -56,26 +57,36 @@ export function CampaignPreviewClient({
     const searchParams = useSearchParams();
     const modeParam = searchParams.get("mode");
 
-    const hasArt = !!(campaign.image_url || campaign.ai_generated_at);
-    const hasVideo = !!(campaign.reels_script || campaign.reels_generated_at);
-    const isApproved = campaign.status === "approved";
-    const isEmptyDraft = !hasArt && !hasVideo;
-
-    const [activeTab, setActiveTab] = useState<ActiveTab>(
-        hasArt ? "art" : hasVideo ? "video" : "art"
-    );
-
-    const [viewMode, setViewMode] = useState<ViewMode>(
-        modeParam === "edit" ? "edit" : "view"
-    );
     const [isSaving, setIsSaving] = useState(false);
     const [isCloning, setIsCloning] = useState(false);
-    const [previewData, setPreviewData] = useState<CampaignPreviewData | null>(null);
+    const [previewData, setPreviewData] = useState<CampaignPreviewData | null>(
+        campaign.status === "ready"
+            ? mapCampaignToPreviewData(campaign, campaign.stores)
+            : null
+    );
     const [loadingText, setLoadingText] = useState(false);
     const [loadingReels, setLoadingReels] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [artStatus, setArtStatus] = useState<"idle" | "copying" | "copied" | "saving">("idle");
     const [videoStatus, setVideoStatus] = useState<"idle" | "copied">("idle");
+    const [isChildEditing, setIsChildEditing] = useState(false);
+
+    const hasArt = !!(campaign.image_url || campaign.ai_generated_at || previewData?.headline);
+    const hasVideo = !!(campaign.reels_script || campaign.reels_generated_at || previewData?.reels_hook);
+    const isApproved = campaign.status === "approved";
+    const isEmptyDraft = !hasArt && !hasVideo;
+
+    const [activeTab, setActiveTab] = useState<ActiveTab>(
+        campaign.image_url || campaign.ai_generated_at ? "art" : (campaign.reels_script || campaign.reels_generated_at ? "video" : "art")
+    );
+
+    const [viewMode, setViewMode] = useState<ViewMode>(
+        modeParam === "edit"
+            ? "edit"
+            : campaign.status === "ready" && !( !campaign.image_url && !campaign.ai_generated_at && !campaign.reels_script && !campaign.reels_generated_at)
+                ? "review"
+                : "view"
+    );
 
     const startEditing = () => setViewMode("edit");
 
@@ -136,47 +147,17 @@ export function CampaignPreviewClient({
             const nextHasArt = isEditingArt ? false : hasExistingArt;
             const nextHasVideo = isEditingVideo ? false : hasExistingVideo;
 
-            const nextStatus: "draft" | "ready" =
-                nextHasArt || nextHasVideo ? "ready" : "draft";
+            const nextStatus = campaign.status === 'approved' ? 'ready' : (campaign.status || 'draft');
 
             const baseUpdate = {
                 ...buildStrategySafeBaseUpdate(data),
-                status: nextStatus,
+                status: nextStatus as "draft" | "ready" | "approved",
             };
 
-            const artReset = {
-                image_url: null,
-                headline: null,
-                ai_text: null,
-                ai_cta: null,
-                ai_caption: null,
-                ai_hashtags: null,
-                ai_generated_at: null,
+            const payload = {
+                ...buildStrategySafeBaseUpdate(data),
+                status: nextStatus as "draft" | "ready" | "approved",
             };
-
-            const videoReset = {
-                reels_hook: null,
-                reels_script: null,
-                reels_shotlist: null,
-                reels_on_screen_text: null,
-                reels_audio_suggestion: null,
-                reels_duration_seconds: null,
-                reels_caption: null,
-                reels_cta: null,
-                reels_hashtags: null,
-                reels_generated_at: null,
-            };
-
-            const payload =
-                activeTab === "art"
-                    ? {
-                        ...baseUpdate,
-                        ...artReset,
-                    }
-                    : {
-                        ...baseUpdate,
-                        ...videoReset,
-                    };
 
             const { error } = await supabase
                 .from("campaigns")
@@ -187,7 +168,7 @@ export function CampaignPreviewClient({
 
             router.refresh();
             setViewMode("view");
-            setPreviewData(null);
+            // Nota: mantemos o previewData para que a transição para View/Review seja suave
         } catch (err: any) {
             setErrorMsg(err.message);
         } finally {
@@ -284,7 +265,7 @@ export function CampaignPreviewClient({
                     campaign_id: campaign.id,
                     force,
                     description: overrides?.description,
-                    persist: !isFromEditFlow,
+                    persist: true,
                 }),
             });
 
@@ -368,8 +349,10 @@ export function CampaignPreviewClient({
             }
 
             const artData = {
-                product_name: previewData.headline || campaign.product_name,
-                price: previewData.price,
+                price:
+                    typeof previewData.price === "string"
+                        ? parseFloat(previewData.price.replace(",", ".")) || 0
+                        : previewData.price,
                 audience: campaign.audience,
                 objective: campaign.objective,
                 product_positioning: campaign.product_positioning,
@@ -423,6 +406,51 @@ export function CampaignPreviewClient({
         }
     }
 
+    async function handleSaveDraftReview() {
+        if (!previewData) return;
+
+        try {
+            setIsSaving(true);
+            setErrorMsg(null);
+
+            const payload = {
+                price:
+                    typeof previewData.price === "string"
+                        ? parseFloat(previewData.price.replace(",", ".")) || 0
+                        : previewData.price,
+                headline: previewData.headline,
+                ai_text: previewData.body_text,
+                ai_cta: previewData.cta,
+                ai_caption: previewData.caption,
+                ai_hashtags: previewData.hashtags,
+                reels_hook: previewData.reels_hook,
+                reels_script: previewData.reels_script,
+                reels_shotlist: previewData.reels_shotlist,
+                reels_on_screen_text: previewData.reels_on_screen_text,
+                reels_audio_suggestion: previewData.reels_audio_suggestion,
+                reels_duration_seconds: previewData.reels_duration_seconds,
+                reels_caption: previewData.reels_caption,
+                reels_cta: previewData.reels_cta,
+                reels_hashtags: previewData.reels_hashtags,
+                status: "ready" as const,
+            };
+
+            const { error } = await supabase
+                .from("campaigns")
+                .update(payload)
+                .eq("id", campaign.id);
+
+            if (error) throw error;
+
+            router.refresh();
+            // Removido o redirecionamento para o dashboard para manter o usuário no contexto
+        } catch (err: any) {
+            setErrorMsg(err.message);
+        } finally {
+            setIsSaving(false);
+        }
+    }
+
     async function generateReels(force = false, overrides?: Partial<CampaignSavePayload>) {
         if (!canGenerate && !overrides) return;
 
@@ -454,7 +482,7 @@ export function CampaignPreviewClient({
                 body: JSON.stringify({
                     campaign_id: campaign.id,
                     force,
-                    persist: false,
+                    persist: true,
                     description: overrides?.description,
                 }),
             });
@@ -703,42 +731,55 @@ export function CampaignPreviewClient({
 
             {viewMode === "review" && previewData ? (
                 <div className="space-y-6">
-                    <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={startEditing}
-                                className="flex h-10 w-10 items-center justify-center rounded-full border border-black/5 bg-white text-zinc-500 shadow-sm transition hover:text-zinc-900"
-                            >
-                                <ArrowLeft className="h-5 w-5" />
-                            </button>
-                            <h2 className="text-xl font-bold tracking-tight text-zinc-900">
-                                Revisão
+                    <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-black/5 bg-white p-5 shadow-sm sm:flex-row">
+                        <div>
+                            <h2 className="text-lg font-bold text-zinc-900">
+                                Revisão da Campanha
                             </h2>
+                            <p className="max-w-md text-sm text-zinc-500">
+                                Finalize a sua campanha. Edite, gere novo conteúdo,
+                                aprove e salve a nova campanha para postar e vender!
+                            </p>
                         </div>
-
-                        <div className="flex gap-3">
-                            <button
-                                onClick={startEditing}
-                                className="rounded-xl border border-black/5 bg-white px-4 py-2 text-sm font-semibold"
-                            >
-                                Voltar
-                            </button>
-                            <button
-                                onClick={handleApproveReview}
-                                disabled={isSaving}
-                                className="rounded-xl bg-zinc-900 px-6 py-2 text-sm font-semibold text-white"
-                            >
-                                {isSaving ? "Salvando..." : "Aprovar e salvar"}
-                            </button>
-                        </div>
+                        <button
+                            onClick={handleApproveReview}
+                            disabled={isSaving || isChildEditing}
+                            className={`inline-flex h-10 w-full items-center justify-center rounded-xl px-6 text-sm font-bold text-white shadow-sm transition sm:w-auto ${
+                                isChildEditing ? "bg-zinc-300 cursor-not-allowed shadow-none" : "bg-emerald-600 hover:bg-emerald-700"
+                            }`}
+                        >
+                            {isSaving ? "Salvando..." : "Aprovar e salvar"}
+                        </button>
                     </div>
 
                     <PreviewReadyState
                         preview={previewData}
                         onUpdatePreview={setPreviewData}
-                        generate_post={activeTab === "art"}
-                        generate_reels={activeTab === "video"}
+                        generate_post={hasArt}
+                        generate_reels={hasVideo}
+                        onRegenerateArt={() => generateText(true)}
+                        onRegenerateReels={() => generateReels(true)}
+                        onEditingChange={setIsChildEditing}
                     />
+
+                    {!isChildEditing && (
+                        <div className="flex items-center justify-between pt-4">
+                            <button
+                                onClick={() => router.push("/dashboard")}
+                                className="inline-flex h-11 items-center justify-center rounded-xl border border-black/10 bg-white px-6 text-sm font-bold text-zinc-600 transition hover:bg-zinc-50"
+                            >
+                                Cancelar
+                            </button>
+
+                            <button
+                                onClick={handleSaveDraftReview}
+                                disabled={isSaving}
+                                className="inline-flex h-11 items-center justify-center rounded-xl border border-zinc-900 bg-white px-6 text-sm font-bold text-zinc-900 transition hover:bg-zinc-50"
+                            >
+                                {isSaving ? "Salvando..." : "Salvar rascunho"}
+                            </button>
+                        </div>
+                    )}
                 </div>
             ) : viewMode === "edit" ? (
                 <CampaignEditForm
