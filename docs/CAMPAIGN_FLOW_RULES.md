@@ -34,6 +34,8 @@ A interface utiliza um modelo derivado:
 📌 Regra:
 Esses estados NÃO devem ser persistidos no banco.
 
+*Exceção Arquitetural*: O campo `content_type` na tabela `campaigns` representa o **Intento / Especificação de Formato** (fixo) e não o estado visual calculado (dinâmico). Ele resolve a ambiguidade em rascunhos onde ainda não há conteúdo para derivar o estado.
+
 ---
 
 # 2. PRÉ-GERAÇÃO (PRE-GENERATION MODE)

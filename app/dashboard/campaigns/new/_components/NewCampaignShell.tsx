@@ -380,7 +380,20 @@ export function NewCampaignShell() {
             setCampaignId(currentId);
         }
 
+        // NOVO: Garantir vínculo na tabela de itens do plano se vier de um plano
+        if (isPlanDerived && planItemId) {
+            const { error: linkErr } = await supabase
+                .from("weekly_plan_items")
+                .update({ campaign_id: currentId })
+                .eq("id", planItemId);
+
+            if (linkErr) {
+                console.error("Erro ao vincular rascunho ao item do plano:", linkErr);
+            }
+        }
+
         return { currentId, storeId: store.id };
+
     }
 
     async function regenerateArt() {

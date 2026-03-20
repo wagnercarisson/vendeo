@@ -15,6 +15,11 @@ Estes são os valores reais salvos na coluna `status` da tabela `campaigns`.
     *   *Nota: Este estado substitui o termo antigo "generated".*
 *   **`approved`**: O usuário revisou e aprovou o conteúdo final. A campanha está pronta para uso.
 
+### 2.1 Persistência de Formato (`content_type`)
+Além do status, salvamos o formato pretendido:
+*   `post`, `reels` ou `both`.
+*   Este campo orienta a experiência do usuário durante o estado `draft`.
+
 ---
 
 ## 3. Estados de Experiência (Interface/UX)

@@ -209,12 +209,46 @@ export function ExecutionStep({
                     ) : null}
                   </div>
 
-                  {campaign ? (
-                    <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
-                      <p className="font-medium">Campanha vinculada</p>
-                      <p className="mt-1">{campaign.product_name}</p>
-                    </div>
-                  ) : null}
+                  {campaign ? (() => {
+                    const statusConfig = {
+                      draft: {
+                        bg: "bg-amber-50",
+                        border: "border-amber-200",
+                        text: "text-amber-800",
+                        badge: "bg-amber-100 text-amber-900",
+                        label: "Rascunho",
+                      },
+                      ready: {
+                        bg: "bg-emerald-50",
+                        border: "border-emerald-200",
+                        text: "text-emerald-700",
+                        badge: "bg-emerald-100 text-emerald-800",
+                        label: "Aguardando aprovação",
+                      },
+                      approved: {
+                        bg: "bg-sky-50",
+                        border: "border-sky-200",
+                        text: "text-sky-800",
+                        badge: "bg-sky-100 text-sky-900",
+                        label: "Aprovada",
+                      },
+                    };
+
+                    const config = statusConfig[campaign.status as keyof typeof statusConfig] || statusConfig.draft;
+
+                    return (
+                      <div className={`rounded-2xl border ${config.border} ${config.bg} px-4 py-3 text-sm`}>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className={`font-semibold ${config.text}`}>Campanha vinculada</p>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${config.badge}`}>
+                            {config.label}
+                          </span>
+                        </div>
+                        <p className={`mt-1 font-medium ${config.text}`}>{campaign.product_name}</p>
+                      </div>
+                    );
+                  })() : null}
+
 
                   {strategyMismatch ? (
                     <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
