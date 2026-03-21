@@ -16,9 +16,8 @@ Este documento define a regra técnica oficial para os campos estratégicos usad
 
 Os campos estratégicos padronizados do domínio de campanhas são:
 
-* `objective`
-* `audience`
 * `product_positioning`
+* `content_type` (Natureza da oferta)
 
 Esses campos representam escolhas estruturadas do usuário e devem permanecer consistentes em toda a aplicação.
 
@@ -32,9 +31,8 @@ A fonte de verdade dos valores normalizados no frontend é:
 
 Constantes oficiais:
 
-* `OBJECTIVE_OPTIONS`
-* `AUDIENCE_OPTIONS`
 * `PRODUCT_POSITIONING_OPTIONS`
+* `CONTENT_TYPE_OPTIONS`
 
 Toda implementação futura que leia, exiba, valide, transmita, persista, bloqueie, compare ou reutilize esses campos deve consultar essa fonte antes de definir qualquer comportamento.
 
@@ -142,12 +140,26 @@ Se `product_positioning` estiver vazio ou ausente:
 
 ---
 
-# 7. IMPACTOS ESPERADOS NO SISTEMA
+# 8. NATUREZA DO CONTEÚDO (content_type)
 
-Essa regra deve ser observada principalmente em:
+Adicionado via Migration 015 para distinguir o formato técnico (campaign_type) da natureza comercial da oferta.
 
-* formulários de campanha
-* edição de campanha
+## 8.1 Valores Oficiais (CONTENT_TYPE_OPTIONS)
+
+* `product`: Foco em venda de produto físico com preço.
+* `service`: Foco em prestação de serviço ou experiência.
+* `info`: Foco em avisos, curiosidades ou utilidade pública (sem foco direto em venda).
+
+## 8.2 Regra de Consistência (Casos 1, 2 e 3)
+
+1. **Sincronia**: Arte e Vídeo devem compartilhar o mesmo `content_type`.
+2. **Imutabilidade**: Uma vez aprovados ambos os formatos, o campo é bloqueado.
+3. **Correção**: Permite edição se apenas um dos formatos existir, visando corrigir erros de classificação inicial.
+
+---
+
+# 9. IMPACTOS ESPERADOS NO SISTEMA
+
 * criação de campanha via plano semanal
 * comparação entre brief do plano e campanha vinculada
 * prompts de IA

@@ -278,7 +278,7 @@ export function ExecutionStep({
                   ) : (
                     <button
                       type="button"
-                      onClick={() => router.push(`/dashboard/campaigns/${campaign.id}${campaign.status === "approved" ? "" : "?mode=edit"}`)}
+                      onClick={() => router.push(`/dashboard/campaigns/${campaign.id}`)}
                       className="inline-flex items-center justify-center gap-2 rounded-2xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-800 transition hover:bg-zinc-50"
                     >
                       Abrir campanha

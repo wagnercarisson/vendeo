@@ -347,6 +347,7 @@ export function NewCampaignShell() {
             status: "draft" as const,
             origin: isPlanDerived ? ("plan" as const) : ("manual" as const),
             weekly_plan_item_id: isPlanDerived ? planItemId : null,
+            content_type: product.type,
         };
 
 
@@ -635,6 +636,8 @@ export function NewCampaignShell() {
                         ai_hashtags: artPreview.hashtags,
                         image_url: finalImageUrl,
                         status: "approved",
+                        post_status: "approved",
+                        reels_status: strategy.generate_reels ? "approved" : "none",
                         price:
                             product.type === "info"
                                 ? null
@@ -654,6 +657,8 @@ export function NewCampaignShell() {
                     .from("campaigns")
                     .update({
                         status: "approved",
+                        post_status: "none",
+                        reels_status: "approved",
                         price:
                             product.type === "info"
                                 ? null
@@ -797,7 +802,7 @@ export function NewCampaignShell() {
                                     }`}
                                 >
                                     <span className="relative z-10 flex items-center gap-2">
-                                        ✨ Gerar Campanha Completa
+                                        ✨ Gerar Campanha
                                     </span>
                                 </button>
 

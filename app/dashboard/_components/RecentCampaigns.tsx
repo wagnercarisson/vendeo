@@ -116,7 +116,7 @@ export function RecentCampaigns({
                     </div>
 
                     <Link
-                      href={`/dashboard/campaigns/${c.id}?mode=edit`}
+                      href={`/dashboard/campaigns/${c.id}`}
                       className="shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-xl border bg-white shadow-sm transition-all hover:bg-slate-50 hover:border-slate-300 active:scale-95"
                     >
                       <span className="text-lg">→</span>

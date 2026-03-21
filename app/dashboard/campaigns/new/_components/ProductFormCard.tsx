@@ -10,11 +10,13 @@ import { formatBRLMask } from "@/lib/formatters/priceMask";
 type ProductFormCardProps = {
     value: CampaignFormData;
     onChange: (next: CampaignFormData) => void;
+    disableTypeSwitch?: boolean;
 };
 
 export function ProductFormCard({
     value,
     onChange,
+    disableTypeSwitch = false,
 }: ProductFormCardProps) {
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const [uploadingImage, setUploadingImage] = useState(false);
@@ -155,14 +157,17 @@ export function ProductFormCard({
                             <button
                                 key={type.id}
                                 type="button"
+                                disabled={disableTypeSwitch}
                                 onClick={() => updateField("type", type.id)}
                                 className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 text-xs font-medium rounded-lg transition-all ${
                                     isSelected
                                         ? "bg-white text-emerald-700 shadow-sm ring-1 ring-zinc-200"
-                                        : "text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100/50"
+                                        : disableTypeSwitch
+                                            ? "text-zinc-400 opacity-50 cursor-not-allowed"
+                                            : "text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100/50"
                                 }`}
                             >
-                                <Icon className={`h-3.5 w-3.5 ${isSelected ? "text-emerald-500" : "text-zinc-400"}`} />
+                                <Icon className={`h-3.5 w-3.5 ${isSelected ? "text-emerald-500" : disableTypeSwitch ? "text-zinc-300" : "text-zinc-400"}`} />
                                 {type.label}
                             </button>
                         );

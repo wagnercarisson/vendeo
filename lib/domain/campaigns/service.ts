@@ -92,6 +92,7 @@ export async function generateCampaignContent(
         ai_hashtags: normalized.hashtags,
         ai_generated_at: new Date().toISOString(),
         status: 'ready',
+        post_status: 'ready',
       })
       .eq("id", campaign_id);
 

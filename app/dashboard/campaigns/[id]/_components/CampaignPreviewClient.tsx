@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -58,9 +58,14 @@ export function CampaignPreviewClient({
     const modeParam = searchParams.get("mode");
 
     const [isSaving, setIsSaving] = useState(false);
+    const [pendingSaveData, setPendingSaveData] = useState<CampaignSavePayload | null>(null);
     const [isCloning, setIsCloning] = useState(false);
+    const hasAnyReadyContent = 
+        campaign.status === "ready" || campaign.status === "approved" || 
+        campaign.post_status === "ready" || campaign.reels_status === "ready";
+
     const [previewData, setPreviewData] = useState<CampaignPreviewData | null>(
-        campaign.status === "ready"
+        hasAnyReadyContent
             ? mapCampaignToPreviewData(campaign, campaign.stores)
             : null
     );
@@ -70,6 +75,14 @@ export function CampaignPreviewClient({
     const [artStatus, setArtStatus] = useState<"idle" | "copying" | "copied" | "saving">("idle");
     const [videoStatus, setVideoStatus] = useState<"idle" | "copied">("idle");
     const [isChildEditing, setIsChildEditing] = useState(false);
+    const [isGenerationTriggered, setIsGenerationTriggered] = useState(false);
+
+    const [successToast, setSuccessToast] = useState<string | null>(null);
+    const showSuccess = (msg: string) => {
+        setSuccessToast(msg);
+        setTimeout(() => setSuccessToast(null), 3000);
+    };
+    const [isReviewDirty, setIsReviewDirty] = useState(false);
 
     const hasArt = !!(campaign.image_url || campaign.ai_generated_at || previewData?.headline);
     const hasVideo = !!(campaign.reels_script || campaign.reels_generated_at || previewData?.reels_hook);
@@ -77,22 +90,31 @@ export function CampaignPreviewClient({
     const isEmptyDraft = !hasArt && !hasVideo;
 
     const [activeTab, setActiveTab] = useState<ActiveTab>(
-        campaign.image_url || campaign.ai_generated_at ? "art" : (campaign.reels_script || campaign.reels_generated_at ? "video" : "art")
+        campaign.campaign_type === "reels" ? "video" : "art"
     );
 
-    const [viewMode, setViewMode] = useState<ViewMode>(
-        modeParam === "edit"
-            ? "edit"
-            : campaign.status === "ready" && !( !campaign.image_url && !campaign.ai_generated_at && !campaign.reels_script && !campaign.reels_generated_at)
-                ? "review"
-                : "view"
-    );
+    const [localPostStatus, setLocalPostStatus] = useState(campaign.post_status);
+    const [localReelsStatus, setLocalReelsStatus] = useState(campaign.reels_status);
 
-    const startEditing = () => setViewMode("edit");
+    useEffect(() => {
+        setLocalPostStatus(campaign.post_status);
+        setLocalReelsStatus(campaign.reels_status);
+    }, [campaign.post_status, campaign.reels_status]);
 
     const hasAi = hasArt;
     const hasReels = hasVideo;
-    const currentTabHasContent = activeTab === "art" ? hasAi : hasReels;
+    const currentTabHasContent = activeTab === "art"
+        ? localPostStatus !== "none" && localPostStatus !== "draft"
+        : localReelsStatus !== "none" && localReelsStatus !== "draft";
+
+    const [isEditingBase, setIsEditingBase] = useState(
+        modeParam === "edit"
+    );
+
+    const startEditing = (isGenTrigger: boolean = false) => {
+        setIsGenerationTriggered(isGenTrigger);
+        setIsEditingBase(true);
+    };
 
     const finalArtUrlClean = (campaign.image_url || "").split("#")[0];
     const heroImageUrlClean = (campaign.image_url || campaign.product_image_url || "").split("#")[0];
@@ -112,7 +134,18 @@ export function CampaignPreviewClient({
         campaign.objective
     );
 
+    const isBothReady = (localPostStatus === 'ready' || localPostStatus === 'approved') && 
+                       (localReelsStatus === 'ready' || localReelsStatus === 'approved');
+    const hasAnyReady = (localPostStatus === 'ready' || localPostStatus === 'approved') || 
+                        (localReelsStatus === 'ready' || localReelsStatus === 'approved');
+
     const isStrategyLocked = isPlanLinked || campaign.origin === "plan";
+
+    // lockContext logic:
+    // Case 1: Both ready -> Locked
+    // Case 2: One ready AND Gen trigger -> Locked (for consistency)
+    // Case 3: One ready AND Base Edit -> Unlocked (for correction)
+    const lockContext = isPlanLinked || isBothReady || (hasAnyReady && isGenerationTriggered);
 
     function buildStrategySafeBaseUpdate(data: CampaignSavePayload) {
         if (isStrategyLocked) {
@@ -132,34 +165,16 @@ export function CampaignPreviewClient({
             product_positioning: data.product_positioning,
             product_image_url: data.product_image_url,
             body_text: data.description,
+            content_type: data.content_type,
         };
     }
 
-    async function handleSaveBaseFields(data: CampaignSavePayload) {
-        if (!confirm("Deseja salvar esta campanha como rascunho para finalizar depois?")) {
-            return;
-        }
-
+    async function executeSaveBaseFields(data: CampaignSavePayload, shouldRegenerate: boolean = false) {
         try {
             setErrorMsg(null);
             setIsSaving(true);
-
-
-            const hasExistingArt = !!(campaign.image_url || campaign.ai_generated_at);
-            const hasExistingVideo = !!(campaign.reels_script || campaign.reels_generated_at);
-
-            const isEditingArt = activeTab === "art";
-            const isEditingVideo = activeTab === "video";
-
-            const nextHasArt = isEditingArt ? false : hasExistingArt;
-            const nextHasVideo = isEditingVideo ? false : hasExistingVideo;
-
+            
             const nextStatus = campaign.status === 'approved' ? 'ready' : (campaign.status || 'draft');
-
-            const baseUpdate = {
-                ...buildStrategySafeBaseUpdate(data),
-                status: nextStatus as "draft" | "ready" | "approved",
-            };
 
             const payload = {
                 ...buildStrategySafeBaseUpdate(data),
@@ -172,15 +187,46 @@ export function CampaignPreviewClient({
                 .eq("id", campaign.id);
 
             if (error) throw error;
+            
+            setPendingSaveData(null);
 
-            alert("Campanha salva como rascunho com sucesso!");
-            router.push("/dashboard");
-            // Nota: mantemos o previewData para que a transição para View/Review seja suave
+            if (shouldRegenerate) {
+                // Determine what to regenerate based on active statuses
+                const genArt = localPostStatus !== "none" && localPostStatus !== "draft";
+                const genReels = localReelsStatus !== "none" && localReelsStatus !== "draft";
+                
+                if (genArt) {
+                    await generateText(true, data, true);
+                }
+                if (genReels) {
+                    await generateReels(true, data);
+                }
+                
+                setIsEditingBase(false);
+                router.refresh();
+                showSuccess("Tudo pronto! Seu projeto foi atualizado com base nas novas informações.");
+            } else {
+                setIsEditingBase(false);
+                router.refresh();
+                showSuccess("Informações base da campanha salvas com sucesso!");
+            }
 
         } catch (err: any) {
             setErrorMsg(err.message);
+            // Hide modal if hit error
+            setPendingSaveData(null);
         } finally {
             setIsSaving(false);
+        }
+    }
+
+    async function handleSaveBaseFields(data: CampaignSavePayload) {
+        const hasContent = (localPostStatus !== "none" && localPostStatus !== "draft") || 
+                           (localReelsStatus !== "none" && localReelsStatus !== "draft");
+        if (hasContent) {
+            setPendingSaveData(data);
+        } else {
+            executeSaveBaseFields(data, false);
         }
     }
 
@@ -209,6 +255,7 @@ export function CampaignPreviewClient({
                 reels_caption: data.reels_caption,
                 reels_cta: data.reels_cta,
                 reels_hashtags: data.reels_hashtags,
+                content_type: data.content_type,
                 status: "approved" as const,
             };
 
@@ -219,7 +266,7 @@ export function CampaignPreviewClient({
 
             if (error) throw error;
 
-            setViewMode("view");
+            setIsEditingBase(false);
             router.refresh();
         } catch (err: any) {
             setErrorMsg(err.message);
@@ -268,6 +315,8 @@ export function CampaignPreviewClient({
                             overrides?.product_positioning ?? campaign.product_positioning ?? "",
                         product_image_url:
                             overrides?.product_image_url ?? campaign.product_image_url ?? "",
+                        content_type:
+                            overrides?.content_type ?? campaign.content_type ?? "product",
                     })
                 )
                 .eq("id", campaign.id);
@@ -320,7 +369,11 @@ export function CampaignPreviewClient({
 
             setIsCloning(false);
             setActiveTab("art");
-            setViewMode("review");
+            setIsEditingBase(false);
+            setLocalPostStatus("ready");
+            setIsReviewDirty(false);
+            router.refresh();
+            showSuccess("Arte criada com inteligência artiificial!");
         } catch (err: any) {
             setErrorMsg(err.message);
         } finally {
@@ -381,6 +434,7 @@ export function CampaignPreviewClient({
                 image_url: finalImageUrl,
                 ai_generated_at: new Date().toISOString(),
                 status: "approved" as const,
+                post_status: "approved" as const,
             };
 
             const videoPayload = {
@@ -395,6 +449,7 @@ export function CampaignPreviewClient({
                 reels_hashtags: previewData.reels_hashtags,
                 reels_generated_at: new Date().toISOString(),
                 status: "approved" as const,
+                reels_status: "approved" as const,
             };
 
             if (activeTab === "video") {
@@ -404,6 +459,7 @@ export function CampaignPreviewClient({
                     .eq("id", campaign.id);
 
                 if (videoErr) throw videoErr;
+                setLocalReelsStatus("approved");
             } else {
                 const { error: dbErr } = await supabase
                     .from("campaigns")
@@ -411,10 +467,13 @@ export function CampaignPreviewClient({
                     .eq("id", campaign.id);
 
                 if (dbErr) throw dbErr;
+                setLocalPostStatus("approved");
             }
 
-            setViewMode("view");
+            setIsEditingBase(false);
+            setIsReviewDirty(false);
             router.refresh();
+            showSuccess(activeTab === "art" ? "Arte aprovada com sucesso!" : "Roteiro de vídeo aprovado com sucesso!");
         } catch (err: any) {
             setErrorMsg(err.message);
         } finally {
@@ -459,7 +518,8 @@ export function CampaignPreviewClient({
             if (error) throw error;
 
             router.refresh();
-            // Removido o redirecionamento para o dashboard para manter o usuário no contexto
+            setIsReviewDirty(false);
+            showSuccess("As edições do seu conteúdo foram salvas.");
         } catch (err: any) {
             setErrorMsg(err.message);
         } finally {
@@ -486,6 +546,8 @@ export function CampaignPreviewClient({
                             overrides?.product_positioning ?? campaign.product_positioning ?? "",
                         product_image_url:
                             overrides?.product_image_url ?? campaign.product_image_url ?? "",
+                        content_type:
+                            overrides?.content_type ?? campaign.content_type ?? "product",
                     })
                 )
                 .eq("id", campaign.id);
@@ -530,8 +592,12 @@ export function CampaignPreviewClient({
             });
 
             setIsCloning(false);
-            setViewMode("review");
+            setIsEditingBase(false);
             setActiveTab("video");
+            setLocalReelsStatus("ready");
+            setIsReviewDirty(false);
+            router.refresh();
+            showSuccess("Roteiro para Reels redigido pela IA com sucesso!");
         } catch (err: any) {
             setErrorMsg(err.message);
         } finally {
@@ -713,8 +779,10 @@ export function CampaignPreviewClient({
                     <div
                         className={cx(
                             "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium shadow-sm transition",
-                            viewMode === "review"
-                                ? "border-amber-200 bg-amber-50 text-amber-800"
+                            isEditingBase
+                                ? "border-black/5 bg-white text-zinc-700"
+                                : campaign.status === "approved"
+                                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
                                 : currentTabHasContent
                                     ? "border-emerald-200 bg-emerald-50 text-emerald-800"
                                     : "border-black/5 bg-white text-zinc-700"
@@ -722,8 +790,9 @@ export function CampaignPreviewClient({
                     >
                         <Sparkles className="h-4 w-4" />
                         <span>
-                            {viewMode === "review"
-                                ? "Aguardando aprovação"
+                            {isEditingBase ? "Editando" :
+                              campaign.status === "approved"
+                                ? "Aprovada"
                                 : currentTabHasContent
                                     ? "Conteúdo por IA"
                                     : "Aguardando geração"}
@@ -745,70 +814,23 @@ export function CampaignPreviewClient({
                 </div>
             )}
 
-            {viewMode === "review" && previewData ? (
-                <div className="space-y-6">
-                    <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-black/5 bg-white p-5 shadow-sm sm:flex-row">
-                        <div>
-                            <h2 className="text-lg font-bold text-zinc-900">
-                                Revisão da Campanha
-                            </h2>
-                            <p className="max-w-md text-sm text-zinc-500">
-                                Finalize a sua campanha. Edite, gere novo conteúdo,
-                                aprove e salve a nova campanha para postar e vender!
-                            </p>
-                        </div>
-                        <button
-                            onClick={handleApproveReview}
-                            disabled={isSaving || isChildEditing}
-                            className={`inline-flex h-10 w-full items-center justify-center rounded-xl px-6 text-sm font-bold text-white shadow-sm transition sm:w-auto ${
-                                isChildEditing ? "bg-zinc-300 cursor-not-allowed shadow-none" : "bg-emerald-600 hover:bg-emerald-700"
-                            }`}
-                        >
-                            {isSaving ? "Salvando..." : "Aprovar e salvar"}
-                        </button>
-                    </div>
-
-                    <PreviewReadyState
-                        preview={previewData}
-                        onUpdatePreview={setPreviewData}
-                        generate_post={hasArt}
-                        generate_reels={hasVideo}
-                        onRegenerateArt={() => generateText(true)}
-                        onRegenerateReels={() => generateReels(true)}
-                        onEditingChange={setIsChildEditing}
-                    />
-
-                    {!isChildEditing && (
-                        <div className="flex items-center justify-between pt-4">
-                            <button
-                                onClick={() => router.push("/dashboard")}
-                                className="inline-flex h-11 items-center justify-center rounded-xl border border-black/10 bg-white px-6 text-sm font-bold text-zinc-600 transition hover:bg-zinc-50"
-                            >
-                                Cancelar
-                            </button>
-
-                            <button
-                                onClick={handleSaveDraftReview}
-                                disabled={isSaving}
-                                className="inline-flex h-11 items-center justify-center rounded-xl border border-zinc-900 bg-white px-6 text-sm font-bold text-zinc-900 transition hover:bg-zinc-50"
-                            >
-                                {isSaving ? "Salvando..." : "Salvar rascunho"}
-                            </button>
-                        </div>
-                    )}
-                </div>
-            ) : viewMode === "edit" ? (
+            {isEditingBase ? (
                 <CampaignEditForm
                     campaign={campaign}
                     store={campaign.stores}
                     onSave={handleSaveBaseFields}
-                    onCancel={handleCancelEdit}
-                    onGenerateArt={(d) => handleGenerateFromEdit("art", d)}
-
-                    onGenerateVideo={(d) => handleGenerateFromEdit("video", d)}
+                    onCancel={isEmptyDraft ? () => router.push("/dashboard/campaigns") : () => setIsEditingBase(false)}
+                    onGenerateArt={(d) => {
+                        setActiveTab("art");
+                        return handleGenerateFromEdit("art", d);
+                    }}
+                    onGenerateVideo={(d) => {
+                        setActiveTab("video");
+                        return handleGenerateFromEdit("video", d);
+                    }}
                     onApprove={handleApproveFromEdit}
                     activeTab={activeTab}
-                    lockContext={true}
+                    lockContext={lockContext}
                     lockStrategyFields={isPlanLinked}
                     isSaving={isSaving}
                     isGeneratingArt={loadingText}
@@ -817,7 +839,7 @@ export function CampaignPreviewClient({
             ) : (
                 <div className="space-y-6">
                     <div className="flex flex-col items-center gap-6 rounded-3xl border border-black/5 bg-white p-6 shadow-sm sm:flex-row">
-                        <div className="relative h-40 w-40 shrink-0 overflow-hidden rounded-2xl border border-black/5 bg-zinc-50">
+                        <div className="relative h-32 w-32 sm:h-40 sm:w-40 shrink-0 overflow-hidden rounded-2xl border border-black/5 bg-zinc-50">
                             {heroImageUrlClean ? (
                                 <img
                                     src={heroImageUrlClean}
@@ -831,24 +853,25 @@ export function CampaignPreviewClient({
                             )}
                         </div>
 
-                        <div className="flex-1">
-                            <div className="flex items-center gap-3">
+                        <div className="flex-1 w-full text-center sm:text-left">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                                 <h2 className="text-2xl font-bold text-zinc-900">
                                     {campaign.product_name}
                                 </h2>
-                                {isPlanLinked && (
-                                    <span className="rounded bg-amber-50 px-2 py-1 text-[10px] font-bold uppercase text-amber-700 ring-1 ring-inset ring-amber-600/10">
-                                        Plano Semanal
-                                    </span>
-                                )}
-                                {isApproved && (
-                                    <span className="rounded bg-emerald-50 px-2 py-1 text-[10px] font-bold uppercase text-emerald-700 ring-1 ring-inset ring-emerald-600/10">
-                                        Aprovada
-                                    </span>
-                                )}
+                                <div className="flex flex-wrap justify-center sm:justify-start gap-2">
+                                  {isPlanLinked && (
+                                      <span className="rounded bg-amber-50 px-2 py-1 text-[10px] font-bold uppercase text-amber-700 ring-1 ring-inset ring-amber-600/10">
+                                          Plano Semanal
+                                      </span>
+                                  )}
+                                  {isApproved && (
+                                      <span className="rounded bg-emerald-50 px-2 py-1 text-[10px] font-bold uppercase text-emerald-700 ring-1 ring-inset ring-emerald-600/10">
+                                          Aprovada
+                                      </span>
+                                  )}
+                                </div>
                             </div>
-
-                            <div className="mt-2 flex flex-wrap gap-2">
+                            <div className="mt-3 flex flex-wrap justify-center sm:justify-start gap-2">
                                 {priceText && (
                                     <span className="rounded-full bg-zinc-50 px-3 py-1 text-xs font-semibold">
                                         {priceText}
@@ -860,227 +883,364 @@ export function CampaignPreviewClient({
                                     )?.label || campaign.objective}
                                 </span>
                             </div>
+                            <div className="mt-5 flex justify-center sm:justify-start flex-wrap gap-2">
+                                <button
+                                    onClick={() => startEditing(false)}
+                                    className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-white border border-slate-200 px-4 text-xs font-bold text-zinc-700 shadow-sm transition hover:bg-zinc-50"
+                                >
+                                    Editar Informações Base
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    {isEmptyDraft ? (
-                        <CampaignEditForm
-                            campaign={campaign}
-                            store={campaign.stores}
-                            onSave={handleSaveBaseFields}
-                            onCancel={() => router.push("/dashboard/campaigns")}
-                            onGenerateArt={(d) => {
-                                setActiveTab("art");
-                                return handleGenerateFromEdit("art", d);
-                            }}
-                            onGenerateVideo={(d) => {
-                                setActiveTab("video");
-                                return handleGenerateFromEdit("video", d);
-                            }}
-                            onApprove={handleApproveFromEdit}
-                            activeTab={activeTab}
-                            lockContext={false}
-                            lockStrategyFields={isPlanLinked}
-                            isSaving={isSaving}
-                            isGeneratingArt={loadingText}
-                            isGeneratingVideo={loadingReels}
-                        />
-                    ) : (
-                        <>
-                            <div className="flex border-b border-black/5">
-                                <button
-                                    onClick={() => setActiveTab("art")}
-                                    className={cx(
-                                        "px-5 py-3 text-sm font-bold transition",
-                                        activeTab === "art"
-                                            ? "border-b-2 border-zinc-900 text-zinc-900"
-                                            : "text-zinc-400"
-                                    )}
-                                >
-                                    Arte
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab("video")}
-                                    className={cx(
-                                        "px-5 py-3 text-sm font-bold transition",
-                                        activeTab === "video"
-                                            ? "border-b-2 border-zinc-900 text-zinc-900"
-                                            : "text-zinc-400"
-                                    )}
-                                >
-                                    Vídeo
-                                </button>
-                            </div>
+                    <div className="flex border-b border-black/5">
+                        <button
+                            onClick={() => setActiveTab("art")}
+                            className={cx(
+                                "px-5 py-3 text-sm font-bold transition flex items-center gap-2",
+                                activeTab === "art"
+                                    ? "border-b-2 border-zinc-900 text-zinc-900"
+                                    : "text-zinc-400"
+                            )}
+                        >
+                            <span>Arte</span>
+                            {localPostStatus === 'none' || localPostStatus === 'draft' ? null : (
+                              <div className={cx(
+                                  "w-1.5 h-1.5 rounded-full",
+                                  localPostStatus === 'approved' ? "bg-emerald-500" : "bg-amber-400"
+                              )} />
+                            )}
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("video")}
+                            className={cx(
+                                "px-5 py-3 text-sm font-bold transition flex items-center gap-2",
+                                activeTab === "video"
+                                    ? "border-b-2 border-zinc-900 text-zinc-900"
+                                    : "text-zinc-400"
+                            )}
+                        >
+                            <span>Vídeo</span>
+                            {localReelsStatus === 'none' || localReelsStatus === 'draft' ? null : (
+                              <div className={cx(
+                                  "w-1.5 h-1.5 rounded-full",
+                                  localReelsStatus === 'approved' ? "bg-emerald-500" : "bg-amber-400"
+                              )} />
+                            )}
+                        </button>
+                    </div>
 
-                            <div className="mx-auto max-w-3xl">
-                                {activeTab === "art" &&
-                                    (hasAi ? (
-                                        <div className="space-y-6 rounded-3xl border border-black/5 bg-white p-6">
-                                            <div className="aspect-[4/5] relative rounded-2xl overflow-hidden shadow-lg max-w-[400px] mx-auto border border-zinc-100">
-                                                {campaign.image_url ? (
-                                                    <img
-                                                        src={finalArtUrlClean}
-                                                        alt="Arte"
-                                                        className="w-full h-full object-cover"
-                                                    />
-                                                ) : (
-                                                    <div className="h-full grid place-items-center bg-zinc-50 text-zinc-300">
-                                                        <ImageIcon className="h-8 w-8" />
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="space-y-3">
-                                                <Field label="Legenda" value={campaign.ai_caption} />
-                                                <Field
-                                                    label="Hashtags"
-                                                    value={campaign.ai_hashtags}
-                                                />
-                                                <SalesFeedbackInline
-                                                    contentType="campaign"
-                                                    campaignId={campaign.id}
-                                                />
-
-                                                <div className="flex flex-col gap-3 pt-4 sm:flex-row">
-                                                    <button
-                                                        onClick={handleCopyArt}
-                                                        disabled={
-                                                            !campaign.image_url ||
-                                                            artStatus === "copying" ||
-                                                            artStatus === "saving"
-                                                        }
-                                                        className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-black/10 bg-white px-4 text-sm font-bold text-zinc-800 shadow-sm transition hover:bg-zinc-50 disabled:opacity-50"
-                                                    >
-                                                        {artStatus === "copied" ? (
-                                                            <>
-                                                                <Check className="h-4 w-4 text-emerald-600" />{" "}
-                                                                Copiado!
-                                                            </>
-                                                        ) : artStatus === "copying" ? (
-                                                            <>
-                                                                <ImageIcon className="h-4 w-4 animate-pulse" />{" "}
-                                                                Copiando...
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <ImageIcon className="h-4 w-4" />{" "}
-                                                                Copiar Arte
-                                                            </>
-                                                        )}
-                                                    </button>
-
-                                                    <button
-                                                        onClick={handleDownloadArt}
-                                                        disabled={
-                                                            !campaign.image_url ||
-                                                            artStatus === "saving" ||
-                                                            artStatus === "copying"
-                                                        }
-                                                        className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-zinc-800 disabled:opacity-50"
-                                                    >
-                                                        {artStatus === "saving" ? (
-                                                            <>
-                                                                <Download className="h-4 w-4 animate-bounce" />{" "}
-                                                                Baixando...
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <Download className="h-4 w-4" />{" "}
-                                                                Baixar Arte
-                                                            </>
-                                                        )}
-                                                    </button>
-
-                                                    <button
-                                                        onClick={startEditing}
-                                                        className="inline-flex h-11 items-center justify-center rounded-xl border border-black/10 bg-white px-6 text-sm font-bold text-zinc-600 shadow-sm transition hover:bg-zinc-50"
-                                                    >
-                                                        Editar
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="rounded-3xl border border-dashed bg-zinc-50 p-12 text-center">
-                                            <Sparkles className="mx-auto mb-4 h-8 w-8 text-zinc-300" />
-                                            <p className="mb-6 text-sm text-zinc-500">
-                                                Essa campanha não tem arte pronta, você pode gerar uma arte nova agora!
-                                            </p>
-                                            <button
-                                                onClick={() => {
-                                                    startEditing();
-                                                    setActiveTab("art");
-                                                }}
-                                                className="rounded-xl bg-zinc-900 px-8 py-2.5 font-bold text-white transition-all hover:bg-black"
-                                            >
-                                                Gerar Conteúdo
-                                            </button>
-                                        </div>
-                                    ))}
-
-                                {activeTab === "video" &&
-                                    (hasReels ? (
-                                        <div className="space-y-6 rounded-3xl border border-black/5 bg-white p-6">
-                                            <Field label="Hook" value={campaign.reels_hook} />
-                                            <Field label="Roteiro" value={campaign.reels_script} />
-                                            <SalesFeedbackInline
-                                                contentType="reels"
-                                                campaignId={campaign.id}
+                    <div className="mx-auto max-w-3xl">
+                        {activeTab === "art" && (
+                            localPostStatus === "draft" || localPostStatus === "none" ? (
+                                <div className="rounded-3xl border border-dashed border-zinc-200 bg-zinc-50 p-12 text-center">
+                                    <Sparkles className="mx-auto mb-4 h-8 w-8 text-zinc-300" />
+                                    <p className="mb-6 text-sm text-zinc-500">
+                                        Essa campanha não tem arte pronta.
+                                    </p>
+                                    <button
+                                        onClick={() => {
+                                            setActiveTab("art");
+                                            startEditing();
+                                        }}
+                                        className="rounded-xl bg-zinc-900 px-8 py-2.5 font-bold text-white transition-all hover:bg-black"
+                                    >
+                                        Gerar Arte com IA
+                                    </button>
+                                </div>
+                            ) : localPostStatus === "ready" && previewData ? (
+                                <div className="space-y-6">
+                                  <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm sm:flex-row">
+                                      <div>
+                                          <h2 className="text-lg font-bold text-amber-900">
+                                              Revisão da Arte
+                                          </h2>
+                                          <p className="max-w-md text-sm text-amber-700/80">
+                                              Sua arte foi gerada, revise o conteúdo, ajuste se necessário e salve.
+                                          </p>
+                                      </div>
+                                      <button
+                                          onClick={() => { setActiveTab("art"); handleApproveReview(); }}
+                                          disabled={isSaving || isChildEditing}
+                                          className={`inline-flex h-10 w-full items-center justify-center rounded-xl px-6 text-sm font-bold text-white shadow-sm transition sm:w-auto ${
+                                              isChildEditing ? "bg-zinc-300 cursor-not-allowed shadow-none" : "bg-emerald-600 hover:bg-emerald-700"
+                                          }`}
+                                      >
+                                          {isSaving ? "Salvando..." : "Aprovar Arte"}
+                                      </button>
+                                  </div>
+                                  <PreviewReadyState
+                                      preview={previewData}
+                                      onUpdatePreview={(next) => { setPreviewData(next); setIsReviewDirty(true); }}
+                                      generate_post={hasArt}
+                                      generate_reels={false}
+                                      onRegenerateArt={() => generateText(true)}
+                                      onEditingChange={setIsChildEditing}
+                                  />
+                                  {!isChildEditing && isReviewDirty && (
+                                    <div className="flex items-center justify-end animate-in fade-in slide-in-from-bottom-2">
+                                        <button
+                                            onClick={handleSaveDraftReview}
+                                            disabled={isSaving}
+                                            className="inline-flex h-11 items-center justify-center rounded-xl border border-zinc-900 bg-white px-6 text-sm font-bold text-zinc-900 transition hover:bg-zinc-50"
+                                        >
+                                            {isSaving ? "Salvando..." : "Salvar rascunho"}
+                                        </button>
+                                    </div>
+                                  )}
+                                </div>
+                            ) : localPostStatus === "approved" ? (
+                                <div className="space-y-6">
+                                  <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm sm:flex-row">
+                                      <div>
+                                          <div className="flex items-center gap-2 mb-1">
+                                            <h2 className="text-lg font-bold text-emerald-900">
+                                                Arte Aprovada
+                                            </h2>
+                                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-200 text-emerald-800">
+                                                <Check className="h-3 w-3" />
+                                            </span>
+                                          </div>
+                                          <p className="max-w-md text-sm text-emerald-800/80">
+                                              Esta arte já foi aprovada e está pronta para uso em sua campanha.
+                                          </p>
+                                      </div>
+                                  </div>
+                                  <div className="space-y-6 rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm relative overflow-hidden">
+                                  <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+                                    <div className="aspect-[4/5] relative rounded-2xl overflow-hidden shadow-lg max-w-[400px] mx-auto border border-zinc-100">
+                                        {campaign.image_url ? (
+                                            <img
+                                                src={finalArtUrlClean}
+                                                alt="Arte"
+                                                className="w-full h-full object-cover"
                                             />
-
-                                            <div className="flex flex-col gap-3 pt-4 sm:flex-row">
-                                                <button
-                                                    onClick={handleCopyVideoScript}
-                                                    className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-black/10 bg-white px-4 text-sm font-bold text-zinc-800 shadow-sm transition hover:bg-zinc-50"
-                                                >
-                                                    {videoStatus === "copied" ? (
-                                                        <>
-                                                            <Check className="h-4 w-4 text-emerald-600" />{" "}
-                                                            Copiado!
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Copy className="h-4 w-4" />{" "}
-                                                            Copiar Roteiro
-                                                        </>
-                                                    )}
-                                                </button>
-
-                                                <button
-                                                    onClick={handlePrintVideo}
-                                                    className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-zinc-800"
-                                                >
-                                                    <Printer className="h-4 w-4" /> Imprimir Roteiro
-                                                </button>
-
-                                                <button
-                                                    onClick={startEditing}
-                                                    className="inline-flex h-11 items-center justify-center rounded-xl border border-black/10 bg-white px-6 text-sm font-bold text-zinc-600 shadow-sm transition hover:bg-zinc-50"
-                                                >
-                                                    Editar
-                                                </button>
+                                        ) : (
+                                            <div className="h-full grid place-items-center bg-zinc-50 text-zinc-300">
+                                                <ImageIcon className="h-8 w-8" />
                                             </div>
-                                        </div>
-                                    ) : (
-                                        <div className="rounded-3xl border border-dashed bg-zinc-50 p-12 text-center">
-                                            <Video className="mx-auto mb-4 h-8 w-8 text-zinc-300" />
-                                            <p className="mb-6 text-sm text-zinc-500">
-                                                Essa campanha não tem roteiro de vídeo pronto, você pode gerar um novo agora!
-                                            </p>
+                                        )}
+                                    </div>
+                                    <div className="space-y-3">
+                                        <Field label="Legenda" value={campaign.ai_caption} />
+                                        <Field
+                                            label="Hashtags"
+                                            value={campaign.ai_hashtags}
+                                        />
+                                        <SalesFeedbackInline
+                                            contentType="campaign"
+                                            campaignId={campaign.id}
+                                        />
+                                        <div className="flex flex-col gap-3 pt-4 sm:flex-row">
+                                            <button
+                                                onClick={handleCopyArt}
+                                                disabled={
+                                                    !campaign.image_url ||
+                                                    artStatus === "copying" ||
+                                                    artStatus === "saving"
+                                                }
+                                                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-black/10 bg-white px-4 text-sm font-bold text-zinc-800 shadow-sm transition hover:bg-zinc-50 disabled:opacity-50"
+                                            >
+                                                {artStatus === "copied" ? (
+                                                    <><Check className="h-4 w-4 text-emerald-600" /> Copiado!</>
+                                                ) : artStatus === "copying" ? (
+                                                    <><ImageIcon className="h-4 w-4 animate-pulse" /> Copiando...</>
+                                                ) : (
+                                                    <><ImageIcon className="h-4 w-4" /> Copiar Arte</>
+                                                )}
+                                            </button>
+                                            <button
+                                                onClick={handleDownloadArt}
+                                                disabled={
+                                                    !campaign.image_url ||
+                                                    artStatus === "saving" ||
+                                                    artStatus === "copying"
+                                                }
+                                                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-zinc-800 disabled:opacity-50"
+                                            >
+                                                {artStatus === "saving" ? (
+                                                    <><Download className="h-4 w-4 animate-bounce" /> Baixando...</>
+                                                ) : (
+                                                    <><Download className="h-4 w-4" /> Baixar Arte</>
+                                                )}
+                                            </button>
                                             <button
                                                 onClick={() => {
-                                                    startEditing();
-                                                    setActiveTab("video");
+                                                    setActiveTab("art");
+                                                    startEditing(true);
                                                 }}
-                                                className="rounded-xl bg-zinc-900 px-8 py-2.5 font-bold text-white transition-all hover:bg-black"
+                                                className="inline-flex h-11 items-center justify-center rounded-xl border border-black/10 bg-white px-6 text-sm font-bold text-zinc-600 shadow-sm transition hover:bg-zinc-50"
                                             >
-                                                Gerar Roteiro
+                                                Regerar
                                             </button>
                                         </div>
-                                    ))}
+                                    </div>
+                                </div>
+                                </div>
+                            ) : null
+                        )}
+
+                        {activeTab === "video" && (
+                            localReelsStatus === "draft" || localReelsStatus === "none" ? (
+                                <div className="rounded-3xl border border-dashed border-zinc-200 bg-zinc-50 p-12 text-center">
+                                    <Video className="mx-auto mb-4 h-8 w-8 text-zinc-300" />
+                                    <p className="mb-6 text-sm text-zinc-500">
+                                        Essa campanha não tem roteiro de vídeo pronto.
+                                    </p>
+                                    <button
+                                        onClick={() => {
+                                            setActiveTab("video");
+                                            startEditing(true);
+                                        }}
+                                        className="rounded-xl bg-zinc-900 px-8 py-2.5 font-bold text-white transition-all hover:bg-black"
+                                    >
+                                        Gerar Roteiro de Vídeo
+                                    </button>
+                                </div>
+                            ) : localReelsStatus === "ready" && previewData ? (
+                                <div className="space-y-6">
+                                  <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm sm:flex-row">
+                                      <div>
+                                          <h2 className="text-lg font-bold text-amber-900">
+                                              Revisão do Vídeo
+                                          </h2>
+                                          <p className="max-w-md text-sm text-amber-700/80">
+                                              Seu roteiro foi gerado, revise o conteúdo, altere o que precisar e salve.
+                                          </p>
+                                      </div>
+                                      <button
+                                          onClick={() => { setActiveTab("video"); handleApproveReview(); }}
+                                          disabled={isSaving || isChildEditing}
+                                          className={`inline-flex h-10 w-full items-center justify-center rounded-xl px-6 text-sm font-bold text-white shadow-sm transition sm:w-auto ${
+                                              isChildEditing ? "bg-zinc-300 cursor-not-allowed shadow-none" : "bg-emerald-600 hover:bg-emerald-700"
+                                          }`}
+                                      >
+                                          {isSaving ? "Salvando..." : "Aprovar Vídeo"}
+                                      </button>
+                                  </div>
+                                  <PreviewReadyState
+                                      preview={previewData}
+                                      onUpdatePreview={(next) => { setPreviewData(next); setIsReviewDirty(true); }}
+                                      generate_post={false}
+                                      generate_reels={hasVideo}
+                                      onRegenerateReels={() => generateReels(true)}
+                                      onEditingChange={setIsChildEditing}
+                                  />
+                                  {!isChildEditing && isReviewDirty && (
+                                    <div className="flex items-center justify-end animate-in fade-in slide-in-from-bottom-2">
+                                        <button
+                                            onClick={handleSaveDraftReview}
+                                            disabled={isSaving}
+                                            className="inline-flex h-11 items-center justify-center rounded-xl border border-zinc-900 bg-white px-6 text-sm font-bold text-zinc-900 transition hover:bg-zinc-50"
+                                        >
+                                            {isSaving ? "Salvando..." : "Salvar rascunho"}
+                                        </button>
+                                    </div>
+                                  )}
+                                </div>
+                            ) : localReelsStatus === "approved" ? (
+                                <div className="space-y-6">
+                                  <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm sm:flex-row">
+                                      <div>
+                                          <div className="flex items-center gap-2 mb-1">
+                                            <h2 className="text-lg font-bold text-emerald-900">
+                                                Roteiro Aprovado
+                                            </h2>
+                                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-200 text-emerald-800">
+                                                <Check className="h-3 w-3" />
+                                            </span>
+                                          </div>
+                                          <p className="max-w-md text-sm text-emerald-800/80">
+                                              Este roteiro de vídeo já foi aprovado e está pronto para gravação.
+                                          </p>
+                                      </div>
+                                  </div>
+                                  <div className="space-y-6 rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm relative overflow-hidden">
+                                  <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+                                    <Field label="Hook" value={campaign.reels_hook} />
+                                    <Field label="Roteiro" value={campaign.reels_script} />
+                                    <SalesFeedbackInline
+                                        contentType="reels"
+                                        campaignId={campaign.id}
+                                    />
+                                    <div className="flex flex-col gap-3 pt-4 sm:flex-row">
+                                        <button
+                                            onClick={handleCopyVideoScript}
+                                            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-black/10 bg-white px-4 text-sm font-bold text-zinc-800 shadow-sm transition hover:bg-zinc-50"
+                                        >
+                                            {videoStatus === "copied" ? (
+                                                <><Check className="h-4 w-4 text-emerald-600" /> Copiado!</>
+                                            ) : (
+                                                <><Copy className="h-4 w-4" /> Copiar Roteiro</>
+                                            )}
+                                        </button>
+                                        <button
+                                            onClick={handlePrintVideo}
+                                            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-zinc-800"
+                                        >
+                                            <Printer className="h-4 w-4" /> Imprimir
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setActiveTab("video");
+                                                startEditing(true);
+                                            }}
+                                            className="inline-flex h-11 items-center justify-center rounded-xl border border-black/10 bg-white px-6 text-sm font-bold text-zinc-600 shadow-sm transition hover:bg-zinc-50"
+                                        >
+                                            Regerar
+                                        </button>
+                                    </div>
+                                </div>
+                                </div>
+                            ) : null
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {pendingSaveData && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-900/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-3xl p-6 shadow-xl max-w-md w-full">
+                        <h3 className="text-xl font-bold text-zinc-900 mb-2">Atenção!</h3>
+                        <p className="text-sm text-zinc-500 mb-6">
+                            Você alterou informações da campanha que já possui conteúdos gerados. 
+                            Deseja apenas salvar as configurações ou regerar todos os conteúdos (Arte/Vídeo) usando os novos dados?
+                        </p>
+                        <div className="flex flex-col gap-3">
+                            <button 
+                                onClick={() => executeSaveBaseFields(pendingSaveData, true)}
+                                disabled={isSaving || loadingText || loadingReels}
+                                className="w-full flex justify-center items-center rounded-xl bg-zinc-900 px-4 py-3 text-sm font-bold text-white transition hover:bg-black disabled:opacity-50"
+                            >
+                                {(isSaving || loadingText || loadingReels) ? "Processando..." : "Salvar e Regerar"}
+                            </button>
+                            <div className="flex gap-3">
+                                <button 
+                                    onClick={() => setPendingSaveData(null)}
+                                    disabled={isSaving || loadingText || loadingReels}
+                                    className="flex-1 rounded-xl border border-black/10 bg-white px-4 py-3 text-sm font-bold text-zinc-600 transition hover:bg-zinc-50 disabled:opacity-50"
+                                >
+                                    Cancelar
+                                </button>
+                                <button 
+                                    onClick={() => executeSaveBaseFields(pendingSaveData, false)}
+                                    disabled={isSaving || loadingText || loadingReels}
+                                    className="flex-1 rounded-xl border border-black/10 bg-zinc-50 px-4 py-3 text-sm font-bold text-zinc-900 transition hover:bg-zinc-100 disabled:opacity-50"
+                                >
+                                    {(isSaving && !loadingText && !loadingReels) ? "Salvando..." : "Apenas Salvar"}
+                                </button>
                             </div>
-                        </>
-                    )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Custom Toast System */}
+            {successToast && (
+                <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[200] rounded-xl bg-emerald-600 px-6 py-3.5 shadow-xl animate-in fade-in slide-in-from-top-6 flex items-center gap-3">
+                    <Check className="h-4 w-4 text-white" />
+                    <span className="text-sm font-bold text-white tracking-wide">{successToast}</span>
                 </div>
             )}
         </div>

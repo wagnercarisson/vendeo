@@ -106,6 +106,7 @@ export async function generateShortVideoContent(
         reels_hashtags: normalized.hashtags,
         reels_generated_at: new Date().toISOString(),
         status: 'ready',
+        reels_status: 'ready',
       })
       .eq("id", campaign_id);
 

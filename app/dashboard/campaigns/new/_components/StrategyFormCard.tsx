@@ -5,12 +5,14 @@ type StrategyFormCardProps = {
     value: StrategyData;
     onChange: (next: StrategyData) => void;
     isDisabled?: boolean;
+    disableCampaignType?: boolean;
 };
 
 export function StrategyFormCard({
     value,
     onChange,
     isDisabled = false,
+    disableCampaignType = false,
 }: StrategyFormCardProps) {
     function updateField<K extends keyof StrategyData>(
         field: K,
@@ -126,7 +128,7 @@ export function StrategyFormCard({
                                 type="checkbox"
                                 checked={value.generate_post}
                                 onChange={(e) => updateField("generate_post", e.target.checked)}
-                                disabled={isDisabled || value.source === "ai"}
+                                disabled={isDisabled || disableCampaignType || value.source === "ai"}
                                 className="h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-600 disabled:opacity-50"
                             />
                             <div className="flex flex-col">
@@ -143,7 +145,7 @@ export function StrategyFormCard({
                                 type="checkbox"
                                 checked={value.generate_reels}
                                 onChange={(e) => updateField("generate_reels", e.target.checked)}
-                                disabled={isDisabled || value.source === "ai"}
+                                disabled={isDisabled || disableCampaignType || value.source === "ai"}
                                 className="h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-600 disabled:opacity-50"
                             />
                             <div className="flex flex-col">

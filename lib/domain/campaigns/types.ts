@@ -9,6 +9,10 @@ export interface Campaign {
   objective: string | null;
   product_positioning: string | null;
   status: string | null;
+  campaign_type: "post" | "reels" | "both" | null;
+  content_type: "product" | "service" | "info" | null;
+  post_status: "none" | "draft" | "ready" | "approved" | null;
+  reels_status: "none" | "draft" | "ready" | "approved" | null;
 
   origin: "manual" | "plan";
   weekly_plan_item_id: string | null;

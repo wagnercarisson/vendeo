@@ -120,7 +120,9 @@ reels_caption
 reels_cta
 reels_hashtags
 
+campaign_type
 content_type
+~~type (renomeado para content_type via Migration 015)~~
 status
 
 ai_generated_at
@@ -181,7 +183,7 @@ Cada item pode gerar ou vincular uma campanha.
 ## 2.1 Especificação de Intento (Persistência)
 Adicionalmente ao status, a campanha armazena seu formato pretendido:
 
-*   **`content_type`**: Define se a campanha foi concebida como `post`, `reels` ou `both`. Este campo é preenchido na criação (Wizard ou Plano) e serve como a "Fonte de Verdade" para o comportamento inicial da interface, especialmente em rascunhos sem conteúdo.
+*   **`campaign_type`**: Define se a campanha foi concebida como `post`, `reels` ou `both`. Este campo é preenchido na criação (Wizard ou Plano) e serve como a "Fonte de Verdade" para o comportamento inicial da interface, especialmente em rascunhos sem conteúdo.
 
 --------------------------------------------------
 7. GENERATION FEEDBACK
@@ -193,7 +195,7 @@ Campos principais:
 
 id
 campaign_id
-content_type
+campaign_type
 
 vote
 created_at
@@ -201,7 +203,7 @@ created_at
 
 Exemplo:
 
-content_type = campaign
+campaign_type = campaign
 vote = yes
 
 Esse feedback ajuda a medir utilidade da geração.
@@ -253,7 +255,7 @@ Toda alteração no banco de dados deve seguir a regra:
 
 **Estados da Interface (UI States) NÃO devem ser persistidos no banco.**
 
-*   **Exceção Arquitetural: `content_type` na tabela `campaigns`**
+*   **Exceção Arquitetural: `campaign_type` na tabela `campaigns`**
     *   Este campo representa o **Intento / Especificação de Formato** da campanha (fixo: `post`, `reels`, `both`), e não um estado visual calculado (dinâmico).
     *   Ele é preenchido na criação (Wizard ou Plano) e serve como a "Fonte de Verdade" para o comportamento inicial da interface, especialmente em rascunhos sem conteúdo.
     *   Resolve a ambiguidade em rascunhos onde ainda não há conteúdo para derivar o estado, guiando a UI e as regras de negócio.

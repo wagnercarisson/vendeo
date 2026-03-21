@@ -34,7 +34,7 @@ A interface utiliza um modelo derivado:
 📌 Regra:
 Esses estados NÃO devem ser persistidos no banco.
 
-*Exceção Arquitetural*: O campo `content_type` na tabela `campaigns` representa o **Intento / Especificação de Formato** (fixo) e não o estado visual calculado (dinâmico). Ele resolve a ambiguidade em rascunhos onde ainda não há conteúdo para derivar o estado.
+*Exceção Arquitetural*: O campo `campaign_type` na tabela `campaigns` representa o **Intento / Especificação de Formato** (fixo) e não o estado visual calculado (dinâmico). Ele resolve a ambiguidade em rascunhos onde ainda não há conteúdo para derivar o estado.
 
 ---
 
@@ -67,6 +67,11 @@ A tela deve:
 
   * arte IA
   * vídeo IA
+
+📌 Regra de Abertura:
+Se a campanha possui `campaign_type` definido (ex: vindo de um Plano ou escolha prévia no Wizard), a UI deve:
+* Priorizar a aba correspondente (`post` → Arte | `reels` → Vídeo).
+* Se `both`, priorizar a aba Arte por padrão.
 
 📌 Regra:
 O usuário pode escolher gerar arte OU vídeo primeiro.
@@ -133,12 +138,14 @@ Deve:
 
 ---
 
-## 4.4 Regra de status
+## 4.4 Regras de Persistência e Status
 
 Após salvar:
 
-* se existir arte OU vídeo → `status = ready`
-* se não existir nada → `status = draft`
+* **Intento**: O campo `campaign_type` DEVE ser persistido para refletir a escolha do usuário (`post`, `reels` ou `both`), garantindo que o rascunho mantenha sua identidade ao ser reaberto.
+* **Status**:
+    * se existir arte OU vídeo → `status = ready`
+    * se não existir nada → `status = draft`
 
 ---
 

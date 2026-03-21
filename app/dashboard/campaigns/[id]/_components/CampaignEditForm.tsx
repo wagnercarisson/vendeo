@@ -18,6 +18,7 @@ export type CampaignSavePayload = {
     product_positioning: string;
     product_image_url: string;
     description?: string;
+    content_type: "product" | "service" | "info";
     reels_hook?: string;
     reels_script?: string;
     reels_caption?: string;
@@ -49,10 +50,12 @@ export function CampaignEditForm({
     onGenerateArt,
     isSaving,
     isGeneratingArt,
+    activeTab,
+    lockContext = false,
     lockStrategyFields = false,
 }: CampaignEditFormProps) {
     const [formData, setFormData] = useState<CampaignFormData>({
-        type: "product",
+        type: campaign.content_type || "product",
         product_name: campaign.product_name || "",
         price: campaign.price != null ? formatBRLMask(Math.round(campaign.price * 100).toString()) : "",
         description: campaign.body_text || "",
@@ -68,8 +71,8 @@ export function CampaignEditForm({
         product_positioning: campaign.product_positioning || "",
         reasoning: "",
         source: campaign.origin === "plan" ? "ai" : "manual",
-        generate_post: true,
-        generate_reels: false,
+        generate_post: activeTab === "video" ? false : true,
+        generate_reels: activeTab === "video" ? true : false,
     });
 
     // Estado inicial para detecção de "Dirty State" (Compara com o que veio do banco)
@@ -118,6 +121,7 @@ export function CampaignEditForm({
         product_positioning: strategyData.product_positioning,
         product_image_url: formData.image_url,
         description: formData.description,
+        content_type: formData.type,
     });
 
 
@@ -134,6 +138,7 @@ export function CampaignEditForm({
                     <StrategyFormCard
                         value={strategyData}
                         isDisabled={lockStrategyFields}
+                        disableCampaignType={true}
                         onChange={setStrategyData}
                     />
                 </MotionWrapper>
@@ -142,6 +147,7 @@ export function CampaignEditForm({
                     <ProductFormCard
                         value={formData}
                         onChange={setFormData}
+                        disableTypeSwitch={lockContext}
                     />
                 </MotionWrapper>
             </div>
@@ -165,7 +171,7 @@ export function CampaignEditForm({
                         >
                             <span className="relative z-10 flex items-center gap-2">
                                 {isGeneratingArt ? <Loader2 className="h-5 w-5 animate-spin" /> : "✨"}
-                                {isGeneratingArt ? "Gerando..." : "Gerar Campanha Completa"}
+                                {isGeneratingArt ? "Gerando..." : "Gerar Campanha"}
                             </span>
                         </button>
 

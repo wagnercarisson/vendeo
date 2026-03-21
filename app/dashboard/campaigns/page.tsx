@@ -303,8 +303,7 @@ export default function CampaignsPage() {
 
                       <button
                         onClick={() => {
-                          const isReady = c.status === "ready" || c.status === "approved" || selectors.hasAnyVisualAsset(c);
-                          const url = `/dashboard/campaigns/${c.id}${!isReady ? "?mode=edit" : ""}`;
+                          const url = `/dashboard/campaigns/${c.id}`;
                           router.push(url);
                         }}
                         className="flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 shadow-sm transition hover:bg-slate-50"
