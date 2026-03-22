@@ -7,6 +7,8 @@ import { MotionWrapper } from "@/app/dashboard/_components/MotionWrapper";
 import { format, parseISO, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+import { useRouter } from "next/navigation";
+
 interface WeeklyPlan {
   id: string;
   store_id: string;
@@ -16,6 +18,7 @@ interface WeeklyPlan {
 }
 
 export function PlansList({ onNewPlan }: { onNewPlan: () => void }) {
+  const router = useRouter();
   const [plans, setPlans] = useState<WeeklyPlan[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -185,9 +188,19 @@ export function PlansList({ onNewPlan }: { onNewPlan: () => void }) {
                            <ArrowRight className="h-4 w-4 text-emerald-500 transition-transform group-hover:translate-x-1" />
                         </div>
                         
-                        <a href={`/dashboard/plans/${plan.id}`} className="absolute inset-0" aria-label="Ver detalhes do plano">
-                          <span className="sr-only">Ver detalhes do plano</span>
-                        </a>
+                        {plan.status === "approved" ? (
+                          <a href={`/dashboard/plans/${plan.id}`} className="absolute inset-0" aria-label="Ver detalhes do plano">
+                            <span className="sr-only">Ver detalhes do plano</span>
+                          </a>
+                        ) : (
+                          <button 
+                            onClick={() => router.push(`/dashboard/plans?view=new&week_start=${plan.week_start}`)}
+                            className="absolute inset-0" 
+                            aria-label="Retomar planejamento"
+                          >
+                            <span className="sr-only">Retomar planejamento</span>
+                          </button>
+                        )}
                       </div>
                     </MotionWrapper>
                   );

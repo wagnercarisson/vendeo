@@ -12,9 +12,28 @@ Este documento define as regras oficiais de comportamento do fluxo de campanhas 
 
 Os status persistidos no banco são:
 
-* `draft` → campanha em construção (sem conteúdo aprovado)
-* `ready` → campanha com conteúdo gerado (arte e/ou vídeo)
-* `approved` → reservado para evolução futura
+* `draft`    → ~~campanha em construção (sem conteúdo aprovado)~~ Estado inicial. A campanha foi criada (manual ou via plano), mas não possui conteúdo gerado.
+* `ready`    → ~~campanha com conteúdo gerado (arte e/ou vídeo)~~ Conteúdo (arte e/ou vídeo) gerado pela IA. Aguardando revisão (Estado "Pendente" na UI).
+* `approved` → ~~reservado para evolução futura~~ Conteúdo revisado e aprovado explicitamente pelo usuário. Pronto para postagem.
+
+---
+
+# 1.3 Regras de Navegação Inteligente (v1.1)
+
+O sistema diferencia a experiência de abertura baseado no status do plano:
+
+* **Plano Rascunho (`draft`)**:
+    * Ao abrir, o sistema direciona automaticamente para o **Passo 2 (Revisão da Estratégia)**.
+    * Objetivo: Permitir ajustes rápidos antes da geração final de componentes.
+* **Plano Aprovado (`approved`)**:
+    * Ao abrir, o sistema direciona para a **Página de Detalhes / Execução (Passo 3)**.
+    * Objetivo: Focar na execução das campanhas e acompanhamento de progresso.
+
+---
+
+⚠️ **Nova Regra de Hierarquia (v1.1):**
+Para campanhas com múltiplos assets (Both), o status global segue a regra do menor valor na escala:
+`draft` < `ready` < `approved`
 
 ⚠️ Importante:
 O banco NÃO representa diretamente o estado visual completo da campanha.
@@ -144,8 +163,9 @@ Após salvar:
 
 * **Intento**: O campo `campaign_type` DEVE ser persistido para refletir a escolha do usuário (`post`, `reels` ou `both`), garantindo que o rascunho mantenha sua identidade ao ser reaberto.
 * **Status**:
-    * se existir arte OU vídeo → `status = ready`
-    * se não existir nada → `status = draft`
+    * ~~se existir arte OU vídeo → `status = ready`~~
+    * ~~se não existir nada → `status = draft`~~
+    * **Calculado pela API (v1.1)**: Segue a hierarquia dos estados granulares (`post_status` e `reels_status`).
 
 ---
 
@@ -220,7 +240,17 @@ Garantir consistência entre planejamento estratégico e execução.
 
 ---
 
-## 7.3 Regra de normalização dos campos estratégicos
+## 7.3 Regras de Orquestração (v1.2)
+
+📌 **Bloqueio de Execução**:
+Campanhas vinculadas a planos só podem ser orquestradas (saída do estado de sugestão para criação de rascunho de campanha) se o Plano Semanal estiver com `status = approved`.
+
+📌 **Objetivo**:
+Garantir que o usuário validou a estratégia semanal antes de consumir créditos ou tempo na geração de componentes visuais individuais.
+
+---
+
+## 7.4 Regra de normalização dos campos estratégicos
 
 Os campos estratégicos oficiais da campanha são:
 

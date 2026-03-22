@@ -26,7 +26,13 @@ function getWeekStartMondayISO(today = new Date()) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-export function WizardShell() {
+export function WizardShell({ 
+  initialWeekStart,
+  initialPlanId 
+}: { 
+  initialWeekStart?: string;
+  initialPlanId?: string;
+}) {
   const router = useRouter();
   const [step, setStep] = useState<WizardStep>(1);
 
@@ -34,7 +40,7 @@ export function WizardShell() {
   const [loadingStores, setLoadingStores] = useState(true);
 
   const [storeId, setStoreId] = useState<string>("");
-  const [weekStart, setWeekStart] = useState<string>(getWeekStartMondayISO());
+  const [weekStart, setWeekStart] = useState<string>(initialWeekStart || getWeekStartMondayISO());
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
 
   const [loadingPlan, setLoadingPlan] = useState(false);
@@ -132,10 +138,16 @@ export function WizardShell() {
         if (data.plan && data.items && data.items.length > 0) {
           const dbDays = data.items.map((i) => i.day_of_week);
           setSelectedDays(Array.from(new Set(dbDays)).sort((a, b) => a - b));
+          
+          // Smart Step Selection: Se for rascunho e já tiver itens, pula para o Passo 2
+          if (data.plan.status === "draft") {
+            setStep(2);
+          }
         } else {
           setPlan(null);
           setItems([]);
           setCampaigns([]);
+          setStep(1); // Garante que volta ao passo 1 se não houver plano
         }
       }
     } catch (e) {

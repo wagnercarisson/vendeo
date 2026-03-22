@@ -137,7 +137,26 @@ export function NewCampaignShell() {
                 generate_reels: planFlags.generate_reels,
             }));
         }
-    }, [searchParams]);
+
+        // Safety check for draft plans
+        if (planItemIdParam) {
+            checkPlanStatus(planItemIdParam);
+        }
+
+        async function checkPlanStatus(id: string) {
+            const { data } = await supabase
+                .from("weekly_plan_items")
+                .select("weekly_plans(status, week_start)")
+                .eq("id", id)
+                .single();
+            
+            const plan = data?.weekly_plans as any;
+            if (plan?.status === "draft") {
+                alert("Este plano ainda é um rascunho. Por favor, revise e aprove o plano antes de orquestrar campanhas.");
+                router.replace(`/dashboard/plans?view=new&week_start=${plan.week_start}`);
+            }
+        }
+    }, [searchParams, router]);
 
     function handleCancel() {
         const confirmed = confirm(

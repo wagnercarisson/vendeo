@@ -43,6 +43,13 @@ export default function PlanDetailsPage() {
         throw new Error("Plano não encontrado.");
       }
 
+      if (planData.status === "draft") {
+        router.replace(
+          `/dashboard/plans?view=new&week_start=${planData.week_start}`
+        );
+        return;
+      }
+
       setPlan(planData as Plan);
 
       const { data: itemsData, error: itemsErr } = await supabase

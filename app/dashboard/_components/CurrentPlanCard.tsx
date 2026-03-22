@@ -103,7 +103,11 @@ export function CurrentPlanCard({
           </div>
 
           <Link
-            href={`/dashboard/plans/${plan.id}`}
+            href={
+              plan.status === "draft"
+                ? `/dashboard/plans?view=new&week_start=${plan.week_start}`
+                : `/dashboard/plans/${plan.id}`
+            }
             className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-zinc-900 border border-transparent px-4 py-2 text-sm font-semibold text-white hover:bg-black shadow-premium transition"
           >
             Abrir plano <span className="ml-1">→</span>

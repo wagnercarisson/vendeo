@@ -237,6 +237,9 @@ export async function ContentCalendar({ storeId }: { storeId: string }) {
                         textHoverColor = "group-hover/link:text-orange-700";
                         titleTooltip = "Pronta. Aguardando a data de postagem.";
                     }
+                } else {
+                    // Fallback para campanhas em rascunho (com ID)
+                    titleTooltip = "Em rascunho. Falta finalizar.";
                 }
                 ctaLink = `/dashboard/campaigns/${matchingItem.campaign_id}`;
             }

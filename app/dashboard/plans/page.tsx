@@ -16,6 +16,8 @@ export default function PlansPage() {
     }
   }, [searchParams]);
 
+  const weekStartParam = searchParams.get("week_start") || undefined;
+
   if (view === "new") {
     return (
       <div className="space-y-4">
@@ -25,7 +27,7 @@ export default function PlansPage() {
         >
           &larr; Voltar para Meus Planos
         </button>
-        <WizardShell />
+        <WizardShell initialWeekStart={weekStartParam} />
       </div>
     );
   }
