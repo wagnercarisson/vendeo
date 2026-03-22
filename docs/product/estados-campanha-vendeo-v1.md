@@ -15,6 +15,12 @@ Estes são os valores reais salvos na coluna `status` da tabela `campaigns`.
     *   *Nota: Este estado substitui o termo antigo "generated".*
 *   **`approved`**: O usuário revisou e aprovou o conteúdo final. A campanha está pronta para uso.
 
+### 2.2 Escala de Criação
+Para fins de consolidação do status global da campanha quando há múltiplos assets (Arte e Vídeo), seguimos a hierarquia:
+**`draft` < `ready` < `approved`**
+
+*Se os componentes tiverem status divergentes, o status da campanha no banco refletirá sempre o valor mais baixo nesta escala.*
+
 ### 2.1 Persistência de Formato (`campaign_type`)
 Além do status, salvamos o formato pretendido:
 *   `post`, `reels` ou `both`.
@@ -31,8 +37,20 @@ São estados "calculados" pela lógica do frontend (`lib/domain/campaigns/logic.
     *   Representa campanhas que já possuem conteúdo gerado (status `ready` ou assets presentes), mas que ainda não foram finalizadas pelo usuário. 
     *   **Cor na UI**: Âmbar/Amarelo.
 *   **"Aprovada" / "Arte pronta" / "Vídeo pronto" (interno: `approved`)**
-    *   Representa campanhas que o usuário validou explicitamente.
+    *   Representa assets que o usuário validou explicitamente.
     *   **Cor na UI**: Verde.
+
+## 3.1 Agrupamento Inteligente de Badges
+Na listagem de campanhas e dashboard, os badges se comportam de forma dinâmica para otimizar o espaço e a clareza:
+
+1.  **Agrupamento por Convergência**:
+    *   Se **Arte** E **Vídeo** = `draft` → Badge único: `Rascunho`
+    *   Se **Arte** E **Vídeo** = `ready` → Badge único: `Aguardando aprovação`
+    *   Se **Arte** E **Vídeo** = `approved` → Badge único: `Campanha completa`
+2.  **Desacoplamento por Divergência**:
+    *   Se os estados forem diferentes, exibimos badges individuais para cada asset: `[Arte Pronta] [Vídeo Pendente]`.
+3.  **Padronização de Texto**:
+    *   Rótulos não utilizam dois pontos (`:`). Ex: Usar `Vídeo pronto` em vez de `Vídeo: pronto`.
 
 ---
 
@@ -59,4 +77,4 @@ Estados efêmeros que indicam processamento em tempo real.
 ## 6. Princípios de Decisão
 1.  **Prioridade da UI**: O rótulo em tela deve sempre priorizar a clareza sobre o termo técnico.
 2.  **Transparência**: O sistema deve deixar claro se o conteúdo atual veio da IA (Aguardando aprovação) ou se já foi validado pelo humano (Aprovada).
-3.  **Consistência**: Toda nova funcionalidade deve respeitar o mapeamento entre o status do banco e o rótulo de UI definido neste documento.
+3.  **Consistência**: Toda nova funcionalidade deve respeitar o mapeamento entre o status do banco e o rótulo de UI definido neste documento.

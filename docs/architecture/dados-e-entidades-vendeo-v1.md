@@ -109,6 +109,7 @@ product_positioning
 
 details
 image_url
+product_image_url
 
 ai_caption
 ai_text
@@ -149,7 +150,9 @@ Campos principais:
 
 id
 store_id
-plan_name
+week_start
+status (draft, approved)
+strategy (JSONB)
 created_at
 
 Um plano organiza campanhas dentro de uma estratégia semanal.
@@ -164,8 +167,14 @@ Representa um item específico dentro de um plano semanal.
 Campos principais:
 
 id
-weekly_plan_id
+plan_id
 campaign_id
+status (draft, ready, approved)
+day_of_week
+content_type
+theme
+recommended_time
+brief (JSONB)
 created_at
 
 
@@ -177,6 +186,13 @@ sexta → post
 
 
 Cada item pode gerar ou vincular uma campanha.
+
+--------------------------------------------------
+### 6.1 Lógica de Métricas de Progresso (Dashboard)
+O acompanhamento do plano ativo no painel se baseia em:
+*   **Total de Itens**: Contagem total de entradas em `weekly_plan_items` vinculadas ao plano da semana.
+*   **Prontas**: Contagem de campanhas vinculadas (`campaign_id` não nulo) que possuem o status global `approved`.
+*   O cálculo é feito em tempo real para refletir a execução do cronograma.
 
 ---
 
