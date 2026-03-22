@@ -143,15 +143,33 @@ export function PlansList({ onNewPlan }: { onNewPlan: () => void }) {
                   
                   return (
                     <MotionWrapper key={plan.id} delay={idx * 0.05}>
-                      <div className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:shadow-premium hover:border-emerald-200">
+                      <div className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border bg-white p-6 shadow-sm transition-all hover:shadow-premium ${
+                        plan.status === "approved" 
+                          ? "border-slate-200 hover:border-emerald-200" 
+                          : "border-amber-200 bg-amber-50/5 hover:border-amber-400"
+                      }`}>
                         <div>
                           <div className="mb-4 flex items-center justify-between">
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
                               <CalendarDays className="h-5 w-5" />
                             </div>
-                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                              {format(parseISO(plan.created_at), "dd MMM")}
-                            </span>
+                            
+                            <div className="flex items-center gap-2">
+                              {plan.status === "approved" ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-800">
+                                  <span className="h-1 w-1 rounded-full bg-emerald-500" />
+                                  Aprovado
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-800">
+                                  <span className="h-1 w-1 rounded-full bg-amber-500 animate-pulse" />
+                                  Rascunho
+                                </span>
+                              )}
+                              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                {format(parseISO(plan.created_at), "dd MMM")}
+                              </span>
+                            </div>
                           </div>
                           
                           <h3 className="mb-1 text-lg font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">

@@ -16,27 +16,37 @@ export async function PendingPlanItems({
 }) {
   const supabase = createSupabaseServerClient();
 
-  // Buscar o plano mais recente que está ativo ou gerado desta semana
-  const { data: currentPlan } = await supabase
-    .from("weekly_plans")
-    .select("id")
-    .eq("store_id", storeId)
-    .order("week_start", { ascending: false })
+  // Buscar o primeiro plano (qualquer data) que tenha itens pendentes
+  const { data: firstPlanWithPending } = await supabase
+    .from("weekly_plan_items")
+    .select("plan_id, weekly_plans(week_start)")
+    .is("campaign_id", null)
+    .order("id", { ascending: true }) // Garante ordem de criação/import
     .limit(1)
     .maybeSingle();
 
-  if (!currentPlan) return null;
+  if (!firstPlanWithPending) return null;
 
-  // Buscar itens pendentes deste plano (sem campaign_id)
+  const planId = firstPlanWithPending.plan_id;
+  const planWeekStart = (firstPlanWithPending.weekly_plans as any)?.week_start;
+
+  // Buscar itens pendentes deste plano
   const { data: pendingItems } = await supabase
     .from("weekly_plan_items")
     .select("id, day_of_week, theme, recommended_time, content_type, brief")
-    .eq("plan_id", currentPlan.id)
+    .eq("plan_id", planId)
     .is("campaign_id", null)
     .order("day_of_week", { ascending: true })
     .limit(3);
 
   if (!pendingItems || pendingItems.length === 0) return null;
+
+  function formatWeekLabel(dateStr: string) {
+    if (!dateStr) return "";
+    const [y, m, d] = dateStr.split("-").map(Number);
+    const date = new Date(y, (m ?? 1) - 1, d ?? 1);
+    return `Semana de ${date.toLocaleDateString("pt-BR", { day: '2-digit', month: '2-digit' })}`;
+  }
 
   const mapDays: Record<number, string> = {
     1: "Seg", 2: "Ter", 3: "Qua", 4: "Qui",
@@ -49,8 +59,13 @@ export async function PendingPlanItems({
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-600">
           <CalendarClock className="h-5 w-5" />
         </div>
-        <div>
-          <div className="text-lg font-bold text-slate-900 leading-tight">Sugestões Pendentes</div>
+        <div className="flex-1">
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-lg font-bold text-slate-900 leading-tight">Sugestões Pendentes</div>
+            <div className="rounded-lg bg-orange-100/50 px-2 py-1 text-[10px] font-bold text-orange-700 uppercase tracking-tight">
+              {formatWeekLabel(planWeekStart)}
+            </div>
+          </div>
           <div className="mt-0.5 text-xs text-slate-600">
             Seu plano semanal tem campanhas aguardando para serem geradas.
           </div>
@@ -100,7 +115,7 @@ export async function PendingPlanItems({
 
       {pendingItems.length === 3 && (
         <div className="mt-4 text-center">
-          <Link href="/dashboard/plans" className="text-xs font-semibold text-orange-700 hover:underline">
+          <Link href={`/dashboard/plans/${planId}`} className="text-xs font-semibold text-orange-700 hover:underline">
             Ver todas as pendências no plano →
           </Link>
         </div>

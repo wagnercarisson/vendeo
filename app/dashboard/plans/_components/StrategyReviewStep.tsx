@@ -122,7 +122,7 @@ export function StrategyReviewStep({ strategyDraft, onStrategyChange, onNext, on
               disabled={isGenerating}
               className="flex items-center gap-2 rounded-xl bg-[#0B2E22] px-6 py-2.5 text-sm font-medium text-white shadow-premium transition hover:bg-[#0F3D2E] disabled:opacity-50"
             >
-              {isGenerating ? "Gerando Plano..." : "Aprovar e Gerar Componentes"}
+              {isGenerating ? "Gerando Plano..." : "Salvar e Gerar Componentes"}
               {!isGenerating && <span>→</span>}
             </button>
           </div>

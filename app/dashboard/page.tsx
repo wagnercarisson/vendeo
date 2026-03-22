@@ -113,14 +113,54 @@ export default async function DashboardPage() {
     .order("created_at", { ascending: false })
     .limit(5);
 
-  // Plano recente (para o card de planos recentes)
-  const { data: currentPlan } = await supabase
+  const currentMondayIso = getStartOfWeekBrazilISO();
+  const currentMonday = currentMondayIso.split("T")[0];
+  const nextMondayDate = new Date(currentMondayIso);
+  nextMondayDate.setDate(nextMondayDate.getDate() + 7);
+  const nextMonday = nextMondayDate.toISOString().split("T")[0];
+
+  // Plano ativo: Busca apenas plano de [Semana Atual] ou [Próxima Semana]
+  const { data: dashboardPlans } = await supabase
     .from("weekly_plans")
     .select("id,week_start,status,created_at")
     .eq("store_id", store.id)
-    .order("week_start", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .in("week_start", [currentMonday, nextMonday])
+    .order("week_start", { ascending: true }); // Atual antes da próxima
+
+  const planForCard = dashboardPlans?.find(p => p.week_start === currentMonday) 
+                   || dashboardPlans?.find(p => p.week_start === nextMonday)
+                   || null;
+
+  // Buscar progresso do plano ativo (Refatorado - Etapa 16)
+  let planStats = { total: 0, approved: 0 };
+  if (planForCard) {
+    const { data: items } = await supabase
+      .from("weekly_plan_items")
+      .select("id, campaign_id")
+      .eq("plan_id", planForCard.id);
+
+    if (items && items.length > 0) {
+      const campaignIds = items
+        .map((it) => it.campaign_id)
+        .filter((id): id is string => !!id);
+
+      let approvedCount = 0;
+      if (campaignIds.length > 0) {
+        const { data: approvedCampaigns } = await supabase
+          .from("campaigns")
+          .select("id")
+          .in("id", campaignIds)
+          .eq("status", "approved");
+        
+        approvedCount = approvedCampaigns?.length || 0;
+      }
+
+      planStats = {
+        total: items.length,
+        approved: approvedCount,
+      };
+    }
+  }
 
   // =========================
   // MÉTRICAS (Evolução real)
@@ -209,7 +249,7 @@ export default async function DashboardPage() {
   ]);
 
   const hasCampaigns = (campaigns?.length ?? 0) > 0;
-  const hasPlan = !!currentPlan?.id;
+  const hasPlan = !!planForCard?.id;
   const greeting = getGreetingBrazil();
 
   return (
@@ -269,7 +309,8 @@ export default async function DashboardPage() {
               <CurrentPlanCard
                 title="Plano ativo"
                 viewAllLabel="Visualizar todos"
-                plan={currentPlan ?? null}
+                plan={planForCard ?? null}
+                stats={planStats}
               />
               
               <Suspense fallback={<ActivityFeedSkeleton />}>

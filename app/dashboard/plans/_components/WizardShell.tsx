@@ -9,6 +9,7 @@ import { StrategyReviewStep } from "./StrategyReviewStep";
 import { ExecutionStep } from "./ExecutionStep";
 import { PlansSkeleton } from "./PlansSkeleton";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 // Functions reused from page
@@ -26,6 +27,7 @@ function getWeekStartMondayISO(today = new Date()) {
 }
 
 export function WizardShell() {
+  const router = useRouter();
   const [step, setStep] = useState<WizardStep>(1);
 
   const [stores, setStores] = useState<Store[]>([]);
@@ -266,6 +268,10 @@ export function WizardShell() {
     }
   }
 
+  function handleSaveAndExit() {
+    router.push("/dashboard/plans");
+  }
+
   if (loadingStores) {
     return <PlansSkeleton />;
   }
@@ -341,7 +347,9 @@ export function WizardShell() {
           items={items}
           campaignsById={campaignsById}
           onApprovePlan={handleApprovePlan}
+          onSaveAndExit={handleSaveAndExit}
           approvingPlan={approvingPlan}
+          planStatus={plan?.status}
         />
       )}
     </main>

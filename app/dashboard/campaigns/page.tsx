@@ -206,28 +206,7 @@ export default function CampaignsPage() {
               ? format(new Date(c.created_at), "d MMM yyyy", { locale: ptBR })
               : "";
 
-            const status = selectors.getCampaignListStatus(c);
-            const statusConfig = {
-              approved: {
-                label: selectors.getCampaignStatusLine(c),
-                classes: "bg-emerald-50 text-emerald-700 border-emerald-100",
-                icon: <CheckCircle2 className="h-3.5 w-3.5" />,
-              },
-              pending: {
-                label: "Aguardando aprovação",
-                classes: "bg-amber-50 text-amber-700 border-amber-100",
-                icon: <FileText className="h-3.5 w-3.5" />,
-              },
-              none: {
-                label: "Sem conteúdo",
-                classes: "bg-zinc-50 text-zinc-500 border-zinc-100",
-                icon: <Sparkles className="h-3.5 w-3.5" />,
-              },
-            }[status as "approved" | "pending" | "none"] || {
-              label: "Status desconhecido",
-              classes: "bg-zinc-50 text-zinc-500 border-zinc-100",
-              icon: <Sparkles className="h-3.5 w-3.5" />,
-            };
+            const displayStatuses = selectors.getCampaignDisplayStatuses(c);
 
             return (
               <div
@@ -271,18 +250,40 @@ export default function CampaignsPage() {
                   </div>
 
                   <div className="mt-auto flex items-center justify-between gap-4 border-t border-slate-50 pt-4">
-                    <div
-                      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${statusConfig.classes}`}
-                    >
-                      {statusConfig.icon}
-                      {statusConfig.label}
+                    <div className="flex flex-wrap gap-2">
+                      {displayStatuses.map((ds, idx) => {
+                        const isApproved = ds.variant === "approved";
+                        const isPending = ds.variant === "pending";
+                        
+                        return (
+                          <div
+                            key={idx}
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                              isApproved 
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-100" 
+                                : isPending 
+                                  ? "bg-amber-50 text-amber-700 border-amber-100"
+                                  : "bg-zinc-50 text-zinc-500 border-zinc-100"
+                            }`}
+                          >
+                            {isApproved ? (
+                              <CheckCircle2 className="h-3 w-3" />
+                            ) : isPending ? (
+                              <FileText className="h-3 w-3" />
+                            ) : (
+                              <Sparkles className="h-3 w-3" />
+                            )}
+                            {ds.label}
+                          </div>
+                        );
+                      })}
                     </div>
 
                     <div className="flex flex-none items-center gap-2">
-                      {hasArt && c.status === "approved" && (
+                      {c.post_status === "approved" && (
                         <button
                           onClick={() => setSelectedPostCampaign(c)}
-                          className="flex h-9 items-center gap-2 rounded-lg bg-zinc-900 px-4 text-xs font-bold text-white shadow-sm transition hover:bg-zinc-800"
+                          className="flex h-9 items-center gap-2 rounded-xl bg-zinc-900 px-4 text-xs font-bold text-white shadow-sm transition hover:bg-zinc-800"
                           type="button"
                         >
                           <Eye className="h-4 w-4 text-emerald-400" />
@@ -290,10 +291,10 @@ export default function CampaignsPage() {
                         </button>
                       )}
 
-                      {hasVideo && c.status === "approved" && (
+                      {c.reels_status === "approved" && (
                         <button
                           onClick={() => setSelectedReelsCampaign(c)}
-                          className="flex h-9 items-center gap-2 rounded-lg bg-zinc-900 px-4 text-xs font-bold text-white shadow-sm transition hover:bg-zinc-800"
+                          className="flex h-9 items-center gap-2 rounded-xl bg-zinc-900 px-4 text-xs font-bold text-white shadow-sm transition hover:bg-zinc-800"
                           type="button"
                         >
                           <Eye className="h-4 w-4 text-indigo-400" />

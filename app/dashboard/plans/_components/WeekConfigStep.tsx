@@ -45,14 +45,18 @@ export function WeekConfigStep({
     const jsDay = d.getDay();
     const diff = (jsDay + 6) % 7;
     
-    // Dia da semana 1 (Seg) a 7 (Dom)
     const dayId = diff + 1;
     
     const monday = new Date(d);
     monday.setDate(d.getDate() - diff);
     
+    // Format YYYY-MM-DD in local time
+    const y = monday.getFullYear();
+    const m = String(monday.getMonth() + 1).padStart(2, '0');
+    const day = String(monday.getDate()).padStart(2, '0');
+    
     return {
-      todayMondayISO: monday.toISOString().split("T")[0],
+      todayMondayISO: `${y}-${m}-${day}`,
       todayDayId: dayId
     };
   }, []);

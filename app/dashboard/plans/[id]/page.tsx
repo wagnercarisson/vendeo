@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Plan, WeeklyPlanItem, Campaign } from "../_components/types";
 import { ExecutionStep } from "../_components/ExecutionStep";
@@ -10,6 +10,7 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 
 export default function PlanDetailsPage() {
   const params = useParams();
+  const router = useRouter();
   const planId = params.id as string;
 
   const [loading, setLoading] = useState(true);
@@ -100,6 +101,10 @@ export default function PlanDetailsPage() {
 
 
 
+  function handleSaveAndExit() {
+    router.push("/dashboard/plans");
+  }
+
   async function handleApprovePlan() {
     if (!plan) return;
 
@@ -169,7 +174,9 @@ export default function PlanDetailsPage() {
         items={items}
         campaignsById={campaignsById}
         onApprovePlan={handleApprovePlan}
+        onSaveAndExit={handleSaveAndExit}
         approvingPlan={approvingPlan}
+        planStatus={plan.status}
       />
     </main>
   );

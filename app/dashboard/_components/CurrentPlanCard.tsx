@@ -5,6 +5,12 @@ type Plan = {
   id: string;
   week_start: string; // date (YYYY-MM-DD)
   status: string | null;
+  [key: string]: any;
+};
+
+type Stats = {
+  total: number;
+  approved: number;
 };
 
 
@@ -17,10 +23,12 @@ function formatWeekStart(dateStr: string) {
 
 export function CurrentPlanCard({
   plan,
+  stats,
   title = "Planos recentes",
   viewAllLabel = "Visualizar todos",
 }: {
   plan: Plan | null;
+  stats?: Stats;
   title?: string;
   viewAllLabel?: string;
 }) {
@@ -33,9 +41,13 @@ export function CurrentPlanCard({
           <div className="text-lg font-semibold text-vendeo-text">{title}</div>
           <div className="mt-1 text-xs text-vendeo-muted">
             {plan ? (
-              <>
-                <span className="font-semibold text-vendeo-text">1</span> recente
-              </>
+              stats ? (
+                <span className="font-medium">
+                  {stats.approved} de {stats.total} campanhas prontas
+                </span>
+              ) : (
+                "Progresso da semana"
+              )
             ) : (
               "Gere um plano para organizar sua semana."
             )}
@@ -53,10 +65,10 @@ export function CurrentPlanCard({
       {!plan ? (
         <div className="mt-4 rounded-xl border border-dashed p-4 transition-all hover:shadow-md hover:-translate-y-[1px]">
           <div className="text-sm font-semibold text-vendeo-text">
-            Você ainda não gerou um plano
+            Nenhum plano para esta ou próxima semana
           </div>
           <p className="mt-1 text-sm text-vendeo-muted">
-            Gere sugestões prontas para cada dia da semana.
+            Que tal preparar um agora para organizar sua presença digital?
           </p>
 
           <Link
@@ -92,16 +104,16 @@ export function CurrentPlanCard({
 
           <Link
             href={`/dashboard/plans/${plan.id}`}
-            className="mt-4 inline-flex w-full items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold text-vendeo-text hover:bg-slate-50 transition"
+            className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-zinc-900 border border-transparent px-4 py-2 text-sm font-semibold text-white hover:bg-black shadow-premium transition"
           >
             Abrir plano <span className="ml-1">→</span>
           </Link>
 
           <Link
             href="/dashboard/plans?view=new"
-            className="mt-3 inline-flex text-sm text-vendeo-muted underline hover:text-vendeo-text"
+            className="mt-3 block text-center text-xs text-vendeo-muted underline hover:text-vendeo-text"
           >
-            Gerar outro
+            Gerar outro plano
           </Link>
         </div>
       )}

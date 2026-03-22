@@ -48,9 +48,11 @@ export function CampaignEditForm({
     onSave,
     onCancel,
     onGenerateArt,
+    onGenerateVideo,
     isSaving,
     isGeneratingArt,
-    activeTab,
+    isGeneratingVideo = false,
+    activeTab = "art",
     lockContext = false,
     lockStrategyFields = false,
 }: CampaignEditFormProps) {
@@ -161,17 +163,27 @@ export function CampaignEditForm({
                     <div className="mt-6 flex flex-col gap-4">
                         <button
                             type="button"
-                            onClick={() => onGenerateArt(getSubmissionData())}
-                            disabled={!canGenerate || isGeneratingArt || isSaving}
+                            onClick={() => {
+                                if (activeTab === "video" && onGenerateVideo) {
+                                    onGenerateVideo(getSubmissionData());
+                                } else {
+                                    onGenerateArt(getSubmissionData());
+                                }
+                            }}
+                            disabled={!canGenerate || isGeneratingArt || isGeneratingVideo || isSaving}
                             className={`relative flex h-14 items-center justify-center gap-3 overflow-hidden rounded-2xl px-8 font-bold text-white transition-all active:scale-95 shadow-lg shadow-emerald-200/50 ${
-                                !canGenerate || isGeneratingArt || isSaving
+                                !canGenerate || isGeneratingArt || isGeneratingVideo || isSaving
                                     ? "bg-zinc-300 cursor-not-allowed opacity-70"
                                     : "bg-emerald-600 hover:bg-emerald-700 hover:shadow-emerald-300/50"
                             }`}
                         >
                             <span className="relative z-10 flex items-center gap-2">
-                                {isGeneratingArt ? <Loader2 className="h-5 w-5 animate-spin" /> : "✨"}
-                                {isGeneratingArt ? "Gerando..." : "Gerar Campanha"}
+                                {(isGeneratingArt || isGeneratingVideo) ? <Loader2 className="h-5 w-5 animate-spin" /> : "✨"}
+                                {isGeneratingArt || isGeneratingVideo 
+                                    ? "Gerando..." 
+                                    : activeTab === "video" 
+                                        ? "Gerar Roteiro de Vídeo" 
+                                        : "Gerar Arte"}
                             </span>
                         </button>
 
@@ -179,9 +191,9 @@ export function CampaignEditForm({
                             <button
                                 onClick={onCancel}
                                 type="button"
-                                disabled={isSaving || isGeneratingArt}
+                                disabled={isSaving || isGeneratingArt || isGeneratingVideo}
                                 className={`h-11 px-6 rounded-xl border font-bold transition-all text-sm ${
-                                    isSaving || isGeneratingArt
+                                    isSaving || isGeneratingArt || isGeneratingVideo
                                         ? "border-zinc-100 text-zinc-300 cursor-not-allowed"
                                         : "border-zinc-200 text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700"
                                 }`}
@@ -190,9 +202,9 @@ export function CampaignEditForm({
                             </button>
                             <button
                                 type="submit"
-                                disabled={!isDirty || isSaving || isGeneratingArt}
+                                disabled={!isDirty || isSaving || isGeneratingArt || isGeneratingVideo}
                                 className={`h-11 rounded-xl px-6 font-bold transition-all text-sm border ${
-                                    !isDirty || isSaving || isGeneratingArt
+                                    !isDirty || isSaving || isGeneratingArt || isGeneratingVideo
                                         ? "border-zinc-100 bg-zinc-50 text-zinc-300 cursor-not-allowed"
                                         : "bg-zinc-900 text-white hover:bg-zinc-800 shadow-sm"
                                 }`}

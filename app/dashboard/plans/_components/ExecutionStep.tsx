@@ -20,7 +20,9 @@ type Props = {
   items: WeeklyPlanItem[];
   campaignsById: Record<string, CampaignSummary>;
   onApprovePlan: () => Promise<void>;
+  onSaveAndExit?: () => void;
   approvingPlan?: boolean;
+  planStatus?: string;
 };
 
 function getDayLabel(day: number) {
@@ -102,7 +104,9 @@ export function ExecutionStep({
   items,
   campaignsById,
   onApprovePlan,
+  onSaveAndExit,
   approvingPlan = false,
+  planStatus,
 }: Props) {
   const router = useRouter();
 
@@ -110,26 +114,67 @@ export function ExecutionStep({
     return [...items].sort((a, b) => a.day_of_week - b.day_of_week);
   }, [items]);
 
+  const isApproved = planStatus === "approved";
+
   return (
     <section className="space-y-6">
-      <div className="flex flex-col gap-3 rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-zinc-900">
-            Execução do Plano
+      <div 
+        className={`flex flex-col gap-4 rounded-3xl border p-6 shadow-sm md:flex-row md:items-center md:justify-between transition-colors ${
+          isApproved 
+            ? "border-emerald-200 bg-emerald-50/50" 
+            : "border-amber-200 bg-amber-50/50"
+        }`}
+      >
+        <div className="flex-1">
+          <h2 className={`text-xl font-bold flex items-center gap-2 ${
+            isApproved ? "text-emerald-900" : "text-amber-900"
+          }`}>
+            {isApproved ? (
+              <>
+                Plano Aprovado
+                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+              </>
+            ) : (
+              "Execução do Plano"
+            )}
           </h2>
-          <p className="mt-1 text-sm text-zinc-600">
-            Gere campanhas, acompanhe os itens e feche o plano quando tudo estiver pronto.
+          <p className={`mt-1 text-sm leading-relaxed ${
+            isApproved ? "text-emerald-700/80" : "text-amber-800/80"
+          }`}>
+            {isApproved 
+              ? "Este plano estratégico já foi aprovado. Suas campanhas agora estão vinculadas e prontas para ganhar o mundo."
+              : "Seu plano estratégico está pronto! Revise as ideias geradas e aprove o cronograma para iniciar a criação das campanhas."
+            }
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={onApprovePlan}
-          disabled={approvingPlan}
-          className="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {approvingPlan ? "Aprovando..." : "Aprovar Plano"}
-        </button>
+        {!isApproved && (
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <button
+              type="button"
+              onClick={onSaveAndExit}
+              className="inline-flex items-center justify-center rounded-2xl border border-zinc-200 bg-white px-6 py-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 active:scale-95"
+            >
+              Salvar e Sair
+            </button>
+
+            <button
+              type="button"
+              onClick={onApprovePlan}
+              disabled={approvingPlan}
+              className="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 hover:shadow-md active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {approvingPlan ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  Aprovando...
+                </span>
+              ) : (
+                "Aprovar Plano"
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="grid gap-4">

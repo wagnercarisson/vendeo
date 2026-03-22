@@ -101,7 +101,110 @@ export function getCampaignStatusLine(campaign: Campaign): string {
     return "Aprovada";
   }
   
-  if (status === "pending") return "Aguardando aprovação";
+  if (status === "pending") {
+    // Se global é pending mas algum status granular é ready, 
+    // podemos ser mais específicos se quisermos, mas por enquanto mantemos "Aguardando aprovação"
+    // para não quebrar a lógica legado se usada.
+    return "Aguardando aprovação";
+  }
   
   return "Sem conteúdo";
+}
+
+/**
+ * Calcula o status global da campanha seguindo a escala: draft < ready < approved.
+ */
+export function calculateGlobalStatus(
+  postStatus: string | null,
+  reelsStatus: string | null,
+  campaignType: string | null
+): "draft" | "ready" | "approved" {
+  const p = postStatus || "none";
+  const r = reelsStatus || "none";
+  const type = campaignType || "both";
+
+  const scores: Record<string, number> = {
+    none: 3, // none não "puxa" o status pra baixo se não for esperado
+    draft: 0,
+    ready: 1,
+    approved: 2,
+  };
+
+  const pScore = scores[p] ?? 0;
+  const rScore = scores[r] ?? 0;
+
+  if (type === "post") return p as any;
+  if (type === "reels") return r as any;
+
+  // Para 'both', pega o mínimo entre os dois
+  const minScore = Math.min(pScore, rScore);
+  
+  if (minScore === 0) return "draft";
+  if (minScore === 1) return "ready";
+  return "approved";
+}
+
+export interface DisplayBadge {
+  label: string;
+  variant: "approved" | "pending" | "none";
+}
+
+/**
+ * Retorna os badges a serem exibidos na listagem.
+ * Segue a lógica de "coalescência" (agrupamento) se os status forem iguais.
+ */
+export function getCampaignDisplayStatuses(campaign: Campaign): DisplayBadge[] {
+  const p = campaign.post_status || "none";
+  const r = campaign.reels_status || "none";
+  const type = campaign.campaign_type || "both";
+
+  const labels: Record<string, string> = {
+    draft: "Rascunho",
+    ready: "Aguardando aprovação",
+    approved: "Aprovado",
+  };
+
+  const getVariant = (s: string): DisplayBadge["variant"] => {
+    if (s === "approved") return "approved";
+    if (s === "ready" || s === "draft") return "pending";
+    return "none";
+  };
+
+  // Se for apenas um tipo, retorna apenas um badge
+  if (type === "post") {
+    if (p === "none") return [{ label: "Sem conteúdo", variant: "none" }];
+    return [{ label: p === "approved" ? "Arte pronta" : labels[p] || p, variant: getVariant(p) }];
+  }
+  if (type === "reels") {
+    if (r === "none") return [{ label: "Sem conteúdo", variant: "none" }];
+    return [{ label: r === "approved" ? "Vídeo pronto" : labels[r] || r, variant: getVariant(r) }];
+  }
+
+  // Se for 'both' ou nulo
+  if (p === r) {
+    if (p === "none") return [{ label: "Sem conteúdo", variant: "none" }];
+    if (p === "approved") return [{ label: "Campanha completa", variant: "approved" }];
+    return [{ label: labels[p] || p, variant: getVariant(p) }];
+  }
+
+  // Estados diferentes: badges individuais
+  const badges: DisplayBadge[] = [];
+  
+  if (p !== "none") {
+    badges.push({ 
+      label: p === "approved" ? "Arte pronta" : `Arte ${labels[p] || p}`, 
+      variant: getVariant(p) 
+    });
+  }
+  
+  if (r !== "none") {
+    badges.push({ 
+      label: r === "approved" ? "Vídeo pronto" : `Vídeo ${labels[r] || r}`, 
+      variant: getVariant(r) 
+    });
+  }
+
+  if (badges.length === 0) return [{ label: "Sem conteúdo", variant: "none" }];
+  
+  return badges;
 }

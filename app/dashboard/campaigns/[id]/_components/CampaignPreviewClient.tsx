@@ -25,6 +25,7 @@ import { CampaignPreviewData } from "../../new/_components/types";
 import { PreviewReadyState } from "../../new/_components/PreviewReadyState";
 import { renderCampaignArtToBlob } from "@/app/dashboard/campaigns/_components/renderCampaignArt";
 import { mapCampaignToPreviewData } from "@/lib/domain/campaigns/mapper";
+import { calculateGlobalStatus } from "@/lib/domain/campaigns/logic";
 
 export type Campaign = CampaignModel & {
     stores?: Store | null;
@@ -340,19 +341,20 @@ export function CampaignPreviewClient({
             const aiOutput = genData.output;
             const rawStore = campaign.stores;
 
-            setPreviewData({
-                image_url: overrides?.product_image_url || campaign.product_image_url || "",
+            setPreviewData((prev) => ({
+                ...prev,
+                image_url: overrides?.product_image_url || campaign.product_image_url || prev?.image_url || "",
                 headline:
                     aiOutput?.headline ||
                     overrides?.product_name ||
                     campaign.product_name ||
+                    prev?.headline ||
                     "",
-                body_text: aiOutput?.text || "",
-                cta: aiOutput?.cta || "",
-                caption: campaign.ai_caption || "",
-                hashtags: campaign.ai_hashtags || "",
-                price:
-                    overrides?.price !== undefined ? overrides.price : campaign.price,
+                body_text: aiOutput?.text || prev?.body_text || "",
+                cta: aiOutput?.cta || prev?.cta || "",
+                caption: aiOutput?.caption || prev?.caption || "",
+                hashtags: aiOutput?.hashtags || prev?.hashtags || "",
+                price: overrides?.price !== undefined ? overrides.price : campaign.price,
                 layout: "solid",
                 store: rawStore
                     ? {
@@ -364,8 +366,8 @@ export function CampaignPreviewClient({
                         secondary_color: rawStore.secondary_color,
                         logo_url: rawStore.logo_url,
                     }
-                    : undefined,
-            });
+                    : prev?.store,
+            }));
 
             setIsCloning(false);
             setActiveTab("art");
@@ -453,17 +455,35 @@ export function CampaignPreviewClient({
             };
 
             if (activeTab === "video") {
+                const newGlobalStatus = calculateGlobalStatus(
+                    localPostStatus,
+                    "approved",
+                    campaign.campaign_type
+                );
+
                 const { error: videoErr } = await supabase
                     .from("campaigns")
-                    .update(videoPayload)
+                    .update({
+                        ...videoPayload,
+                        status: newGlobalStatus
+                    })
                     .eq("id", campaign.id);
 
                 if (videoErr) throw videoErr;
                 setLocalReelsStatus("approved");
             } else {
+                const newGlobalStatus = calculateGlobalStatus(
+                    "approved",
+                    localReelsStatus,
+                    campaign.campaign_type
+                );
+
                 const { error: dbErr } = await supabase
                     .from("campaigns")
-                    .update(artData)
+                    .update({
+                        ...artData,
+                        status: newGlobalStatus
+                    })
                     .eq("id", campaign.id);
 
                 if (dbErr) throw dbErr;
@@ -570,26 +590,27 @@ export function CampaignPreviewClient({
             const genData = await res.json();
             const reels = genData.reels;
 
-            setPreviewData({
-                image_url: overrides?.product_image_url || campaign.product_image_url || "",
-                headline: overrides?.product_name || campaign.product_name || "",
-                price:
-                    overrides?.price !== undefined ? overrides.price : campaign.price,
-                reels_hook: campaign.reels_hook,
-                reels_script: campaign.reels_script,
-                reels_shotlist: reels.shotlist,
-                reels_on_screen_text: reels.on_screen_text,
-                reels_audio_suggestion: reels.audio_suggestion,
-                reels_duration_seconds: reels.duration_seconds,
-                reels_cta: reels.cta,
-                reels_hashtags: reels.hashtags,
+            setPreviewData((prev) => ({
+                ...prev,
+                image_url: overrides?.product_image_url || campaign.product_image_url || prev?.image_url || "",
+                headline: overrides?.product_name || campaign.product_name || prev?.headline || "",
+                price: overrides?.price !== undefined ? overrides.price : campaign.price,
+                reels_hook: reels.hook || "",
+                reels_script: reels.script || "",
+                reels_shotlist: reels.shotlist || [],
+                reels_on_screen_text: reels.on_screen_text || [],
+                reels_audio_suggestion: reels.audio_suggestion || "",
+                reels_duration_seconds: reels.duration_seconds || 30,
+                reels_caption: reels.caption || "",
+                reels_cta: reels.cta || "",
+                reels_hashtags: reels.hashtags || "",
                 store: campaign.stores
                     ? {
                         name: campaign.stores.name,
                         primary_color: campaign.stores.primary_color,
                     }
-                    : undefined,
-            });
+                    : prev?.store,
+            }));
 
             setIsCloning(false);
             setIsEditingBase(false);
