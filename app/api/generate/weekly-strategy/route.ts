@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { WeeklyStrategyRequestSchema } from "@/lib/domain/weekly-plans/schemas";
 import { generateWeeklyStrategy } from "@/lib/domain/weekly-plans/strategy";
+import { upsertWeeklyPlanDraft } from "@/lib/domain/weekly-plans/service";
 import { getUserStoreIdOrThrow } from "@/lib/store/getUserStoreId";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
@@ -101,6 +102,26 @@ export async function POST(req: Request) {
         { ok: false, requestId, error: result.error },
         { status: result.status ?? 500 }
       );
+    }
+
+    if (result.ok === true && body.data.week_start) {
+      try {
+        const plan = await upsertWeeklyPlanDraft({
+          storeId: body.data.store_id,
+          weekStart: body.data.week_start,
+          strategyItems: result.strategyItems,
+        });
+        
+        return NextResponse.json({
+          ok: true,
+          requestId,
+          plan_id: plan.id,
+          strategy_summary: result.strategyItems,
+        });
+      } catch (upsertErr: any) {
+        console.error("[weekly-strategy] Failed to upsert draft:", upsertErr);
+        // Fallback: return strategy even if save failed, but log it
+      }
     }
 
     return NextResponse.json({

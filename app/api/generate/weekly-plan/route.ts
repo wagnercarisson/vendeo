@@ -60,10 +60,11 @@ export async function GET(req: Request) {
 
   try {
     const url = new URL(req.url);
-    const week_start = (url.searchParams.get("week_start") ?? getWeekStartMondayISO()).trim();
-    const store_id = (url.searchParams.get("store_id") ?? "").trim();
+    const id = url.searchParams.get("id")?.trim() || undefined;
+    const week_start = url.searchParams.get("week_start")?.trim() || undefined;
+    const store_id = url.searchParams.get("store_id")?.trim() || undefined;
 
-    const q = WeeklyPlanQuerySchema.safeParse({ store_id, week_start });
+    const q = WeeklyPlanQuerySchema.safeParse({ id, store_id, week_start });
     if (q.success === false) {
       return NextResponse.json(
         { ok: false, requestId, error: "INVALID_QUERY", details: q.error.flatten() },
@@ -71,10 +72,22 @@ export async function GET(req: Request) {
       );
     }
 
-    const own = await assertStoreOwnership(requestId, q.data.store_id);
-    if (own.ok === false) return own.response;
+    if (q.data.id) {
+       // Fetch by ID doesn't strict check store ownership here if we trust the ID 
+       // but for parity we should still verify if we have a userId
+       try { await getUserStoreIdOrThrow(); } catch(e) { 
+          return NextResponse.json({ error: "not_authenticated" }, { status: 401 }); 
+       }
+    } else {
+       const own = await assertStoreOwnership(requestId, q.data.store_id!);
+       if (own.ok === false) return own.response;
+    }
 
-    const result = await fetchWeeklyPlan(q.data.store_id, q.data.week_start ?? getWeekStartMondayISO());
+    const result = await fetchWeeklyPlan({
+       id: q.data.id,
+       storeId: q.data.store_id,
+       weekStart: q.data.week_start
+    });
 
     return NextResponse.json({
       ok: true,
@@ -135,6 +148,82 @@ export async function POST(req: Request) {
     console.error("[weekly-plan][POST] error:", msg, err?.stack ?? err);
     return NextResponse.json(
       { ok: false, requestId, error: "UNHANDLED", details: msg },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(req: Request) {
+  const requestId = crypto.randomUUID();
+  const supabaseAdmin = getSupabaseAdmin();
+
+  try {
+    const url = new URL(req.url);
+    const id = url.searchParams.get("id")?.trim();
+    const week_start = url.searchParams.get("week_start")?.trim();
+    const store_id = url.searchParams.get("store_id")?.trim();
+
+    if (!id && (!week_start || !store_id)) {
+      return NextResponse.json({ error: "missing_params" }, { status: 400 });
+    }
+
+    // Auth check
+    try { await getUserStoreIdOrThrow(); } catch(e) { 
+       return NextResponse.json({ error: "not_authenticated" }, { status: 401 }); 
+    }
+
+    let planId = id;
+
+    // Se veio por semana, precisamos do ID primeiro para limpar itens/campanhas
+    if (!planId && store_id && week_start) {
+      const { data: p } = await supabaseAdmin
+        .from("weekly_plans")
+        .select("id")
+        .eq("store_id", store_id)
+        .eq("week_start", week_start)
+        .maybeSingle();
+      if (p) planId = p.id;
+    }
+
+    if (!planId) {
+      return NextResponse.json({ ok: true, message: "not_found_nothing_to_do" });
+    }
+
+    // 1. Buscar IDs dos itens para limpeza segura
+    const { data: items } = await supabaseAdmin
+      .from("weekly_plan_items")
+      .select("id")
+      .eq("plan_id", planId);
+    
+    const itemIds = (items ?? []).map(i => i.id);
+
+    if (itemIds.length > 0) {
+      // 2. Desvincular campanhas (torná-las manuais)
+      await supabaseAdmin
+        .from("campaigns")
+        .update({ weekly_plan_item_id: null, origin: 'manual' })
+        .in("weekly_plan_item_id", itemIds);
+
+      // 3. Deletar Itens
+      await supabaseAdmin.from("weekly_plan_items").delete().in("id", itemIds);
+    }
+
+    // 4. Deletar Plano
+    const { error: delError } = await supabaseAdmin
+      .from("weekly_plans")
+      .delete()
+      .eq("id", planId);
+
+    if (delError) {
+       console.error("Delete Error:", delError);
+       return NextResponse.json({ ok: false, error: "DELETE_SQL_FAILED", details: delError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (err: any) {
+    console.error("Delete Catch:", err);
+    return NextResponse.json(
+      { ok: false, requestId, error: "DELETE_UNHANDLED", details: err.message },
       { status: 500 }
     );
   }

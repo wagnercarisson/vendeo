@@ -18,16 +18,15 @@ Os status persistidos no banco são:
 
 ---
 
-# 1.3 Regras de Navegação Inteligente (v1.1)
+O sistema diferencia a experiência de abertura baseado no status do plano (v3.0):
 
-O sistema diferencia a experiência de abertura baseado no status do plano:
-
-* **Plano Rascunho (`draft`)**:
-    * Ao abrir, o sistema direciona automaticamente para o **Passo 2 (Revisão da Estratégia)**.
-    * Objetivo: Permitir ajustes rápidos antes da geração final de componentes.
-* **Plano Aprovado (`approved`)**:
-    * Ao abrir, o sistema direciona para a **Página de Detalhes / Execução (Passo 3)**.
-    * Objetivo: Focar na execução das campanhas e acompanhamento de progresso.
+*   **Fluxo Soberano**: O Wizard agora é movido estritamente pelo status do plano, com **Gating de Inicialização** (Zero Flash):
+    *   **Status Nulo/Novo**: Direciona para o **Passo 1 (Seleção de Dias)**. Intento de "Novo Plano" sempre força o Passo 1, mesmo que um rascunho exista.
+    *   **Status Rascunho (`draft`)**: Direciona para o **Passo 2 (Estratégia)**.
+    *   **Status Aprovado (`approved`)**: Direciona para o **Passo 3 (Execução)**.
+*   **Sobrescrita Segura**:
+    *   Ao tentar criar um plano para uma semana com plano existente, o sistema exige confirmação.
+    *   Se confirmado, ocorre um **Hard Reset (DELETE)** de todos os dados daquela semana no banco.
 
 ---
 

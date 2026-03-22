@@ -27,7 +27,8 @@ export const WeeklyPlanPostBodySchema = z.object({
 });
 
 export const WeeklyPlanQuerySchema = z.object({
-  store_id: z.string().uuid(),
+  id: z.string().uuid().optional(),
+  store_id: z.string().uuid().optional(),
   week_start: z.string().optional(),
 });
 

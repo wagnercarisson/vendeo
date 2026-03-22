@@ -10,6 +10,6 @@ export type ReelsShot = ShortVideoShotScene;
 export type Campaign = CampaignDomain;
 
 // Wizard Specific Types
-export type WizardStep = 1 | 2 | 3;
+export type WizardStep = 0 | 1 | 2 | 3;
 
 export type StrategyDraftItem = StrategyItem;

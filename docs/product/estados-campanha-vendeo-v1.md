@@ -10,9 +10,6 @@ A distinção clara evita confusão entre o valor salvo no sistema e o que o usu
 ## 2. Estados de Persistência (Sistema/Banco)
 Estes são os valores reais salvos na coluna `status` da tabela `campaigns`.
 
-*   **`draft`**: Estado inicial. A campanha foi criada, mas ainda não possui conteúdo gerado ou revisado.
-*   **`ready`**: Conteúdo (arte/vídeo/texto) foi gerado pela IA e está aguardando revisão.
-    *   *Nota: Este estado substitui o termo antigo "generated".*
 *   **`approved`**: O usuário revisou e aprovou o conteúdo final. A campanha está pronta para uso.
 
 ### 2.2 Escala de Criação

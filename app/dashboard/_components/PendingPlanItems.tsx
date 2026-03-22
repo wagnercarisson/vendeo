@@ -118,7 +118,7 @@ export async function PendingPlanItems({
 
               {isDraft ? (
                 <Link
-                  href={`/dashboard/plans?view=new&week_start=${planWeekStart}`}
+                  href={`/dashboard/plans/${planId}`}
                   className="shrink-0 inline-flex items-center justify-center gap-1.5 rounded-lg bg-orange-100 border border-orange-200 px-3 py-1.5 text-xs font-bold text-orange-700 transition hover:bg-orange-200"
                 >
                   Ver no Plano
@@ -139,11 +139,7 @@ export async function PendingPlanItems({
 
       <div className="mt-4 text-center">
         <Link
-          href={
-            planStatus === "draft"
-              ? `/dashboard/plans?view=new&week_start=${planWeekStart}`
-              : `/dashboard/plans/${planId}`
-          }
+          href={`/dashboard/plans/${planId}`}
           className="text-xs font-semibold text-orange-700 hover:underline"
         >
           Ver todas as pendências no plano →

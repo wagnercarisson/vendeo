@@ -10,7 +10,8 @@ import { ExecutionStep } from "./ExecutionStep";
 import { PlansSkeleton } from "./PlansSkeleton";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, AlertCircle } from "lucide-react";
+import { MotionWrapper } from "@/app/dashboard/_components/MotionWrapper";
 
 // Functions reused from page
 function getWeekStartMondayISO(today = new Date()) {
@@ -28,13 +29,28 @@ function getWeekStartMondayISO(today = new Date()) {
 
 export function WizardShell({ 
   initialWeekStart,
-  initialPlanId 
+  initialPlanId,
+  initialPlan,
+  initialItems,
+  initialCampaigns
 }: { 
   initialWeekStart?: string;
   initialPlanId?: string;
+  initialPlan?: Plan | null;
+  initialItems?: WeeklyPlanItem[];
+  initialCampaigns?: Campaign[];
 }) {
   const router = useRouter();
-  const [step, setStep] = useState<WizardStep>(1);
+  
+  // Decisão imediata do passo inicial baseada nos dados injetados (Zero Flash)
+  const getInitialStep = (): WizardStep => {
+    if (!initialPlan) return 0; // Se não tem dado ainda, aguarda inicialização (Gate)
+    if (initialPlan.status === "approved") return 3;
+    if (initialPlan.status === "draft") return 2;
+    return 1;
+  };
+
+  const [step, setStep] = useState<WizardStep>(getInitialStep());
 
   const [stores, setStores] = useState<Store[]>([]);
   const [loadingStores, setLoadingStores] = useState(true);
@@ -43,19 +59,22 @@ export function WizardShell({
   const [weekStart, setWeekStart] = useState<string>(initialWeekStart || getWeekStartMondayISO());
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
 
-  const [loadingPlan, setLoadingPlan] = useState(false);
-  const [plan, setPlan] = useState<Plan | null>(null);
-  const [items, setItems] = useState<WeeklyPlanItem[]>([]);
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [loadingPlan, setLoadingPlan] = useState(!!initialPlanId && !initialPlan);
+  const [plan, setPlan] = useState<Plan | null>(initialPlan || null);
+  const [items, setItems] = useState<WeeklyPlanItem[]>(initialItems || []);
+  const [campaigns, setCampaigns] = useState<Campaign[]>(initialCampaigns || []);
 
-  // Strategy Step State
-  const [strategyDraft, setStrategyDraft] = useState<StrategyDraftItem[]>([]);
+  // Strategy Step State - Hidrata do initialPlan se existir
+  const [strategyDraft, setStrategyDraft] = useState<StrategyDraftItem[]>(
+    (initialPlan?.strategy?.items as StrategyDraftItem[]) || []
+  );
 
   const [generatingPlan, setGeneratingPlan] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
 
   const [approvingPlan, setApprovingPlan] = useState(false);
+  const [showOverwriteModal, setShowOverwriteModal] = useState(false);
 
   // Holidays
   const [holidays, setHolidays] = useState<{ date: string; name: string }[]>([]);
@@ -64,6 +83,8 @@ export function WizardShell({
     loadStores();
     loadHolidays();
   }, []);
+  
+  // Removido useEffect de sincronização de initialWeekStart que forçava setStep(1)
 
   async function loadHolidays() {
     try {
@@ -115,7 +136,18 @@ export function WizardShell({
   }, [storeId, weekStart]);
 
   async function loadPlan() {
+    // Se já temos o plano injetado, não precisamos carregar nem mostrar Skeleton
+    if (initialPlan && initialPlanId === initialPlan.id) {
+       setLoadingPlan(false);
+       return;
+    }
+
     setLoadingPlan(true);
+    
+    const query = initialPlanId
+      ? `id=${encodeURIComponent(initialPlanId)}`
+      : `week_start=${encodeURIComponent(weekStart)}&store_id=${encodeURIComponent(storeId)}`;
+
     try {
       const data = await fetchJson<{
         ok: boolean;
@@ -123,9 +155,7 @@ export function WizardShell({
         items: WeeklyPlanItem[];
         campaigns: Campaign[];
       }>(
-        `/api/generate/weekly-plan?week_start=${encodeURIComponent(
-          weekStart
-        )}&store_id=${encodeURIComponent(storeId)}`,
+        `/api/generate/weekly-plan?${query}`,
         { method: "GET" }
       );
 
@@ -135,32 +165,65 @@ export function WizardShell({
         setCampaigns(data.campaigns ?? []);
         setStrategyDraft((data.plan?.strategy?.items as StrategyDraftItem[]) || []);
 
-        if (data.plan && data.items && data.items.length > 0) {
-          const dbDays = data.items.map((i) => i.day_of_week);
-          setSelectedDays(Array.from(new Set(dbDays)).sort((a, b) => a - b));
+        const hasItems = data.items && data.items.length > 0;
+        const hasStrategy = !!data.plan?.strategy?.items && (data.plan.strategy.items as any[]).length > 0;
+
+        if (data.plan && (hasItems || hasStrategy)) {
+          if (hasItems) {
+            const dbDays = data.items.map((i) => i.day_of_week);
+            setSelectedDays(Array.from(new Set(dbDays)).sort((a, b) => a - b));
+          } else if (hasStrategy) {
+            const stratDays = (data.plan.strategy.items as any[]).map(i => i.day_of_week);
+            setSelectedDays(Array.from(new Set(stratDays)).sort((a, b) => a - b));
+          }
           
-          // Smart Step Selection: Se for rascunho e já tiver itens, pula para o Passo 2
-          if (data.plan.status === "draft") {
-            setStep(2);
+          console.log("[WizardShell] Plan Loaded:", { 
+            id: data.plan.id, 
+            status: data.plan.status, 
+            hasStrategy, 
+            strategyItems: data.plan.strategy?.items?.length 
+          });
+          
+          // Sovereign Status Logic (V2): 
+          // Se estamos "Retomando" (temos ID inicial), obedecemos o status do banco.
+          // Se estamos "Criando Novo", ficamos no Passo 1 até o usuário gerar.
+          if (initialPlanId) {
+            if (data.plan.status === "approved") {
+              setStep(3);
+            } else if (data.plan.status === "draft") {
+              setStep(2);
+            }
           }
         } else {
-          setPlan(null);
+          setPlan(null); 
           setItems([]);
           setCampaigns([]);
-          setStep(1); // Garante que volta ao passo 1 se não houver plano
+          // Se não há plano, garantimos Passo 1
+          setStep(1);
         }
       }
     } catch (e) {
       console.error(e);
+      // Fallback: Se der erro na carga, garantimos o Passo 1 para não travar no Skeleton
+      setStep(1);
     } finally {
       setLoadingPlan(false);
+      // Se por algum motivo o passo ainda for 0 (neutro), forçamos o Passo 1
+      setStep(prev => prev === 0 ? 1 : prev);
     }
   }
 
   // STEP 1 -> STEP 2
   async function handleGenerateStrategy() {
+    // Se já existe um plano no banco para esta semana, precisamos de confirmação para deletar
+    if (plan && !showOverwriteModal) {
+      setShowOverwriteModal(true);
+      return;
+    }
+
     setGeneratingPlan(true);
     setError(null);
+    setShowOverwriteModal(false);
 
     const weekStartDate = new Date(weekStart);
     const weekEndDate = new Date(weekStartDate);
@@ -175,6 +238,7 @@ export function WizardShell({
       const data = await fetchJson<{
         ok: boolean;
         strategy_summary: StrategyDraftItem[];
+        plan_id?: string;
         error?: string;
         details?: string;
       }>("/api/generate/weekly-strategy", {
@@ -194,12 +258,41 @@ export function WizardShell({
         throw new Error(data?.details || data?.error || "Falha ao gerar estratégia");
       }
 
+      if (data.ok && data.plan_id) {
+        setPlan({ id: data.plan_id, status: 'draft', week_start: weekStart } as Plan);
+      }
+
       setStrategyDraft(data.strategy_summary || []);
       setStep(2);
     } catch (e: any) {
       setError(e?.message);
       alert(e?.message);
     } finally {
+      setGeneratingPlan(false);
+    }
+  }
+
+  async function handleConfirmOverwrite() {
+    try {
+      setGeneratingPlan(true);
+      // Chama a API de DELEÇÃO Física
+      const res = await fetch(`/api/generate/weekly-plan?store_id=${storeId}&week_start=${weekStart}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      
+      if (!data.ok) throw new Error("Falha ao limpar plano anterior.");
+
+      // Limpa estados locais para garantir resete
+      setPlan(null);
+      setItems([]);
+      setCampaigns([]);
+      setStrategyDraft([]);
+      
+      // Procede com a geração normalmente
+      await handleGenerateStrategy();
+    } catch (e: any) {
+      setError(e.message);
       setGeneratingPlan(false);
     }
   }
@@ -242,7 +335,6 @@ export function WizardShell({
       alert(e?.message);
     } finally {
       setGeneratingPlan(false);
-      await loadPlan();
     }
   }
 
@@ -284,12 +376,46 @@ export function WizardShell({
     router.push("/dashboard/plans");
   }
 
-  if (loadingStores) {
+  // Skeleton Gate: Enquanto não temos o passo definido e os dados carregados, mantemos o Skeleton.
+  if (loadingStores || (loadingPlan && !plan) || step === 0) {
     return <PlansSkeleton />;
   }
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-6 space-y-8">
+      {/* Modal de Confirmação de Sobrescrita */}
+      {showOverwriteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <MotionWrapper delay={0}>
+            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 text-orange-600">
+                <AlertCircle className="h-6 w-6" />
+              </div>
+              <h3 className="mb-2 text-xl font-bold text-slate-900">Sobrescrever Plano?</h3>
+              <p className="mb-6 text-sm text-slate-500 leading-relaxed">
+                Já existe um plano gerado para a semana de <strong>{new Date(weekStart + "T12:00:00").toLocaleDateString('pt-BR')}</strong>. 
+                Se prosseguir, todos os dados da estratégia, campanhas e itens desta semana serão **excluídos permanentemente** para dar lugar ao novo plano.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowOverwriteModal(false)}
+                  disabled={generatingPlan}
+                  className="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleConfirmOverwrite}
+                  disabled={generatingPlan}
+                  className="flex-1 rounded-xl bg-orange-600 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-700 disabled:opacity-50"
+                >
+                  {generatingPlan ? "Limpando..." : "Sim, Sobrescrever"}
+                </button>
+              </div>
+            </div>
+          </MotionWrapper>
+        </div>
+      )}
       <div className="flex items-center gap-4">
         <Link
           href="/dashboard"
@@ -340,7 +466,7 @@ export function WizardShell({
           onNext={handleGenerateStrategy}
           isGenerating={generatingPlan || loadingPlan}
           holidays={holidays}
-          hasExistingPlan={!!plan && items.length > 0}
+          hasExistingPlan={!!plan}
         />
       )}
 

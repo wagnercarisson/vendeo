@@ -680,14 +680,18 @@ Foco em alinhar a UX com os estados reais de aprovação da campanha e consolida
 - Navegação fluida entre Dashboard, Plano e Edição.
 - Terminologia consistente em todo o produto.
 
-Status do Plano
-Dia 1 — Modelo de Loja        ✅ Concluído
-Dia 2 — Segurança de Rotas    ✅ Concluído
-Dia 3 — Fluxo de Campanha     ✅ Concluído
-Dia 4 — Geração de Conteúdo   ✅ Concluído
-Dia 5 — UI / UX e Status      ✅ Concluído
-Dia 6 — Segurança e Storage   ▶ Em execução (Planejado)
-Dia 7 — Fechamento            ⏳ Planejado
+
+### 📌 Atualização — Dia 5.3: Navegação Inteligente e Travas de Produção (v1.2) - Concluído
+- **Preservação de Contexto (Smart Step Selection)**: O Wizard agora aceita `week_start` via URL, permitindo que o sistema identifique se deve abrir no Passo 1 (Seleção) ou Passo 2 (Foco/Tema), corrigindo a perda de contexto no "Retomar Planejamento".
+- **Travas de Orquestração**: Sugestões de planos em rascunho (`draft`) agora exibem um banner de aviso e o botão de ação foi alterado para **"Ver no Plano"**. A criação de campanhas (geração de assets) está bloqueada até que o plano seja aprovado.
+- **Salvaguardas de Rota**: Implementado redirecionamento automático em `/dashboard/plans/[id]` (para o Wizard) e em `/dashboard/campaigns/new` (para revisão do plano) caso o usuário tente acessar caminhos de execução para planos ainda em rascunho.
+- **Correção de Navegação (Passo 3)**: Resolvido problema de "botão morto" no Saída do Passo 3, garantindo o reset do estado do Wizard e navegação correta para a lista de planos.
+- **Polimento UX**: Correção de tooltips no calendário semanal para campanhas em status `draft`, unificando a mensagem *"Em rascunho. Falta finalizar"*.
+
+### 📌 Atualização — Dia 5.4: Wizard V3 - Portão de Inicialização e Sobrescrita Segura (Concluído)
+- **Remoção de Férias e "Piscos"**: O `WizardShell` foi refatorado para usar um estado inicial neutro combined com Injeção de Dados (Hidratação). Isso elimina o "flash" do Passo 1 em rascunhos.
+- **Resete Físico (DELETE)**: Implementado o uso do método `DELETE` para limpar semanas inteiras em caso de sobrescrita, eliminando resquícios de planos antigos.
+- **Unificação de Detalhes**: A página de detalhes agora delega 100% da lógica de estado ao `WizardShell`, simplificando a arquitetura de navegação.
 
 🧪 Itens definidos para o futuro (registrar)
 1. Detecção de estratégia em desacordo com plano
@@ -698,6 +702,16 @@ Substituir heurística atual por: horário de funcionamento da loja, dias aberto
 
 3. Possível endurecimento da validação de estratégia
 Hoje: tolerante via helper. Futuro: validar direto na entrada da IA, evitar qualquer valor fora de constants.
+
+
+Status do Plano
+Dia 1 — Modelo de Loja        ✅ Concluído
+Dia 2 — Segurança de Rotas    ✅ Concluído
+Dia 3 — Fluxo de Campanha     ✅ Concluído
+Dia 4 — Geração de Conteúdo   ✅ Concluído
+Dia 5 — UI / UX e Status      ✅ Concluído (v1.2)
+Dia 6 — Segurança e Storage   ⏳ Planejado (Para iniciar)
+Dia 7 — Fechamento            ⏳ Planejado
 
 ---
 

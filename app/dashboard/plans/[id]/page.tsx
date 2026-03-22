@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Plan, WeeklyPlanItem, Campaign } from "../_components/types";
 import { ExecutionStep } from "../_components/ExecutionStep";
+import { WizardShell } from "../_components/WizardShell";
 import Link from "next/link";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
@@ -41,13 +42,6 @@ export default function PlanDetailsPage() {
 
       if (planErr || !planData) {
         throw new Error("Plano não encontrado.");
-      }
-
-      if (planData.status === "draft") {
-        router.replace(
-          `/dashboard/plans?view=new&week_start=${planData.week_start}`
-        );
-        return;
       }
 
       setPlan(planData as Plan);
@@ -172,18 +166,17 @@ export default function PlanDetailsPage() {
 
         <div className="flex flex-1 items-center gap-2">
           <div className="text-sm font-semibold uppercase tracking-wider text-slate-600">
-            Visualizando {items.length} ideias para o plano
+            {plan.status === "draft" ? "Editando Rascunho do Plano" : "Plano de Campanha"}
           </div>
         </div>
       </div>
 
-      <ExecutionStep
-        items={items}
-        campaignsById={campaignsById}
-        onApprovePlan={handleApprovePlan}
-        onSaveAndExit={handleSaveAndExit}
-        approvingPlan={approvingPlan}
-        planStatus={plan.status}
+      <WizardShell 
+        initialPlanId={plan.id} 
+        initialWeekStart={plan.week_start} 
+        initialPlan={plan}
+        initialItems={items}
+        initialCampaigns={campaigns}
       />
     </main>
   );

@@ -80,19 +80,26 @@ export interface WeeklyPlanResult {
   campaigns: Campaign[];
 }
 
-/** Busca o plano semanal com items e campanhas vinculadas. Retorna null se não existir. */
+/** Busca o plano semanal com items e campanhas vinculadas. Por ID ou por Loja+Semana. */
 export async function fetchWeeklyPlan(
-  storeId: string,
-  weekStart: string
+  params: { storeId?: string; weekStart?: string; id?: string }
 ): Promise<WeeklyPlanResult | null> {
+  const { storeId, weekStart, id } = params;
   const supabaseAdmin = getSupabaseAdmin();
 
-  const { data: plan, error: planErr } = await supabaseAdmin
+  let query = supabaseAdmin
     .from("weekly_plans")
-    .select("id, store_id, week_start, status, strategy, created_at")
-    .eq("store_id", storeId)
-    .eq("week_start", weekStart)
-    .maybeSingle();
+    .select("id, store_id, week_start, status, strategy, created_at");
+
+  if (id) {
+    query = query.eq("id", id);
+  } else if (storeId && weekStart) {
+    query = query.eq("store_id", storeId).eq("week_start", weekStart);
+  } else {
+    return null;
+  }
+
+  const { data: plan, error: planErr } = await query.maybeSingle();
 
   if (planErr) throw new Error(planErr.message);
   if (!plan) return null;
@@ -138,6 +145,71 @@ export async function fetchWeeklyPlan(
   return { plan: normalizedPlan, items: normalizedItems, campaigns };
 }
 
+/** 
+ * Cria ou atualiza apenas o "cabeçalho" e a estratégia do plano. 
+ * Mantém o status como 'draft' por padrão. 
+ */
+export async function upsertWeeklyPlanDraft(params: {
+  storeId: string;
+  weekStart: string;
+  strategyItems: StrategyItem[];
+}): Promise<WeeklyPlan> {
+  const { storeId, weekStart, strategyItems } = params;
+  const supabaseAdmin = getSupabaseAdmin();
+
+  // 1) Busca loja para snapshot e contexto
+  const { data: store, error: sErr } = await supabaseAdmin
+    .from("stores")
+    .select("id, name, city, state, brand_positioning, main_segment, tone_of_voice")
+    .eq("id", storeId)
+    .single();
+
+  if (sErr || !store) throw new Error("STORE_NOT_FOUND");
+  const normalizedStore = mapDbStoreToDomain(store);
+
+  // 2) Upsert cabeçalho básico
+  const { data: upPlan, error: upPlanErr } = await supabaseAdmin
+    .from("weekly_plans")
+    .upsert(
+      { store_id: storeId, week_start: weekStart, status: "draft" },
+      { onConflict: "store_id,week_start" }
+    )
+    .select("id, store_id, week_start, status, strategy, created_at")
+    .single();
+
+  if (upPlanErr || !upPlan) throw new Error(upPlanErr?.message ?? "FAILED_UPSERT_PLAN");
+
+  // 3) Monta resumo e salva estratégia
+  const strategySummary = strategyItems
+    .map((s) => `Dia ${s.day_of_week}: Obj: ${s.objective}, Publ: ${s.audience}`)
+    .join(" | ");
+
+  const { data: finalPlan, error: updPlanErr } = await supabaseAdmin
+    .from("weekly_plans")
+    .update({
+      status: "draft",
+      strategy: {
+        strategy_summary: strategySummary || "Estratégia omitida.",
+        items: strategyItems,
+        store_snapshot: {
+          name: normalizedStore.name,
+          city: normalizedStore.city,
+          state: normalizedStore.state,
+          main_segment: normalizedStore.main_segment,
+          brand_positioning: normalizedStore.brand_positioning,
+          tone_of_voice: normalizedStore.tone_of_voice,
+        },
+      },
+    })
+    .eq("id", upPlan.id)
+    .select("*")
+    .single();
+
+  if (updPlanErr || !finalPlan) throw new Error(updPlanErr?.message ?? "FAILED_REFRESH_PLAN");
+
+  return mapDbWeeklyPlanToDomain(finalPlan);
+}
+
 // ─── Pipeline de geração ──────────────────────────────────────────────────────
 
 export interface GenerateWeeklyPlanInput {
@@ -167,7 +239,7 @@ export async function generateWeeklyPlan(
   const { storeId, weekStart, force, approvedStrategy } = input;
 
   // 1) Idempotência
-  const existing = await fetchWeeklyPlan(storeId, weekStart);
+  const existing = await fetchWeeklyPlan({ storeId, weekStart });
   if (existing && !force) {
     return {
       ok: true,
@@ -223,47 +295,12 @@ export async function generateWeeklyPlan(
 
   const normalizedStore = mapDbStoreToDomain(store);
 
-  // 4) Upsert cabeçalho do plano
-  const { data: upPlan, error: upPlanErr } = await supabaseAdmin
-    .from("weekly_plans")
-    .upsert(
-      { store_id: storeId, week_start: weekStart, status: "draft" },
-      { onConflict: "store_id,week_start" }
-    )
-    .select("id, store_id, week_start, status, strategy, created_at")
-    .single();
-
-  if (upPlanErr || !upPlan) {
-    throw new Error(upPlanErr?.message ?? "FAILED_UPSERT_PLAN");
-  }
-
-  const normalizedUpPlan = mapDbWeeklyPlanToDomain(upPlan);
-
-  // 5) Salva estratégia no plano
-  const strategySummary = approvedStrategy
-    .map((s) => `Dia ${s.day_of_week}: Obj: ${s.objective}, Publ: ${s.audience}`)
-    .join(" | ");
-
-  const { error: updPlanErr } = await supabaseAdmin
-    .from("weekly_plans")
-    .update({
-      status: "draft",
-      strategy: {
-        strategy_summary: strategySummary || "Estratégia omitida.",
-        items: approvedStrategy,
-        store_snapshot: {
-          name: normalizedStore.name,
-          city: normalizedStore.city,
-          state: normalizedStore.state,
-          main_segment: normalizedStore.main_segment,
-          brand_positioning: normalizedStore.brand_positioning,
-          tone_of_voice: normalizedStore.tone_of_voice,
-        },
-      },
-    })
-    .eq("id", normalizedUpPlan.id);
-
-  if (updPlanErr) throw new Error(updPlanErr.message);
+  // 4) Upsert cabeçalho e estratégia usando a função centralizada
+  const plan = await upsertWeeklyPlanDraft({
+    storeId,
+    weekStart,
+    strategyItems: approvedStrategy
+  });
 
   // 6) Insere items
   const itemsToInsert = approvedStrategy.map((st) => {
@@ -284,7 +321,7 @@ export async function generateWeeklyPlan(
     const validBrief = WeeklyPlanItemBriefSchema.parse(brief);
 
     return {
-      plan_id: normalizedUpPlan.id,
+      plan_id: plan.id,
       day_of_week: st.day_of_week,
       content_type: st.content_type,
       theme,
@@ -301,12 +338,12 @@ export async function generateWeeklyPlan(
 
   if (iErr) throw new Error(iErr.message);
 
-  const final = await fetchWeeklyPlan(storeId, weekStart);
+  const final = await fetchWeeklyPlan({ storeId, weekStart });
 
   return {
     ok: true,
     reused: false,
-    plan: final?.plan ?? normalizedUpPlan,
+    plan: final?.plan ?? plan,
     items: final?.items ?? [],
     campaigns: final?.campaigns ?? [],
   };
