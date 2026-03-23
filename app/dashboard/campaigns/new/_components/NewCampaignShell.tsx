@@ -181,6 +181,7 @@ export function NewCampaignShell() {
         try {
             setIsSaving(true);
             await ensureDraftCampaign();
+            router.refresh();
             router.push("/dashboard");
         } catch (err: any) {
             console.error(err);
@@ -558,6 +559,7 @@ export function NewCampaignShell() {
                 .eq("id", currentId);
 
             setGenerationState("ready");
+            router.refresh();
 
             const planItemId = searchParams.get("plan_item_id");
             if (planItemId) {
@@ -744,6 +746,7 @@ export function NewCampaignShell() {
 
             if (error) throw error;
 
+            router.refresh();
             router.push("/dashboard");
         } catch (err: any) {
             console.error(err);
@@ -770,13 +773,25 @@ export function NewCampaignShell() {
 
                     {isPlanLinked && (
                         <MotionWrapper delay={0.15}>
-                            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-                                <p className="text-sm font-medium text-emerald-800">
-                                    <strong>Plano Semanal:</strong> esta campanha já veio
-                                    com a estratégia herdada do plano e com foco em{" "}
-                                    <strong>{planContentLabel}</strong>. Basta preencher o
-                                    produto e gerar.
-                                </p>
+                            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
+                                <div className="flex flex-col gap-2">
+                                    <p className="text-sm font-medium text-emerald-800">
+                                        <strong>Plano Semanal:</strong> esta campanha já veio
+                                        com a estratégia herdada do plano e com foco em{" "}
+                                        <strong>{planContentLabel}</strong>. Basta preencher o
+                                        produto e gerar.
+                                    </p>
+                                    {searchParams.get("theme") && (
+                                        <div className="mt-2 border-t border-emerald-200/50 pt-2">
+                                            <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-600/70">
+                                                💡 Raciocínio Varejista
+                                            </p>
+                                            <p className="text-sm italic text-emerald-900 leading-relaxed">
+                                                "{searchParams.get("theme")}"
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </MotionWrapper>
                     )}
