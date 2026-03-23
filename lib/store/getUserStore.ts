@@ -6,14 +6,12 @@ export async function getUserPrimaryStoreId() {
   const { data: userData } = await supabase.auth.getUser();
   const user = userData?.user;
 
-  if (!user) {
-    return { user: null as any, storeId: null as string | null };
-  }
+  if (!user) return { user: null as any, storeId: null as string | null };
 
   const { data, error } = await supabase
-    .from("stores")
-    .select("id")
-    .eq("owner_user_id", user.id)
+    .from("store_members")
+    .select("store_id")
+    .eq("user_id", user.id)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
@@ -23,5 +21,5 @@ export async function getUserPrimaryStoreId() {
     return { user, storeId: null };
   }
 
-  return { user, storeId: data?.id ?? null };
+  return { user, storeId: data?.store_id ?? null };
 }

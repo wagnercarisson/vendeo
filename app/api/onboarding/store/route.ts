@@ -36,90 +36,42 @@ export async function POST(req: Request) {
     );
   }
 
+  // Admin client para inserir com service role (sem RLS quebrar)
   const admin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { persistSession: false } }
   );
 
-  // Beta owner-based:
-  // 1 usuário = 1 loja
-  // Antes de criar, verifica se já existe loja para este owner.
-  const { data: existingStore, error: existingStoreErr } = await admin
-    .from("stores")
-    .select("id")
-    .eq("owner_user_id", user.id)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-
-  if (existingStoreErr) {
-    return NextResponse.json(
-      { error: "store_lookup_failed", details: existingStoreErr.message },
-      { status: 500 }
-    );
-  }
-
-  if (existingStore?.id) {
-    return NextResponse.json({
-      ok: true,
-      store_id: existingStore.id,
-      already_exists: true,
-    });
-  }
-
+  // 1) cria store
   const { data: store, error: storeErr } = await admin
     .from("stores")
     .insert({
       ...parsed.data,
-      owner_user_id: user.id,
     })
     .select("id")
     .single();
 
   if (storeErr || !store) {
-    // Em caso de corrida/duplo clique, o índice único pode disparar.
-    // Fazemos uma segunda leitura para retornar a loja existente
-    // em vez de quebrar a UX do onboarding.
-    const isUniqueViolation =
-      storeErr?.code === "23505" ||
-      storeErr?.message?.toLowerCase().includes("duplicate") ||
-      storeErr?.message?.toLowerCase().includes("unique");
-
-    if (isUniqueViolation) {
-      const { data: retryStore, error: retryErr } = await admin
-        .from("stores")
-        .select("id")
-        .eq("owner_user_id", user.id)
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      if (retryErr) {
-        return NextResponse.json(
-          { error: "store_insert_race_condition", details: retryErr.message },
-          { status: 500 }
-        );
-      }
-
-      if (retryStore?.id) {
-        return NextResponse.json({
-          ok: true,
-          store_id: retryStore.id,
-          already_exists: true,
-        });
-      }
-    }
-
     return NextResponse.json(
       { error: "store_insert_failed", details: storeErr?.message },
       { status: 500 }
     );
   }
 
-  return NextResponse.json({
-    ok: true,
+  // 2) vincula user -> store
+  const { error: memberErr } = await admin.from("store_members").insert({
     store_id: store.id,
-    already_exists: false,
+    user_id: user.id,
+    role: "owner",
   });
+
+  if (memberErr) {
+    return NextResponse.json(
+      { error: "member_insert_failed", details: memberErr.message },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json({ ok: true, store_id: store.id });
 }

@@ -33,7 +33,7 @@ export function DashboardActions() {
 
         <div className="mt-auto pt-5 flex">
           <Link
-            href="/dashboard/plans?view=new"
+            href="/dashboard/plans/new"
             className="inline-flex items-center justify-center rounded-xl border border-vendeo-border bg-white px-5 py-2 text-sm font-semibold text-vendeo-text hover:bg-slate-50 transition"
           >
             Gerar plano

@@ -1,37 +1,111 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { supabase } from "@/lib/supabase";
-import {
-  Sparkles,
-  Plus,
-  Eye,
-  Edit2,
-  Copy,
-  Loader2,
-  Image as ImageIcon,
-  CheckCircle2,
-  FileText,
-} from "lucide-react";
-import { mapDbCampaignToDomain } from "@/lib/domain/campaigns/mapper";
-import { MotionWrapper } from "../_components/MotionWrapper";
-import { PostModal, ReelsModal } from "./_components/CampaignModals";
-import { useSignedUrl } from "@/lib/hooks/useSignedUrl";
-import * as selectors from "@/lib/domain/campaigns/logic";
-import { formatAudience, formatObjective } from "@/lib/formatters/strategyLabels";
+import { ArrowRight, AlertTriangle, Sparkles, Video, Wand2, Plus } from "lucide-react";
 
-import { Store } from "@/lib/domain/stores/types";
-import { Campaign as CampaignModel } from "@/lib/domain/campaigns/types";
+type Store = {
+  id: string;
+  name: string;
+  city: string | null;
+  state: string | null;
 
-/** Campanha com relação de loja incluída (para listagem). */
-export type Campaign = CampaignModel & {
+  brand_positioning: string | null;
+  main_segment: string | null;
+  tone_of_voice: string | null;
+
+  address: string | null;
+  neighborhood: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+  instagram: string | null;
+
+  primary_color: string | null;
+  secondary_color: string | null;
+};
+
+type ReelsShot = {
+  scene: number;
+  camera: string;
+  action: string;
+  dialogue: string;
+};
+
+type Campaign = {
+  id: string;
+  product_name: string;
+  price: number;
+  audience: string;
+  objective: string;
+  image_url: string | null;
+
+  product_positioning: string | null;
+
+  ai_caption: string | null;
+  ai_text: string | null;
+  ai_cta: string | null;
+  ai_hashtags: string | null;
+
+  reels_hook: string | null;
+  reels_script: string | null;
+  reels_shotlist: ReelsShot[] | null;
+  reels_on_screen_text: string[] | null;
+  reels_audio_suggestion: string | null;
+  reels_duration_seconds: number | null;
+  reels_caption: string | null;
+  reels_cta: string | null;
+  reels_hashtags: string | null;
+  reels_generated_at: string | null;
+
   stores?: Store | null;
 };
+
+function cx(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(" ");
+}
+
+function labelPositioning(v: string | null | undefined) {
+  if (!v) return "Padrão da loja";
+  const map: Record<string, string> = {
+    popular: "Popular",
+    medio: "Médio",
+    premium: "Premium",
+    jovem: "Jovem / Festa",
+    familia: "Família",
+  };
+  return map[v] ?? v;
+}
+
+function safeToString(v: any) {
+  if (v === null || v === undefined) return "";
+  return String(v);
+}
+
+function onlyDigits(v: string) {
+  return (v || "").replace(/\D/g, "");
+}
+
+function buildContactLine(store?: Store | null) {
+  const wpp = store?.whatsapp ? onlyDigits(store.whatsapp) : "";
+  const ig = store?.instagram ? store.instagram : "";
+  if (wpp && ig) return `WhatsApp: ${wpp} · IG: ${ig}`;
+  if (wpp) return `WhatsApp: ${wpp}`;
+  if (ig) return `IG: ${ig}`;
+  return "—";
+}
+
+function isLikelyUnconfiguredRemote(url: string) {
+  try {
+    const u = new URL(url);
+    if (u.hostname === "ibassets.com.br") return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
 
 function formatBRL(value: number) {
   try {
@@ -44,27 +118,24 @@ function formatBRL(value: number) {
   }
 }
 
-/** Componente para renderizar a thumbnail com URL assinada se necessário */
-function CampaignThumbnail({ campaign }: { campaign: Campaign }) {
-  const { url } = useSignedUrl(campaign.image_url || campaign.product_image_url);
-  
+function Pill({
+  children,
+  tone = "neutral",
+}: {
+  children: React.ReactNode;
+  tone?: "neutral" | "success" | "warning";
+}) {
+  const styles =
+    tone === "success"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : tone === "warning"
+        ? "border-amber-200 bg-amber-50 text-amber-700"
+        : "border-black/10 bg-zinc-50 text-zinc-700";
+
   return (
-    <div className="relative w-24 aspect-[4/5] flex-none overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 shadow-sm">
-      {selectors.hasAnyVisualAsset(campaign) ? (
-        <Image
-          src={url || ""}
-          alt={campaign.product_name || "Campanha"}
-          fill
-          className="object-cover transition-transform duration-500 group-hover:scale-[1.08]"
-          sizes="96px"
-        />
-      ) : (
-        <div className="grid h-full w-full place-items-center">
-          <ImageIcon className="h-6 w-6 text-zinc-300" />
-        </div>
-      )}
-      <div className="absolute inset-0 rounded-lg ring-1 ring-inset ring-black/5" />
-    </div>
+    <span className={cx("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold", styles)}>
+      {children}
+    </span>
   );
 }
 
@@ -72,104 +143,301 @@ export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<any>(null);
-  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
-  const router = useRouter();
 
-  const [selectedPostCampaign, setSelectedPostCampaign] = useState<Campaign | null>(null);
-  const [selectedReelsCampaign, setSelectedReelsCampaign] = useState<Campaign | null>(null);
+  const [generatingTextId, setGeneratingTextId] = useState<string | null>(null);
+  const [generatingReelsId, setGeneratingReelsId] = useState<string | null>(null);
 
-  const loadCampaigns = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  type ConfirmState = {
+    open: boolean;
+    icon?: "ai" | "reels" | "danger";
+    title: string;
+    description?: string;
+    confirmLabel?: string;
+    destructive?: boolean;
+    onConfirm?: () => void;
+  };
 
-      const { data, error } = await supabase
-        .from("campaigns")
-        .select("*")
-        .order("created_at", { ascending: false });
+  function ConfirmDialog({
+    state,
+    onClose,
+    onConfirm,
+  }: {
+    state: ConfirmState;
+    onClose: () => void;
+    onConfirm: () => void;
+  }) {
+    useEffect(() => {
+      if (!state.open) return;
 
-      if (error) throw error;
+      function onKeyDown(e: KeyboardEvent) {
+        if (e.key === "Escape") onClose();
+      }
 
-      const mapped = (data || []).map((row) => {
-        const domain = mapDbCampaignToDomain(row);
-        return {
-          ...domain,
-          stores: row.stores || null,
-        } as Campaign;
-      });
+      window.addEventListener("keydown", onKeyDown);
+      return () => window.removeEventListener("keydown", onKeyDown);
+    }, [state.open, onClose]);
 
-      setCampaigns(mapped);
-    } catch (err: any) {
-      setError(err);
-      setCampaigns([]);
-    } finally {
-      setLoading(false);
-    }
+    if (!state.open) return null;
+
+    const Icon =
+      state.icon === "ai" ? Sparkles : state.icon === "reels" ? Video : AlertTriangle;
+
+    const iconWrap =
+      state.icon === "ai"
+        ? "bg-emerald-50 text-emerald-700 ring-emerald-200/60"
+        : state.icon === "reels"
+          ? "bg-indigo-50 text-indigo-700 ring-indigo-200/60"
+          : "bg-red-50 text-red-700 ring-red-200/60";
+
+    return (
+      <div
+        className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4 backdrop-blur-[2px]"
+        onMouseDown={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+      >
+        <div className="w-full max-w-md overflow-hidden rounded-2xl border border-black/10 bg-white shadow-xl">
+          <div className="p-5">
+            <div className="flex items-start gap-3">
+              <div className={`mt-0.5 grid h-10 w-10 place-items-center rounded-2xl ring-1 ${iconWrap}`}>
+                <Icon className="h-5 w-5" />
+              </div>
+
+              <div className="min-w-0">
+                <div className="text-base font-semibold text-zinc-900">{state.title}</div>
+                {state.description ? (
+                  <div className="mt-2 text-sm text-zinc-600">{state.description}</div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 border-t border-black/5 bg-zinc-50/70 px-5 py-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-200"
+            >
+              Cancelar
+            </button>
+
+            <button
+              type="button"
+              onClick={onConfirm}
+              className={
+                state.destructive
+                  ? "rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-red-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-red-200"
+                  : "rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-200"
+              }
+            >
+              {state.confirmLabel ?? "Confirmar"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const [confirmState, setConfirmState] = useState<ConfirmState>({
+    open: false,
+    title: "",
+  });
+
+  const openConfirm = useCallback((opts: Omit<ConfirmState, "open">) => {
+    setConfirmState({ open: true, ...opts });
   }, []);
 
-  const handleDuplicate = async (c: Campaign) => {
-    if (duplicatingId) return;
+  const closeConfirm = useCallback(() => {
+    setConfirmState({ open: false, title: "" });
+  }, []);
 
-    try {
-      setDuplicatingId(c.id);
-
-      const { data: newCampaign, error: insertError } = await supabase
-        .from("campaigns")
-        .insert([
-          {
-            store_id: c.store_id,
-            product_name: `${c.product_name} (Cópia)`,
-            price: c.price,
-            audience: c.audience,
-            objective: c.objective,
-            product_positioning: c.product_positioning,
-            product_image_url: c.product_image_url,
-            status: "draft",
-          },
-        ])
-        .select()
-        .single();
-
-      if (insertError) throw insertError;
-
-      router.push(`/dashboard/campaigns/${newCampaign.id}`);
-    } catch (err) {
-      console.error("Erro ao duplicar:", err);
-      setError(err);
-      setDuplicatingId(null);
-    }
-  };
+  const handleConfirm = useCallback(() => {
+    const fn = confirmState.onConfirm;
+    closeConfirm();
+    fn?.();
+  }, [confirmState.onConfirm, closeConfirm]);
 
   useEffect(() => {
     loadCampaigns();
-  }, [loadCampaigns]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const headerLinks = useMemo(
-    () => (
-      <Link href="/dashboard/campaigns/new">
-        <button
-          className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500"
-          type="button"
+  async function loadCampaigns() {
+    setLoading(true);
+    setError(null);
+
+    const { data, error } = await supabase
+      .from("campaigns")
+      .select(
+        `
+        id, product_name, price, audience, objective, image_url,
+        product_positioning,
+        ai_caption, ai_text, ai_cta, ai_hashtags,
+
+        reels_hook, reels_script, reels_shotlist, reels_on_screen_text,
+        reels_audio_suggestion, reels_duration_seconds,
+        reels_caption, reels_cta, reels_hashtags, reels_generated_at,
+
+        stores (
+          id, name, city, state,
+          brand_positioning, main_segment, tone_of_voice,
+          address, neighborhood, phone, whatsapp, instagram,
+          primary_color, secondary_color
+        )
+      `
+      )
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      setError(error);
+      setCampaigns([]);
+    } else {
+      setCampaigns((data as any) ?? []);
+    }
+
+    setLoading(false);
+  }
+
+  async function generateAndSaveText(campaign: Campaign, force = false) {
+    if (generatingTextId === campaign.id) return;
+
+    if (!force && (campaign.ai_caption ?? "").trim().length > 0) {
+      const ok = confirm("Já existe texto gerado. Gerar novamente?");
+      if (!ok) return;
+    }
+
+    setGeneratingTextId(campaign.id);
+
+    try {
+      const res = await fetch("/api/generate/campaign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          campaign_id: campaign.id,
+          force,
+
+          product_name: campaign.product_name,
+          price: campaign.price,
+          audience: campaign.audience,
+          objective: campaign.objective,
+
+          product_positioning: campaign.product_positioning,
+
+          store_name: campaign.stores?.name,
+          city: campaign.stores?.city,
+          state: campaign.stores?.state,
+          brand_positioning: campaign.stores?.brand_positioning,
+          main_segment: campaign.stores?.main_segment,
+          tone_of_voice: campaign.stores?.tone_of_voice,
+
+          whatsapp: campaign.stores?.whatsapp,
+          phone: campaign.stores?.phone,
+          instagram: campaign.stores?.instagram,
+
+          primary_color: campaign.stores?.primary_color,
+          secondary_color: campaign.stores?.secondary_color,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.details ?? err?.error ?? `Erro na API: ${res.status}`);
+      }
+
+      await res.json().catch(() => null);
+      await loadCampaigns();
+    } catch (e: any) {
+      alert(e?.message ?? "Erro ao gerar/salvar texto");
+      console.error(e);
+    } finally {
+      setGeneratingTextId(null);
+    }
+  }
+
+  async function generateAndSaveReels(campaign: Campaign, force = false) {
+    if (generatingReelsId === campaign.id) return;
+
+    const hasReels = !!campaign.reels_generated_at;
+    if (!force && hasReels) {
+      const ok = confirm("Já existe roteiro de Reels. Gerar novamente?");
+      if (!ok) return;
+    }
+
+    setGeneratingReelsId(campaign.id);
+
+    try {
+      const res = await fetch("/api/generate/reels", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          campaign_id: campaign.id,
+          force,
+
+          product_positioning: campaign.product_positioning,
+
+          store_name: campaign.stores?.name,
+          city: campaign.stores?.city,
+          state: campaign.stores?.state,
+          brand_positioning: campaign.stores?.brand_positioning,
+          main_segment: campaign.stores?.main_segment,
+          tone_of_voice: campaign.stores?.tone_of_voice,
+          whatsapp: campaign.stores?.whatsapp,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.details ?? err?.error ?? `Erro na API: ${res.status}`);
+      }
+
+      await res.json().catch(() => null);
+      await loadCampaigns();
+    } catch (e: any) {
+      alert(e?.message ?? "Erro ao gerar/salvar Reels");
+      console.error(e);
+    } finally {
+      setGeneratingReelsId(null);
+    }
+  }
+
+  function stopLink(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  const headerLinks = useMemo(() => {
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <Link
+          href="/campaigns/new"
+          className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
         >
           <Plus className="h-4 w-4" />
           Nova campanha
-        </button>
-      </Link>
-    ),
-    []
-  );
+        </Link>
+
+        <Link
+          href="/store"
+          className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+        >
+          Configurar loja
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
+    );
+  }, []);
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-10">
-      <MotionWrapper delay={0.1} className="mb-8 flex flex-wrap items-center justify-between gap-4">
+    <main className="mx-auto max-w-6xl px-6 py-6">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Campanhas</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Visualize suas campanhas e acesse rapidamente as artes e vídeos gerados.
+          <h1 className="text-2xl font-semibold text-zinc-900">Campanhas</h1>
+          <p className="mt-1 text-sm text-zinc-600">
+            Clique em uma campanha para abrir o preview premium e copiar tudo.
           </p>
         </div>
         {headerLinks}
-      </MotionWrapper>
+      </div>
 
       {error && (
         <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -177,176 +445,219 @@ export default function CampaignsPage() {
         </div>
       )}
 
-      {loading ? (
-        <MotionWrapper delay={0.2} className="grid gap-4">
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="flex flex-row items-stretch gap-6 rounded-2xl border border-black/10 bg-white p-4 shadow-sm h-[138px]"
+      {loading && <p className="text-sm text-zinc-600">Carregando...</p>}
+
+      {!loading && campaigns.length === 0 && (
+        <div className="rounded-2xl border border-black/10 bg-white p-6">
+          <div className="text-sm font-semibold text-zinc-900">Nenhuma campanha ainda.</div>
+          <div className="mt-1 text-sm text-zinc-600">Crie sua primeira campanha para começar.</div>
+          <div className="mt-4">{headerLinks}</div>
+        </div>
+      )}
+
+      <div className="grid gap-4">
+        {campaigns.map((c) => {
+          const hasAi = (c.ai_caption ?? "").trim().length > 0;
+          const hasReels = !!c.reels_generated_at;
+
+          const positioningLabel = labelPositioning(c.product_positioning);
+          const storeDefault = labelPositioning(c.stores?.brand_positioning ?? null);
+          const contactLine = buildContactLine(c.stores);
+
+          const storeName = c.stores?.name ?? "—";
+          const location = [c.stores?.city, c.stores?.state].filter(Boolean).join(", ");
+
+          return (
+            <Link
+              key={c.id}
+              href={`/dashboard/campaigns/${c.id}`}
+              className="group block"
+              style={{ textDecoration: "none" }}
             >
-              <div className="relative w-24 aspect-[4/5] flex-none overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 animate-pulse" />
-              <div className="flex flex-1 flex-col justify-between py-0.5">
-                <div>
-                  <div className="h-5 w-48 bg-slate-100 rounded-md animate-pulse" />
-                  <div className="mt-2 h-4 w-32 bg-slate-50 rounded-md animate-pulse" />
-                  <div className="mt-2 h-5 w-20 bg-slate-50 rounded-full animate-pulse" />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="h-4 w-24 bg-slate-50 rounded-full animate-pulse" />
-                  <div className="flex gap-2">
-                    <div className="h-9 w-24 bg-slate-50 rounded-lg animate-pulse" />
-                    <div className="h-9 w-24 bg-slate-50 rounded-lg animate-pulse" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </MotionWrapper>
-      ) : campaigns.length === 0 ? (
-        <MotionWrapper
-          delay={0.2}
-          className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-zinc-300 bg-white/50 p-12 text-center"
-        >
-          <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-50 text-zinc-300">
-            <Sparkles className="h-8 w-8" />
-          </div>
-          <h3 className="text-lg font-bold text-slate-900">Nenhuma campanha encontrada</h3>
-          <p className="mt-2 max-w-sm text-sm text-slate-500">
-            Sua lista está vazia. Comece criando sua primeira estratégia de vendas e deixe nossa IA gerar os conteúdos por você.
-          </p>
-          <div className="mt-8">{headerLinks}</div>
-        </MotionWrapper>
-      ) : (
-        <MotionWrapper delay={0.2} className="grid gap-4">
-          {campaigns.map((c) => {
-            const hasArt = selectors.hasGeneratedArt(c);
-            const hasVideo = selectors.hasGeneratedVideo(c);
-            const metadataParts = [];
-            if (c.price) metadataParts.push(formatBRL(c.price));
-            if (c.audience) metadataParts.push(formatAudience(c.audience));
-            if (c.objective) metadataParts.push(formatObjective(c.objective));
-            const metadataLine = metadataParts.join(" • ");
-            const strategyLabel = selectors.getCampaignStrategyLabel(c);
-            const formattedDate = c.created_at
-              ? format(new Date(c.created_at), "d MMM yyyy", { locale: ptBR })
-              : "";
-
-            const displayStatuses = selectors.getCampaignDisplayStatuses(c);
-
-            return (
-              <div
-                key={c.id}
-                className="group relative flex flex-row items-stretch gap-6 rounded-2xl border border-black/10 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg"
-              >
-                <CampaignThumbnail campaign={c} />
-
-                <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
-                  <div>
-                    <div className="flex items-start justify-between gap-4">
-                      <h3 className="truncate text-base font-bold text-slate-900 transition-colors group-hover:text-emerald-700">
-                        {c.product_name}
-                      </h3>
-                      <time className="flex-none whitespace-nowrap text-xs font-medium text-slate-400">
-                        {formattedDate}
-                      </time>
-                    </div>
-
-                    <div className="mt-1">
-                      <div className="text-[13px] font-medium text-slate-500">{metadataLine}</div>
-                      <div className="mt-1.5 inline-flex items-center rounded-md border border-slate-200/50 bg-slate-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-600">
-                        {strategyLabel}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex items-center justify-between gap-4">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {displayStatuses.map((ds, idx) => {
-                        const Icon = ds.variant === "approved" ? CheckCircle2 : ds.variant === "pending" ? Sparkles : ImageIcon;
-                        return (
-                          <div
-                            key={idx}
-                            title={ds.label}
-                            className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-tight shadow-sm ${ds.variant === "approved"
-                                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                                : ds.variant === "pending"
-                                  ? "border-amber-200 bg-amber-50 text-amber-700"
-                                  : "border-zinc-200 bg-zinc-50 text-zinc-500"
-                              }`}
-                          >
-                            <Icon className="h-3 w-3" />
-                            <span>{ds.label}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    <div className="flex shrink-0 items-center gap-2">
-                      <button
-                        onClick={() => handleDuplicate(c)}
-                        disabled={!!duplicatingId}
-                        title="Duplicar Campanha"
-                        className="flex h-9 w-9 items-center justify-center rounded-xl border border-black/5 bg-white text-zinc-400 transition hover:bg-zinc-50 hover:text-emerald-600 disabled:opacity-50"
-                      >
-                        {duplicatingId === c.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+              <div className="rounded-2xl border border-black/10 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md flex flex-col">
+                {/* BODY */}
+                <div className="p-4 flex-1">
+                  <div className="flex min-w-0 items-start gap-4">
+                    {/* Thumb */}
+                    <div className="relative h-20 w-20 flex-none overflow-hidden rounded-2xl border border-black/5 bg-zinc-50">
+                      {c.image_url ? (
+                        isLikelyUnconfiguredRemote(c.image_url) ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={c.image_url}
+                            alt={c.product_name}
+                            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                          />
                         ) : (
-                          <Copy className="h-4 w-4" />
+                          <Image
+                            src={c.image_url}
+                            alt={c.product_name}
+                            fill
+                            className="object-cover"
+                            sizes="80px"
+                          />
+                        )
+                      ) : (
+                        <div className="grid h-full w-full place-items-center text-[11px] font-semibold text-zinc-500">
+                          sem foto
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Main */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="truncate text-base font-semibold text-zinc-900">
+                          {c.product_name}
+                        </div>
+
+                        {hasAi ? (
+                          <Pill tone="success">
+                            <Sparkles className="h-3.5 w-3.5" />
+                            IA pronta
+                          </Pill>
+                        ) : (
+                          <Pill tone="warning">
+                            <Sparkles className="h-3.5 w-3.5" />
+                            IA pendente
+                          </Pill>
                         )}
-                      </button>
 
-                      <Link href={`/dashboard/campaigns/${c.id}?mode=edit`}>
-                        <button className="flex h-9 items-center gap-2 rounded-xl border border-black/5 bg-white px-3 text-sm font-semibold text-zinc-600 transition hover:bg-zinc-50 hover:text-emerald-600">
-                          <Edit2 className="h-4 w-4" />
-                          <span>Editar</span>
-                        </button>
-                      </Link>
-
-                      <div className="flex items-center gap-1 rounded-xl bg-zinc-100 p-1">
-                        <button
-                          onClick={() => setSelectedPostCampaign(c)}
-                          disabled={!hasArt}
-                          className="flex h-7 items-center gap-1.5 rounded-lg px-2 text-[11px] font-bold transition disabled:cursor-not-allowed disabled:opacity-40 enabled:bg-white enabled:text-zinc-900 enabled:shadow-sm enabled:hover:bg-zinc-50"
-                        >
-                          <ImageIcon className="h-3.5 w-3.5" />
-                          Arte
-                        </button>
-                        <button
-                          onClick={() => setSelectedReelsCampaign(c)}
-                          disabled={!hasVideo}
-                          className="flex h-7 items-center gap-1.5 rounded-lg px-2 text-[11px] font-bold transition disabled:cursor-not-allowed disabled:opacity-40 enabled:bg-white enabled:text-zinc-900 enabled:shadow-sm enabled:hover:bg-zinc-50"
-                        >
-                          <FileText className="h-3.5 w-3.5" />
-                          Vídeo
-                        </button>
+                        {hasReels ? (
+                          <Pill tone="success">
+                            <Video className="h-3.5 w-3.5" />
+                            Reels pronto
+                          </Pill>
+                        ) : (
+                          <Pill tone="neutral">
+                            <Video className="h-3.5 w-3.5" />
+                            Reels —
+                          </Pill>
+                        )}
                       </div>
 
-                      <Link href={`/dashboard/campaigns/${c.id}`}>
-                        <button className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-900 text-white shadow-sm transition hover:bg-zinc-800">
-                          <Eye className="h-4 w-4" />
-                        </button>
-                      </Link>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-zinc-600">
+                        <span className="font-semibold text-zinc-800">{formatBRL(c.price)}</span>
+                        <span>•</span>
+                        <span>{safeToString(c.audience) || "Público —"}</span>
+                        <span>•</span>
+                        <span className="truncate">{safeToString(c.objective) || "Objetivo —"}</span>
+                      </div>
+
+                      <div className="mt-2 text-xs text-zinc-500">
+                        <span className="font-semibold text-zinc-700">{storeName}</span>
+                        {location ? <span> · {location}</span> : null}
+                        <span className="mx-2">•</span>
+                        <span className="text-zinc-600">
+                          Perfil:{" "}
+                          <span className="font-semibold text-zinc-700">
+                            {positioningLabel}
+                          </span>
+                          {!c.product_positioning ? ` (padrão loja: ${storeDefault})` : ""}
+                        </span>
+                        <span className="mx-2">•</span>
+                        <span className="text-zinc-600">{contactLine}</span>
+                      </div>
+
+                      {hasAi && (c.ai_caption || c.ai_text) ? (
+                        <div className="mt-3 line-clamp-2 text-sm text-zinc-700">
+                          {c.ai_caption || c.ai_text}
+                        </div>
+                      ) : (
+                        <div className="mt-3 text-sm text-zinc-500">
+                          Gere o texto com IA para ver a legenda aqui.
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </MotionWrapper>
-      )}
 
-      {selectedPostCampaign && (
-        <PostModal
-          campaign={selectedPostCampaign}
-          onClose={() => setSelectedPostCampaign(null)}
-        />
-      )}
-      {selectedReelsCampaign && (
-        <ReelsModal
-          campaign={selectedReelsCampaign}
-          onClose={() => setSelectedReelsCampaign(null)}
-        />
-      )}
+                {/* FOOTER FIXO (ações sempre no mesmo lugar) */}
+                <div className="border-t border-black/5 px-4 py-3 bg-zinc-50/60">
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    {/* TEXTO IA */}
+                    {!hasAi ? (
+                      <button
+                        onClick={(e) => {
+                          stopLink(e);
+                          generateAndSaveText(c, false);
+                        }}
+                        disabled={generatingTextId === c.id}
+                        className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
+                        type="button"
+                      >
+                        <Wand2 className="h-4 w-4" />
+                        {generatingTextId === c.id ? "Gerando..." : "Gerar IA"}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          stopLink(e);
+                          openConfirm({
+                            icon: "ai",
+                            title: "Regenerar conteúdo de IA?",
+                            description:
+                              "Isso vai substituir o texto atual (headline/legenda/CTA/hashtags). Você pode perder um texto bom.",
+                            confirmLabel: "Regenerar IA",
+                            destructive: true,
+                            onConfirm: () => generateAndSaveText(c, true),
+                          });
+                        }}
+                        disabled={generatingTextId === c.id}
+                        className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
+                        type="button"
+                      >
+                        <Wand2 className="h-4 w-4" />
+                        {generatingTextId === c.id ? "Gerando..." : "Regenerar IA"}
+                      </button>
+                    )}
+
+                    {/* REELS */}
+                    {!hasReels ? (
+                      <button
+                        onClick={(e) => {
+                          stopLink(e);
+                          generateAndSaveReels(c, false);
+                        }}
+                        disabled={generatingReelsId === c.id}
+                        className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
+                        type="button"
+                      >
+                        <Video className="h-4 w-4" />
+                        {generatingReelsId === c.id ? "Gerando..." : "Gerar Reels"}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          stopLink(e);
+                          openConfirm({
+                            icon: "reels",
+                            title: "Regenerar roteiro de Reels?",
+                            description:
+                              "Isso vai substituir o roteiro atual (hook, script, shotlist e sugestões).",
+                            confirmLabel: "Regenerar Reels",
+                            destructive: true,
+                            onConfirm: () => generateAndSaveReels(c, true),
+                          });
+                        }}
+                        disabled={generatingReelsId === c.id}
+                        className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50"
+                        type="button"
+                      >
+                        <Video className="h-4 w-4" />
+                        {generatingReelsId === c.id ? "Gerando..." : "Regenerar Reels"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+
+      <ConfirmDialog state={confirmState} onClose={closeConfirm} onConfirm={handleConfirm} />
+
     </main>
   );
 }
