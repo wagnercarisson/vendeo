@@ -7,7 +7,7 @@ export async function fetchJson<T>(
   const contentType = res.headers.get("content-type") || "";
   const text = await res.text();
 
-  if (!res.ok) {
+  if (res.ok === false) {
   let msg = text;
 
   // se veio HTML, retorna uma mensagem curta

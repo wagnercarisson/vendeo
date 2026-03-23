@@ -30,24 +30,26 @@ export function DashboardHero({
                     </p>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                     <Link
                         href="/dashboard/campaigns/new"
-                        className="inline-flex items-center justify-center rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 transition"
+                        className="inline-flex items-center justify-center rounded-xl bg-orange-500 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-orange-500/20 hover:bg-orange-600 hover:-translate-y-[1px] transition-all active:scale-[0.98]"
                     >
                         Nova campanha
                     </Link>
 
                     <Link
-                        href="/dashboard/plans/new"
-                        className="inline-flex items-center justify-center rounded-xl border border-vendeo-border bg-white px-4 py-2 text-sm font-semibold text-vendeo-text hover:bg-slate-50 transition"
+                        href="/dashboard/plans?view=new"
+                        className="inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-vendeo-text hover:bg-slate-50 transition-all"
                     >
                         Gerar plano
                     </Link>
                 </div>
             </div>
 
-            <div className="mt-6 h-2 w-full rounded-full bg-gradient-to-r from-emerald-500/25 via-orange-500/15 to-transparent" />
+            <div className="mt-8 h-1 w-full rounded-full bg-slate-100 overflow-hidden">
+                <div className="h-full w-2/3 rounded-full bg-gradient-to-r from-emerald-500 to-orange-500 opacity-30" />
+            </div>
         </div>
     );
 }

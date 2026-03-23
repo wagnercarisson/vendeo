@@ -15,6 +15,7 @@ import {
   ChevronsRight,
   Sparkles,
 } from "lucide-react";
+import FeedbackButton from "@/components/feedback/FeedbackButton";
 
 type Props = {
   children: React.ReactNode;
@@ -254,47 +255,73 @@ export function DashboardShell({
           )}
         </div>
 
-        {/* CTA principal (1 linha; subtítulo só no tooltip) */}
         <div className={cx("relative z-10", sidebarCollapsed ? "px-3 pt-4" : "px-4 pt-4")}>
           <FixedTooltip
             enabled={sidebarCollapsed}
             content={
               <span className="block">
                 <span className="block text-sm font-semibold">Nova campanha</span>
-                <span className="block text-black/60">{ctaSubtitle}</span>
+                <span className="block text-black/60">
+                   {pathname === "/dashboard/campaigns/new" ? "Você já está aqui" : ctaSubtitle}
+                </span>
               </span>
             }
           >
-            <Link
-              href={ctaHref}
-              className={cx(
-                "group flex items-center rounded-2xl border border-white/10",
-                "bg-white/5 shadow-soft transition hover:bg-white/10",
-                sidebarCollapsed ? "h-12 justify-center" : "h-12 px-3 gap-3"
-              )}
-              title={!hasStore ? "Cadastre sua loja para liberar campanhas" : undefined}
-            >
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500 text-white transition group-hover:bg-orange-600">
-                <Plus className="h-4 w-4" />
-              </span>
+            {pathname === "/dashboard/campaigns/new" ? (
+              <div
+                className={cx(
+                  "group flex items-center rounded-2xl border border-transparent",
+                  "bg-white text-[#0B2E22] shadow-soft cursor-default",
+                  sidebarCollapsed ? "h-12 justify-center" : "h-12 px-3 gap-3"
+                )}
+                aria-current="page"
+              >
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#0F3D2E] text-white">
+                  <Plus className="h-4 w-4" />
+                </span>
 
-              {!sidebarCollapsed && (
-                <>
-                  <div className="flex-1 min-w-0">
-                    <div className="truncate whitespace-nowrap text-sm font-semibold leading-tight text-white">
-                      Nova campanha
+                {!sidebarCollapsed && (
+                  <>
+                    <div className="flex-1 min-w-0">
+                      <div className="truncate whitespace-nowrap text-sm font-semibold leading-tight text-[#0B2E22]">
+                        Nova campanha
+                      </div>
                     </div>
-                  </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <Link
+                href={ctaHref}
+                className={cx(
+                  "group flex items-center rounded-2xl border border-white/10",
+                  "bg-white/5 shadow-soft transition hover:bg-white/10",
+                  sidebarCollapsed ? "h-12 justify-center" : "h-12 px-3 gap-3"
+                )}
+                title={!hasStore ? "Cadastre sua loja para liberar campanhas" : undefined}
+              >
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500 text-white transition group-hover:bg-orange-600">
+                  <Plus className="h-4 w-4" />
+                </span>
 
-                  <div className="shrink-0">
-                    <span className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white/85 whitespace-nowrap">
-                      <Sparkles className="h-3.5 w-3.5" />
-                      {hasStore ? "Pronto" : "Onboarding"}
-                    </span>
-                  </div>
-                </>
-              )}
-            </Link>
+                {!sidebarCollapsed && (
+                  <>
+                    <div className="flex-1 min-w-0">
+                      <div className="truncate whitespace-nowrap text-sm font-semibold leading-tight text-white">
+                        Nova campanha
+                      </div>
+                    </div>
+
+                    <div className="shrink-0">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white/85 whitespace-nowrap">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        {hasStore ? "Pronto" : "Onboarding"}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </Link>
+            )}
           </FixedTooltip>
 
           <div className={cx("my-4 h-px bg-white/10", sidebarCollapsed && "mx-1")} />
@@ -304,9 +331,14 @@ export function DashboardShell({
         <nav className={cx("relative z-10 flex-1", sidebarCollapsed ? "px-2" : "px-3")}>
           <div className={cx("space-y-1", sidebarCollapsed && "space-y-2")}>
             {menu.map((item) => {
-              const active =
-                pathname === item.href ||
-                (item.href !== "/dashboard" && pathname?.startsWith(item.href));
+              const isExactMatch = pathname === item.href;
+              const isChildRoute = item.href !== "/dashboard" && pathname?.startsWith(item.href);
+              
+              // Se estamos no fluxo de nova campanha (/dashboard/campaigns/new), o link principal de Campanhas NÃO deve ficar aceso.
+              const isCreatingNewCampaign = pathname?.startsWith("/dashboard/campaigns/new");
+              const isCampaignMenuItem = item.href === "/dashboard/campaigns";
+
+              const active = isExactMatch || (isChildRoute && !(isCampaignMenuItem && isCreatingNewCampaign));
 
               const locked = item.requiresStore && !hasStore;
               const href = locked ? "/dashboard/store" : item.href;
@@ -483,7 +515,10 @@ export function DashboardShell({
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main id="dashboard-main-content" className="flex-1 overflow-y-auto p-6">{children}</main>
+
+        {/* Feedback Flutuante */}
+        {user && <FeedbackButton />}
       </div>
     </div>
   );

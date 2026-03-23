@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { Upload, Loader2, Image as ImageIcon, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { MotionWrapper } from "../_components/MotionWrapper";
 
 function Toast({
   message,
@@ -214,6 +216,17 @@ export default function StorePage() {
   const [instagram, setInstagram] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
 
+  // Upload states
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [logoErrorMsg, setLogoErrorMsg] = useState<string | null>(null);
+
+  // Next steps states
+  const [hasCampaigns, setHasCampaigns] = useState(false);
+  const [hasPlans, setHasPlans] = useState(false);
+
   // cores
   const [primaryColor, setPrimaryColor] = useState("#16a34a");
   const [secondaryColor, setSecondaryColor] = useState("#0f172a");
@@ -239,6 +252,88 @@ export default function StorePage() {
   function showToast(message: string, type: "success" | "error") {
     setToast({ message, type });
     window.setTimeout(() => setToast(null), 3000);
+  }
+
+  async function onLogoFileSelected(file: File | null) {
+    if (!file) return;
+
+    const maxMb = 8;
+    if (file.size > maxMb * 1024 * 1024) {
+      setLogoErrorMsg(`Imagem muito grande. Máximo: ${maxMb}MB.`);
+      return;
+    }
+
+    try {
+      setLogoErrorMsg(null);
+      setUploadingLogo(true);
+      setUploadProgress(10);
+
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth?.user) throw new Error("Você precisa estar logado para enviar imagem.");
+
+      const safeName = file.name.replace(/[^\w.\-]+/g, "_");
+      const timestamp = Date.now();
+      const path = `logos/${auth.user.id}/${timestamp}_${safeName}`;
+
+      setUploadProgress(30);
+
+      const { error: upErr } = await supabase.storage
+        .from("campaign-images")
+        .upload(path, file, {
+          cacheControl: "3600",
+          upsert: true,
+          contentType: file.type,
+        });
+
+      if (upErr) throw new Error(upErr.message);
+
+      setUploadProgress(80);
+
+      const { data: pub } = supabase.storage.from("campaign-images").getPublicUrl(path);
+      const publicUrl = pub?.publicUrl;
+
+      if (!publicUrl) throw new Error("Falha ao obter URL pública da imagem.");
+
+      setUploadProgress(100);
+      setLogoUrl(publicUrl);
+
+      setTimeout(() => {
+        setUploadingLogo(false);
+        setUploadProgress(0);
+      }, 600);
+
+    } catch (err: any) {
+      setLogoErrorMsg(err?.message || "Erro ao enviar imagem.");
+      setUploadingLogo(false);
+      setUploadProgress(0);
+    }
+  }
+
+  function onDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (uploadingLogo) return;
+    setDragOver(true);
+  }
+
+  function onDragLeave(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+  }
+
+  async function onDrop(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+    if (uploadingLogo) return;
+
+    const file = e.dataTransfer?.files?.[0] ?? null;
+    if (file && file.type.startsWith("image/")) {
+      await onLogoFileSelected(file);
+    } else if (file) {
+      setLogoErrorMsg("Por favor, envie apenas arquivos de imagem.");
+    }
   }
 
   function resetForm() {
@@ -381,7 +476,11 @@ export default function StorePage() {
   }
 
   async function loadActiveStoreDetails(storeId: string) {
-    if (!storeId) return;
+    if (!storeId) {
+      setHasCampaigns(false);
+      setHasPlans(false);
+      return;
+    }
 
     const { data, error } = await supabase
       .from("stores")
@@ -395,6 +494,20 @@ export default function StorePage() {
     }
 
     fillFromStore(data as StoreRow);
+
+    const { count: campaignsCount } = await supabase
+      .from("campaigns")
+      .select("*", { count: "exact", head: true })
+      .eq("store_id", storeId);
+
+    setHasCampaigns((campaignsCount ?? 0) > 0);
+
+    const { count: plansCount } = await supabase
+      .from("weekly_plans")
+      .select("*", { count: "exact", head: true })
+      .eq("store_id", storeId);
+
+    setHasPlans((plansCount ?? 0) > 0);
   }
 
   useEffect(() => {
@@ -580,16 +693,29 @@ export default function StorePage() {
 
               <div className="px-6 py-6">
                 {bootLoading ? (
-                  <div className="grid gap-3">
-                    <div className="h-4 w-40 animate-pulse rounded bg-zinc-100" />
-                    <div className="h-11 w-full animate-pulse rounded-xl bg-zinc-100" />
-                    <div className="h-11 w-full animate-pulse rounded-xl bg-zinc-100" />
-                    <div className="h-11 w-full animate-pulse rounded-xl bg-zinc-100" />
-                  </div>
+                  <MotionWrapper delay={0.2} className="grid gap-6">
+                    {/* Skeleton mimicking the form structure */}
+                    <div className="space-y-4">
+                      <div className="h-5 w-40 animate-pulse rounded bg-slate-200" />
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="h-11 w-full animate-pulse rounded-xl bg-slate-100 sm:col-span-2" />
+                        <div className="h-11 w-full animate-pulse rounded-xl bg-slate-100" />
+                        <div className="h-11 w-full animate-pulse rounded-xl bg-slate-100" />
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 pt-4 border-t border-slate-100">
+                      <div className="h-5 w-32 animate-pulse rounded bg-slate-200" />
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="h-11 w-full animate-pulse rounded-xl bg-slate-100" />
+                        <div className="h-11 w-full animate-pulse rounded-xl bg-slate-100" />
+                      </div>
+                    </div>
+                  </MotionWrapper>
                 ) : (
                   <form onSubmit={handleSave} className="grid gap-6">
                     {/* Informações básicas */}
-                    <section className="grid gap-3">
+                    <MotionWrapper delay={0.1} className="grid gap-3">
                       <div className="text-sm font-semibold">Informações básicas</div>
 
                       <div className="grid gap-3 sm:grid-cols-2">
@@ -631,44 +757,105 @@ export default function StorePage() {
                         </div>
 
                         <div className="grid gap-1 sm:col-span-2">
-                          <div className="flex items-center justify-between gap-3">
-                            <label className="text-sm font-medium">Logo URL (opcional)</label>
-                            {logoPreviewOk && (
-                              <span className="text-xs text-zinc-500">
-                                Prévia ativada
-                              </span>
+                          <label className="text-sm font-medium">Logo da loja (opcional)</label>
+
+                          {logoErrorMsg && (
+                            <div className="mb-2 rounded-lg bg-red-50 p-2 text-xs text-red-600 flex items-center justify-between">
+                              <span>{logoErrorMsg}</span>
+                              <button type="button" onClick={() => setLogoErrorMsg(null)}>
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          )}
+
+                          <div
+                            onClick={() => !uploadingLogo && fileInputRef.current?.click()}
+                            onDragOver={onDragOver}
+                            onDragLeave={onDragLeave}
+                            onDrop={onDrop}
+                            className={`relative group cursor-pointer overflow-hidden rounded-xl border-2 border-dashed transition-all duration-200 min-h-[140px] flex flex-col items-center justify-center p-4 
+                                  ${dragOver ? "border-emerald-500 bg-emerald-50" : "border-zinc-200 bg-zinc-50 hover:border-zinc-300 hover:bg-zinc-100/50"}
+                                  ${uploadingLogo ? "pointer-events-none opacity-80" : ""}`}
+                          >
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => onLogoFileSelected(e.target.files?.[0] ?? null)}
+                              className="hidden"
+                            />
+
+                            {uploadingLogo ? (
+                              <div className="flex flex-col items-center gap-2">
+                                <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+                                <span className="text-xs font-medium text-zinc-600">Enviando... {uploadProgress}%</span>
+                                <div className="w-32 h-1.5 bg-zinc-200 rounded-full overflow-hidden mt-1">
+                                  <div
+                                    className="h-full bg-emerald-600 transition-all duration-300"
+                                    style={{ width: `${uploadProgress}%` }}
+                                  />
+                                </div>
+                              </div>
+                            ) : logoPreviewOk ? (
+                              <div className="relative h-24 w-24 rounded-2xl overflow-hidden border border-zinc-200 bg-white shadow-sm transition-transform group-hover:scale-105">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={logoUrl.trim()}
+                                  alt="Preview do Logo"
+                                  className="w-full h-full object-contain p-2"
+                                />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white p-2 text-center gap-1">
+                                  <Upload className="h-4 w-4" />
+                                  <span className="text-[10px] font-medium leading-tight">Trocar</span>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center gap-2 text-zinc-500 group-hover:text-zinc-600">
+                                <div className="p-2.5 rounded-full bg-white border border-zinc-200 shadow-sm group-hover:shadow transition-all group-hover:-translate-y-0.5">
+                                  <ImageIcon className="h-5 w-5 text-zinc-400 group-hover:text-emerald-500 transition-colors" />
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-sm font-medium">Arraste a logo ou clique aqui</p>
+                                  <p className="text-xs text-zinc-400 mt-1">JPG, PNG ou WEBP até 8MB</p>
+                                </div>
+                              </div>
+                            )}
+
+                            {logoPreviewOk && !uploadingLogo && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setLogoUrl("");
+                                }}
+                                className="absolute top-2 right-2 p-1.5 rounded-full bg-white text-zinc-500 hover:text-red-500 hover:bg-red-50 shadow-sm border border-zinc-100 transition-all"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
                             )}
                           </div>
 
+                          <div className="relative mt-3">
+                            <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                              <div className="w-full border-t border-zinc-100"></div>
+                            </div>
+                            <div className="relative flex justify-center text-[10px] uppercase tracking-wider font-semibold">
+                              <span className="bg-white px-2 text-zinc-400 font-medium">Ou cole a URL direto</span>
+                            </div>
+                          </div>
+
                           <input
-                            className="h-11 rounded-xl border border-zinc-200 px-3 outline-none focus:ring-2 focus:ring-emerald-200"
+                            className="mt-2 h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 placeholder:text-zinc-400"
                             value={logoUrl}
                             onChange={(e) => setLogoUrl(e.target.value)}
                             placeholder="https://..."
                           />
-
-                          {logoPreviewOk && (
-                            <div className="mt-2 flex items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-                              <div className="relative h-10 w-10 overflow-hidden rounded-xl bg-white">
-                                <Image
-                                  src={logoUrl.trim()}
-                                  alt="Logo"
-                                  fill
-                                  className="object-contain"
-                                />
-                              </div>
-                              <div className="text-xs text-zinc-600">
-                                Se a imagem não aparecer, pode ser bloqueio de CORS/host.
-                                (Sem problema — isso não impede salvar.)
-                              </div>
-                            </div>
-                          )}
                         </div>
                       </div>
-                    </section>
+                    </MotionWrapper>
 
                     {/* Posicionamento */}
-                    <section className="grid gap-3">
+                    <MotionWrapper delay={0.2} className="grid gap-3">
                       <div className="text-sm font-semibold">Posicionamento</div>
 
                       <div className="grid gap-3 sm:grid-cols-2">
@@ -735,10 +922,10 @@ export default function StorePage() {
                           </div>
                         </div>
                       </div>
-                    </section>
+                    </MotionWrapper>
 
                     {/* Contato */}
-                    <section className="grid gap-3">
+                    <MotionWrapper delay={0.3} className="grid gap-3">
                       <div className="text-sm font-semibold">Contato e endereço (opcional)</div>
 
                       <div className="grid gap-3 sm:grid-cols-2">
@@ -800,10 +987,10 @@ export default function StorePage() {
                           </div>
                         </div>
                       </div>
-                    </section>
+                    </MotionWrapper>
 
                     {/* Identidade visual */}
-                    <section className="grid gap-3">
+                    <MotionWrapper delay={0.4} className="grid gap-3">
                       <div className="text-sm font-semibold">Identidade visual</div>
 
                       <div className="grid gap-3 sm:grid-cols-2">
@@ -941,13 +1128,13 @@ export default function StorePage() {
                           </div>
                         </div>
                       </div>
-                    </section>
+                    </MotionWrapper>
 
-                    <div className="flex items-center justify-between gap-4 border-t border-zinc-100 pt-6">
+                    <MotionWrapper delay={0.5} className="flex items-center justify-between gap-4 border-t border-slate-100 pt-6">
                       <button
                         type="button"
                         onClick={() => router.push("/dashboard")}
-                        className="rounded-xl border border-zinc-200 bg-white px-5 py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
+                        className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
                         disabled={saving}
                       >
                         Cancelar
@@ -956,7 +1143,7 @@ export default function StorePage() {
                       <button
                         type="submit"
                         disabled={saving}
-                        className="rounded-xl bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500 disabled:opacity-60"
+                        className="rounded-xl bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white shadow-premium transition hover:bg-emerald-500 disabled:opacity-60"
                       >
                         {saving
                           ? "Salvando..."
@@ -964,15 +1151,15 @@ export default function StorePage() {
                             ? "Salvar alterações"
                             : "Salvar e continuar"}
                       </button>
-                    </div>
+                    </MotionWrapper>
                   </form>
                 )}
               </div>
             </div>
 
             {/* Side help card */}
-            <aside className="grid content-start gap-6">
-              <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+            <MotionWrapper delay={0.3} className="grid content-start gap-6">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <div className="text-sm font-semibold text-zinc-900">
                   O que isso melhora na prática
                 </div>
@@ -980,6 +1167,7 @@ export default function StorePage() {
                   <li>• Campanhas com linguagem “do seu bairro” e do seu público.</li>
                   <li>• Melhor uso de urgência, preço e posicionamento.</li>
                   <li>• Identidade consistente: menos “cara de template”.</li>
+                  <li>• Use o logo com fundo transparente (PNG) ou formato quadrado para encaixar perfeito nas campanhas.</li>
                 </ul>
 
                 <div className="mt-5 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
@@ -998,20 +1186,20 @@ export default function StorePage() {
                 </div>
                 <div className="mt-3 grid gap-2 text-sm text-zinc-600">
                   <div className="flex items-start gap-2">
-                    <span className="mt-1 inline-block h-2 w-2 rounded-full bg-emerald-500" />
-                    <span>Salvar a loja</span>
+                    <span className={`mt-1 inline-block h-2 w-2 rounded-full ${isEditMode ? "bg-emerald-500" : "bg-zinc-300"}`} />
+                    <span className={isEditMode ? "text-zinc-900 font-medium" : ""}>Salvar a loja</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="mt-1 inline-block h-2 w-2 rounded-full bg-zinc-300" />
-                    <span>Criar campanhas com a identidade aplicada</span>
+                    <span className={`mt-1 inline-block h-2 w-2 rounded-full ${hasCampaigns ? "bg-emerald-500" : "bg-zinc-300"}`} />
+                    <span className={hasCampaigns ? "text-zinc-900 font-medium" : ""}>Criar campanhas com a identidade aplicada</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="mt-1 inline-block h-2 w-2 rounded-full bg-zinc-300" />
-                    <span>Gerar plano semanal com consistência</span>
+                    <span className={`mt-1 inline-block h-2 w-2 rounded-full ${hasPlans ? "bg-emerald-500" : "bg-zinc-300"}`} />
+                    <span className={hasPlans ? "text-zinc-900 font-medium" : ""}>Gerar plano semanal com consistência</span>
                   </div>
                 </div>
               </div>
-            </aside>
+            </MotionWrapper>
           </div>
         </div>
       </main>
