@@ -9,6 +9,11 @@
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.97.0",
+<<<<<<< HEAD
+=======
+    "date-fns": "^4.1.0",
+    "framer-motion": "^12.35.1",
+>>>>>>> parent of 2615411 (feat(security): implement api rate limiting and finalize rls hardening)
     "lucide-react": "^0.577.0",
     "next": "14.2.5",
     "openai": "^4.0.0",
