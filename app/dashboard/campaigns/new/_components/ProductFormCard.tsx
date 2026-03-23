@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Upload, Loader2, Image as ImageIcon, X, Package, Ruler, Megaphone } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useSignedUrl } from "@/lib/hooks/useSignedUrl";
 import type { CampaignFormData, CampaignContentType } from "./types";
 import { formatBRLMask } from "@/lib/formatters/priceMask";
 
@@ -23,6 +24,8 @@ export function ProductFormCard({
     const [dragOver, setDragOver] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+    const { url: previewUrl } = useSignedUrl(value.image_url);
 
     function updateField<K extends keyof CampaignFormData>(
         field: K,
@@ -273,7 +276,7 @@ export function ProductFormCard({
                             <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-zinc-200 bg-white">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
-                                    src={value.image_url}
+                                    src={previewUrl || ""}
                                     alt="Preview"
                                     className="w-full h-full object-contain"
                                 />

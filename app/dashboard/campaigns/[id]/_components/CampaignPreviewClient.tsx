@@ -15,7 +15,7 @@ import {
     Printer,
     Calendar,
 } from "lucide-react";
-
+import { useSignedUrl } from "@/lib/hooks/useSignedUrl";
 import SalesFeedbackInline from "@/components/feedback/SalesFeedbackInline";
 import { CampaignEditForm, CampaignSavePayload } from "./CampaignEditForm";
 import { OBJECTIVE_OPTIONS } from "../../new/_components/constants";
@@ -117,8 +117,11 @@ export function CampaignPreviewClient({
         setIsEditingBase(true);
     };
 
-    const finalArtUrlClean = (campaign.image_url || "").split("#")[0];
-    const heroImageUrlClean = (campaign.image_url || campaign.product_image_url || "").split("#")[0];
+    const { url: finalArtUrlSigned } = useSignedUrl(campaign.image_url);
+    const { url: heroImageUrlSigned } = useSignedUrl(campaign.image_url || campaign.product_image_url);
+
+    const finalArtUrlClean = (finalArtUrlSigned || "").split("#")[0];
+    const heroImageUrlClean = (heroImageUrlSigned || "").split("#")[0];
 
     const priceText = useMemo(() => {
         if (campaign.price == null) return null;
