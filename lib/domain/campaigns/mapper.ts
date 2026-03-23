@@ -83,7 +83,7 @@ export function mapDbCampaignToDomain(raw: any): Campaign {
 /**
  * Mapeia dados do banco para o contexto lean usado pela IA.
  */
-export function mapDbCampaignToAIContext(raw: any): CampaignContext {
+export function mapDbCampaignToAIContext(raw: any, theme?: string | null): CampaignContext {
   return {
     id: String(raw.id),
     store_id: String(raw.store_id),
@@ -92,6 +92,7 @@ export function mapDbCampaignToAIContext(raw: any): CampaignContext {
     audience: String(raw.audience || "Público Geral"),
     objective: String(raw.objective || "Vendas"),
     product_positioning: raw.product_positioning ?? null,
+    theme: theme ?? null,
   };
 }
 

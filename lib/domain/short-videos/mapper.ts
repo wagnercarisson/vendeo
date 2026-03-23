@@ -38,7 +38,7 @@ export function mapAiShortVideoToDomain(
 /**
  * Mapeia uma linha crua de campanha para o contexto de reels.
  */
-export function mapDbCampaignToShortVideoContext(raw: any): ShortVideoContext {
+export function mapDbCampaignToShortVideoContext(raw: any, theme?: string | null): ShortVideoContext {
   return {
     id: String(raw.id),
     store_id: String(raw.store_id),
@@ -47,6 +47,7 @@ export function mapDbCampaignToShortVideoContext(raw: any): ShortVideoContext {
     audience: String(raw.audience || "Público Geral"),
     objective: String(raw.objective || "Vendas"),
     product_positioning: raw.product_positioning ?? null,
+    theme: theme ?? null,
     
     reels_generated_at: raw.reels_generated_at ?? null,
     reels_hook: raw.reels_hook ?? null,

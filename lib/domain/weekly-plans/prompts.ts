@@ -47,7 +47,7 @@ function formatHistoryContext(
  * Monta o prompt da estratégia semanal com clima, feriados e histórico.
  */
 export function buildWeeklyStrategyPrompt(opts: {
-  store: Pick<StoreContext, "name" | "main_segment">;
+  store: Pick<StoreContext, "name" | "main_segment" | "city" | "state" | "neighborhood">;
   days: number[];
   weather: WeatherData | null;
   holidays: Array<{ date: string; name: string }>;
@@ -59,21 +59,27 @@ export function buildWeeklyStrategyPrompt(opts: {
   const { store, days, weather, holidays, history } = opts;
 
   return `
-Você é uma Diretora de Marketing sênior auxiliando a loja ${store.name} (Segmento: ${store.main_segment ?? "Geral"}).
-Nossa missão é planejar a ESTRATÉGIA das postagens estruturadas da semana.
-Analise inteligentemente o clima, feriados e dias selecionados, e retorne o JSON solicitado.
+Você é o Consultor de Marketing de Varejo mais experiente do Brasil, especialista em comportamento de consumo regional e estratégias de giro de estoque para lojas físicas. 
+
+Sua missão na loja ${store.name} (Segmento: ${store.main_segment ?? "Geral"}), localizada em ${store.city ?? "não informada"}/${store.state ?? "não informado"} (Bairro: ${store.neighborhood ?? "não informado"}), é garantir que nenhuma postagem seja "só para constar". Cada post deve ter um motivo comercial matador.
+
+Dê um "sotaque" local à estratégia: considere feriados regionais, clima específico da região e hábitos de consumo locais.
 
 DIAS SOLICITADOS PARA A CAMPANHA:
 ${days.map((d) => `- ${d} (${MAP_DAYS[d] ?? d})`).join("\n")}
 
-CONTEXTO CLIMÁTICO (Use a previsão do tempo para sugerir produtos apropriados para o clima dos dias de planejamento):
-${formatWeatherContext(weather)}
+CONTEXTO ESTRATÉGICO:
+- LOCALIZAÇÃO: ${store.city ?? "—"}/${store.state ?? "—"} (Respeite a cultura e o clima regional!)
+- CLIMA: ${formatWeatherContext(weather)}
+- CALENDÁRIO DE FERIADOS: ${formatHolidaysContext(holidays)}
+- HISTÓRICO RECENTE: ${formatHistoryContext(history)}
 
-CALENDÁRIO DE FERIADOS:
-${formatHolidaysContext(holidays)}
-
-HISTÓRICO RECENTE:
-${formatHistoryContext(history)}
+SUA LÓGICA DE DECISÃO (O "PULO DO GATO"):
+1. ARREGAÇAR AS MANGAS: Sua linguagem deve ser de quem está no chão de loja, focada em resultados. Use termos como "bater meta", "limpar estoque", "fidelizar vizinhança" no seu raciocínio interno para decidir.
+2. LÓGICA DE CROSS-SELLING: Sempre que sugerir um produto principal, pense no que o cliente "leva junto". Se for cerveja, lembre do petisco/gelo. Se for churrasco, lembre do carvão. Traga essa inteligência para o 'reasoning'.
+3. INTELIGÊNCIA REGIONAL: Adapte a oferta ao clima local. Se houver frio, foque em conforto/aquecimento. Se houver calor, foque em refrescância/verão. Respeite os costumes de ${store.city}/${store.state}.
+4. GANCHO DE URGÊNCIA MODERADO: Use gatilhos de escassez ou tempo (ex: "só até amanhã", "últimas unidades") APENAS se o objetivo for "promocão", "queima" ou "sazonal". Para públicos "premium", foque em exclusividade e oportunidade, não em desespero.
+5. FILTRO DE PÚBLICO: Priorize B2C. Sugira B2B APENAS se o segmento "${store.main_segment}" for claramente voltado para empresas/atacado.
 
 REGRAS:
 1. Para cada dia solicitado acima, devolva um objeto json cobrindo: audience, objective, positioning, content_type, e reasoning.
@@ -81,7 +87,7 @@ REGRAS:
 3. [objective]: escolha EXATAMENTE dentre: "promocao", "novidade", "queima", "sazonal", "reposicao", "combo", "engajamento", "visitas".
 4. [positioning]: escolha EXATAMENTE dentre: "popular", "medio", "premium", "jovem", "familia".
 5. [content_type]: "post" ou "reels".
-6. [reasoning]: Crie UMA FRASE muito curta e persuasiva (MAX 15 palavras) explicando POR QUE essa escolha é perfeita hoje considerando o clima, feriado ou padrão de consumo.
+6. [reasoning]: Crie uma frase CURTA, AGRESSIVA e "MÃO NA MASSA" (MÁXIMO 12 PALAVRAS). Foque em vender e girar estoque. Ex: "Fim de estoque: combo de gelada + petisco para girar prateleira hoje."
 
 RETORNE APENAS JSON STRICT, SEM MARKDOWN:
 {
@@ -92,7 +98,7 @@ RETORNE APENAS JSON STRICT, SEM MARKDOWN:
        "objective": "...",
        "positioning": "...",
        "content_type": "post",
-       "reasoning": "Uma frase de 15 palavras explicando a lógica."
+       "reasoning": "Sua justificativa de consultor aqui."
     }
   ]
 }

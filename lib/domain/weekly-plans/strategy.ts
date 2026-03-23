@@ -70,7 +70,7 @@ export async function generateWeeklyStrategy(
 
   const { data: store } = await supabaseAdmin
     .from("stores")
-    .select("name, city, state, brand_positioning, main_segment, tone_of_voice")
+    .select("name, city, state, neighborhood, brand_positioning, main_segment, tone_of_voice")
     .eq("id", storeId)
     .single();
 

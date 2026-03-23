@@ -703,6 +703,12 @@ Substituir heurística atual por: horário de funcionamento da loja, dias aberto
 3. Possível endurecimento da validação de estratégia
 Hoje: tolerante via helper. Futuro: validar direto na entrada da IA, evitar qualquer valor fora de constants.
 
+4. Assistente de Estratégia "Mágica" (Draft)
+Implementar botão "Sugerir com IA" no formulário de campanha manual. 
+- Input: Dados da Loja (Segmento, Tom), Localização (Cidade/Estado), Clima em tempo real e Produto.
+- Output: Sugestão otimizada de Público, Objetivo e Posicionamento para maximizar o giro de estoque.
+- Contexto: Recuperado do refinamento de prompt realizado na fase pré-beta.
+
 
 Status do Plano
 Dia 1 — Modelo de Loja        ✅ Concluído

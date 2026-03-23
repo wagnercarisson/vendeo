@@ -45,8 +45,19 @@ export async function generateCampaignContent(
   // Normalização oficial para o domínio camelCase
   const campaign = mapDbCampaignToDomain(rawCampaign);
 
+  // 1.1) Busca o tema da estratégia se vier de um plano
+  let strategicTheme: string | null = null;
+  if (campaign.weekly_plan_item_id) {
+    const { data: wpItem } = await supabaseAdmin
+      .from("weekly_plan_items")
+      .select("theme")
+      .eq("id", campaign.weekly_plan_item_id)
+      .single();
+    strategicTheme = wpItem?.theme ?? null;
+  }
+
   // Mapeamento de contexto técnico para a IA (mantemos para compatibilidade com prompts legados)
-  const campaignCtx = mapDbCampaignToAIContext(rawCampaign);
+  const campaignCtx = mapDbCampaignToAIContext(rawCampaign, strategicTheme);
 
   // 2) Idempotência (usa a versão snake_case mapeada)
   const already = !!(campaign.ai_caption && campaign.ai_caption.trim().length > 0);

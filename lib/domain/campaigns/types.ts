@@ -51,6 +51,7 @@ export interface CampaignContext {
   audience: string;
   objective: string;
   product_positioning: string | null;
+  theme?: string | null;
 }
 
 export interface CampaignAIOutput {

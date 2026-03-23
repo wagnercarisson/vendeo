@@ -7,6 +7,8 @@ export interface ShortVideoContext {
   audience: string;
   objective: string;
   product_positioning: string | null;
+  /** Tema estratégico vindo do plano (opcional) */
+  theme?: string | null;
   /** Preenchidos caso já existam no banco (idempotência) */
   reels_generated_at: string | null;
   reels_hook: string | null;

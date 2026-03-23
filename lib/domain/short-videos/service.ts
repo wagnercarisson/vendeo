@@ -36,7 +36,7 @@ export async function generateShortVideoContent(
       `id, store_id, product_name, price, audience, objective, product_positioning,
        reels_generated_at, reels_hook, reels_script, reels_shotlist, reels_on_screen_text,
        reels_audio_suggestion, reels_duration_seconds, reels_caption, reels_cta, reels_hashtags,
-       product_image_url`
+       product_image_url, weekly_plan_item_id`
     )
     .eq("id", campaign_id)
     .eq("store_id", storeId)
@@ -46,7 +46,18 @@ export async function generateShortVideoContent(
     return { ok: false, error: "CAMPAIGN_NOT_FOUND", details: cErr?.message, status: 404 };
   }
 
-  const campaignCtx = mapDbCampaignToShortVideoContext(campaign);
+  // 1.1) Busca o tema da estratégia se vier de um plano
+  let strategicTheme: string | null = null;
+  if (campaign.weekly_plan_item_id) {
+    const { data: wpItem } = await supabaseAdmin
+      .from("weekly_plan_items")
+      .select("theme")
+      .eq("id", campaign.weekly_plan_item_id)
+      .single();
+    strategicTheme = wpItem?.theme ?? null;
+  }
+
+  const campaignCtx = mapDbCampaignToShortVideoContext(campaign, strategicTheme);
 
   // 2) Idempotência — retorna dados já gerados se existirem
   if (!force && campaignCtx.reels_generated_at) {
