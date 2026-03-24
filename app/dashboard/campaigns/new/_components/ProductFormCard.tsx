@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Upload, Loader2, Image as ImageIcon, X, Package, Ruler, Megaphone } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { getSignedUrlAction } from "@/lib/supabase/storage-actions";
 import type { CampaignFormData, CampaignContentType } from "./types";
 import { formatBRLMask } from "@/lib/formatters/priceMask";
 
@@ -99,10 +100,9 @@ export function ProductFormCard({
             const { data: pub } = supabase.storage.from("campaign-images").getPublicUrl(path);
             const publicUrl = pub?.publicUrl;
             
-            if (!publicUrl) throw new Error("Falha ao obter URL pública da imagem.");
-
             setUploadProgress(100);
-            updateField("image_url", publicUrl);
+            const signedUrl = await getSignedUrlAction(path);
+            updateField("image_url", signedUrl || publicUrl);
 
             setTimeout(() => {
                 setUploadingImage(false);

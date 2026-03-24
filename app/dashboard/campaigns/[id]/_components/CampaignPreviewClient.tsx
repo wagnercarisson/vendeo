@@ -585,7 +585,10 @@ export function CampaignPreviewClient({
                 }),
             });
 
-            if (!res.ok) throw new Error("Erro na geração");
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.message || errorData.error || "Erro na geração");
+            }
 
             const genData = await res.json();
             const reels = genData.reels;

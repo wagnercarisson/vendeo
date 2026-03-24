@@ -9,6 +9,8 @@
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.97.0",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.37.0",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.35.1",
     "lucide-react": "^0.577.0",

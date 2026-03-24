@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Upload, Loader2, Image as ImageIcon, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { MotionWrapper } from "../_components/MotionWrapper";
+import { getSignedUrlAction } from "@/lib/supabase/storage-actions";
 
 function Toast({
   message,
@@ -295,7 +296,9 @@ export default function StorePage() {
       if (!publicUrl) throw new Error("Falha ao obter URL pública da imagem.");
 
       setUploadProgress(100);
-      setLogoUrl(publicUrl);
+      
+      const signedUrl = await getSignedUrlAction(path);
+      setLogoUrl(signedUrl || publicUrl);
 
       setTimeout(() => {
         setUploadingLogo(false);
@@ -493,7 +496,13 @@ export default function StorePage() {
       return;
     }
 
-    fillFromStore(data as StoreRow);
+    const storeData = data as StoreRow;
+    const signedLogo = await getSignedUrlAction(storeData.logo_url);
+    
+    fillFromStore({
+      ...storeData,
+      logo_url: signedLogo,
+    });
 
     const { count: campaignsCount } = await supabase
       .from("campaigns")

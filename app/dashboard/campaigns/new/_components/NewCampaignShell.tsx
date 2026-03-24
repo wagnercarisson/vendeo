@@ -3,6 +3,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { getSignedUrlAction } from "@/lib/supabase/storage-actions";
 import { NewCampaignHeader } from "./NewCampaignHeader";
 import { ProductFormCard } from "./ProductFormCard";
 import { StrategyFormCard } from "./StrategyFormCard";
@@ -343,6 +344,20 @@ export function NewCampaignShell() {
             reels_hashtags:
                 reelsRow?.reels_hashtags || artPreview?.reels_hashtags || "",
         });
+
+        // Resolve signed URLs for the preview
+        const [signedImg, signedLogo] = await Promise.all([
+          getSignedUrlAction(nextImageUrl),
+          getSignedUrlAction(fullStore?.logo_url)
+        ]);
+
+        if (signedImg || signedLogo) {
+          setArtPreview(prev => prev ? ({
+            ...prev,
+            image_url: signedImg || prev.image_url,
+            store: prev.store ? { ...prev.store, logo_url: signedLogo || prev.store.logo_url } : prev.store
+          }) : null);
+        }
     }
 
     async function ensureDraftCampaign() {
@@ -440,6 +455,7 @@ export function NewCampaignShell() {
             const data = await response.json().catch(() => null);
             if (data?.ok === false) {
                 throw new Error(
+                    data.message ||
                     data.error ||
                     "Não conseguimos gerar uma nova arte agora. Código: VND-NC-ART-01"
                 );
@@ -480,6 +496,7 @@ export function NewCampaignShell() {
             const data = await response.json().catch(() => null);
             if (data?.ok === false) {
                 throw new Error(
+                    data.message ||
                     data.error ||
                     "Não conseguimos gerar um novo reels agora. Código: VND-NC-REELS-01"
                 );
@@ -526,6 +543,7 @@ export function NewCampaignShell() {
                 const genData = await genResponse.json();
                 if (genData.ok === false) {
                     throw new Error(
+                        genData.message ||
                         genData.error ||
                         "Não conseguimos gerar a arte agora. Código: VND-NC-GEN-POST-01"
                     );
@@ -544,6 +562,7 @@ export function NewCampaignShell() {
                 const reelsData = await reelsResponse.json().catch(() => null);
                 if (reelsData?.ok === false) {
                     throw new Error(
+                        reelsData.message ||
                         reelsData.error ||
                         "Não conseguimos gerar o reels agora. Código: VND-NC-GEN-REELS-01"
                     );

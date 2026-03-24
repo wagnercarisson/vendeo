@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getUserStoreIdOrThrow } from "@/lib/store/getUserStoreId";
 import { CampaignPreviewClient } from "./_components/CampaignPreviewClient";
 import { mapDbCampaignToDomain } from "@/lib/domain/campaigns/mapper";
+import { getSignedImageUrl } from "@/lib/supabase/storage-server";
 
 export default async function CampaignPreviewPage({
     params,
@@ -30,9 +31,23 @@ export default async function CampaignPreviewPage({
 
     if (error || !campaign) return notFound();
 
+    const storesRaw = Array.isArray(campaign.stores) ? campaign.stores[0] : campaign.stores || null;
+
+    // Assinar URLs de imagem
+    const [signedImageUrl, signedProductImageUrl, signedLogoUrl] = await Promise.all([
+        getSignedImageUrl(campaign.image_url),
+        getSignedImageUrl(campaign.product_image_url),
+        getSignedImageUrl(storesRaw?.logo_url),
+    ]);
+
     const normalizedCampaign = {
         ...mapDbCampaignToDomain(campaign),
-        stores: Array.isArray(campaign.stores) ? campaign.stores[0] : campaign.stores || null,
+        image_url: signedImageUrl,
+        product_image_url: signedProductImageUrl,
+        stores: storesRaw ? {
+            ...storesRaw,
+            logo_url: signedLogoUrl,
+        } : null,
     };
 
     return (
