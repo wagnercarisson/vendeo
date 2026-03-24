@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { SecureImage } from "@/components/storage/SecureImage";
+import Image from "next/image";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/lib/supabase";
@@ -42,7 +42,6 @@ function formatBRL(value: number) {
     return `R$ ${value}`;
   }
 }
-
 
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -216,10 +215,12 @@ export default function CampaignsPage() {
               >
                 <div className="relative w-24 aspect-[4/5] flex-none overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 shadow-sm">
                   {selectors.hasAnyVisualAsset(c) ? (
-                    <SecureImage
+                    <Image
                       src={c.image_url || c.product_image_url || ""}
                       alt={c.product_name || "Campanha"}
-                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.08]"
+                      fill
+                      className="object-cover transition-transform duration-500 group-hover:scale-[1.08]"
+                      sizes="96px"
                     />
                   ) : (
                     <div className="grid h-full w-full place-items-center">
@@ -248,73 +249,81 @@ export default function CampaignsPage() {
                     </div>
                   </div>
 
-                  <div className="mt-4 flex items-center justify-between gap-4">
-                    <div className="flex flex-wrap items-center gap-1.5">
+                  <div className="mt-auto flex items-center justify-between gap-4 border-t border-slate-50 pt-4">
+                    <div className="flex flex-wrap gap-2">
                       {displayStatuses.map((ds, idx) => {
-                        const Icon = ds.variant === "approved" ? CheckCircle2 : ds.variant === "pending" ? Sparkles : ImageIcon;
+                        const isApproved = ds.variant === "approved";
+                        const isPending = ds.variant === "pending";
+
                         return (
                           <div
                             key={idx}
-                            title={ds.label}
-                            className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-tight shadow-sm ${ds.variant === "approved"
-                                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                                : ds.variant === "pending"
-                                  ? "border-amber-200 bg-amber-50 text-amber-700"
-                                  : "border-zinc-200 bg-zinc-50 text-zinc-500"
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${isApproved
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                : isPending
+                                  ? "bg-amber-50 text-amber-700 border-amber-100"
+                                  : "bg-zinc-50 text-zinc-500 border-zinc-100"
                               }`}
                           >
-                            <Icon className="h-3 w-3" />
-                            <span>{ds.label}</span>
+                            {isApproved ? (
+                              <CheckCircle2 className="h-3 w-3" />
+                            ) : isPending ? (
+                              <FileText className="h-3 w-3" />
+                            ) : (
+                              <Sparkles className="h-3 w-3" />
+                            )}
+                            {ds.label}
                           </div>
                         );
                       })}
                     </div>
 
-                    <div className="flex shrink-0 items-center gap-2">
+                    <div className="flex flex-none items-center gap-2">
+                      {c.post_status === "approved" && (
+                        <button
+                          onClick={() => setSelectedPostCampaign(c)}
+                          className="flex h-9 items-center gap-2 rounded-xl bg-zinc-900 px-4 text-xs font-bold text-white shadow-sm transition hover:bg-zinc-800"
+                          type="button"
+                        >
+                          <Eye className="h-4 w-4 text-emerald-400" />
+                          VER ARTE
+                        </button>
+                      )}
+
+                      {c.reels_status === "approved" && (
+                        <button
+                          onClick={() => setSelectedReelsCampaign(c)}
+                          className="flex h-9 items-center gap-2 rounded-xl bg-zinc-900 px-4 text-xs font-bold text-white shadow-sm transition hover:bg-zinc-800"
+                          type="button"
+                        >
+                          <Eye className="h-4 w-4 text-indigo-400" />
+                          VER VÍDEO
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => {
+                          const url = `/dashboard/campaigns/${c.id}`;
+                          router.push(url);
+                        }}
+                        className="flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 shadow-sm transition hover:bg-slate-50"
+                      >
+                        <Edit2 className="h-3.5 w-3.5 text-slate-400" />
+                        ABRIR
+                      </button>
+
                       <button
                         onClick={() => handleDuplicate(c)}
                         disabled={!!duplicatingId}
-                        title="Duplicar Campanha"
-                        className="flex h-9 w-9 items-center justify-center rounded-xl border border-black/5 bg-white text-zinc-400 transition hover:bg-zinc-50 hover:text-emerald-600 disabled:opacity-50"
+                        className="flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
                       >
                         {duplicatingId === c.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
                         ) : (
-                          <Copy className="h-4 w-4" />
+                          <Copy className="h-3.5 w-3.5 text-slate-400" />
                         )}
+                        DUPLICAR
                       </button>
-
-                      <Link href={`/dashboard/campaigns/${c.id}?mode=edit`}>
-                        <button className="flex h-9 items-center gap-2 rounded-xl border border-black/5 bg-white px-3 text-sm font-semibold text-zinc-600 transition hover:bg-zinc-50 hover:text-emerald-600">
-                          <Edit2 className="h-4 w-4" />
-                          <span>Editar</span>
-                        </button>
-                      </Link>
-
-                      <div className="flex items-center gap-1 rounded-xl bg-zinc-100 p-1">
-                        <button
-                          onClick={() => setSelectedPostCampaign(c)}
-                          disabled={!hasArt}
-                          className="flex h-7 items-center gap-1.5 rounded-lg px-2 text-[11px] font-bold transition disabled:cursor-not-allowed disabled:opacity-40 enabled:bg-white enabled:text-zinc-900 enabled:shadow-sm enabled:hover:bg-zinc-50"
-                        >
-                          <ImageIcon className="h-3.5 w-3.5" />
-                          Arte
-                        </button>
-                        <button
-                          onClick={() => setSelectedReelsCampaign(c)}
-                          disabled={!hasVideo}
-                          className="flex h-7 items-center gap-1.5 rounded-lg px-2 text-[11px] font-bold transition disabled:cursor-not-allowed disabled:opacity-40 enabled:bg-white enabled:text-zinc-900 enabled:shadow-sm enabled:hover:bg-zinc-50"
-                        >
-                          <FileText className="h-3.5 w-3.5" />
-                          Vídeo
-                        </button>
-                      </div>
-
-                      <Link href={`/dashboard/campaigns/${c.id}`}>
-                        <button className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-900 text-white shadow-sm transition hover:bg-zinc-800">
-                          <Eye className="h-4 w-4" />
-                        </button>
-                      </Link>
                     </div>
                   </div>
                 </div>
@@ -325,16 +334,11 @@ export default function CampaignsPage() {
       )}
 
       {selectedPostCampaign && (
-        <PostModal
-          campaign={selectedPostCampaign}
-          onClose={() => setSelectedPostCampaign(null)}
-        />
+        <PostModal campaign={selectedPostCampaign} onClose={() => setSelectedPostCampaign(null)} />
       )}
+
       {selectedReelsCampaign && (
-        <ReelsModal
-          campaign={selectedReelsCampaign}
-          onClose={() => setSelectedReelsCampaign(null)}
-        />
+        <ReelsModal campaign={selectedReelsCampaign} onClose={() => setSelectedReelsCampaign(null)} />
       )}
     </main>
   );
