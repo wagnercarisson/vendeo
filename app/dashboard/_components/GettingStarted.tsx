@@ -120,7 +120,7 @@ export function GettingStarted({
                   <span>Receba sugestões por dia e mantenha consistência. </span>
                   <Link
                     className="font-semibold text-emerald-700 hover:text-emerald-800"
-                    href="/dashboard/plans/new"
+                    href="/dashboard/plans?view=new"
                   >
                     Gerar plano →
                   </Link>

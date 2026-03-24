@@ -254,16 +254,17 @@ export default function CampaignsPage() {
                       {displayStatuses.map((ds, idx) => {
                         const isApproved = ds.variant === "approved";
                         const isPending = ds.variant === "pending";
-
+                        
                         return (
                           <div
                             key={idx}
-                            className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${isApproved
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                                : isPending
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                              isApproved 
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-100" 
+                                : isPending 
                                   ? "bg-amber-50 text-amber-700 border-amber-100"
                                   : "bg-zinc-50 text-zinc-500 border-zinc-100"
-                              }`}
+                            }`}
                           >
                             {isApproved ? (
                               <CheckCircle2 className="h-3 w-3" />

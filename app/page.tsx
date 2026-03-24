@@ -214,7 +214,7 @@ function PreviewCard() {
                 Post pronto
               </span>
               <span className="rounded-full bg-orange-500/10 px-3 py-1 text-orange-600">
-                Reels sugerido
+                Vídeo curto sugerido
               </span>
             </div>
           </div>
@@ -407,7 +407,7 @@ export default function HomePage() {
                       ✔ Legenda + CTA
                     </span>
                     <span className="rounded-full bg-white px-4 py-2 shadow-sm">
-                      ✔ Reels sugerido
+                      ✔ Vídeo curto sugerido
                     </span>
                   </div>
 
@@ -530,7 +530,7 @@ export default function HomePage() {
                     "Legenda estratégica",
                     "Hashtags",
                     "CTA forte",
-                    "Roteiro completo de Reels",
+                    "Roteiro p/ vídeos curtos",
                   ].map((t) => (
                     <div
                       key={t}
@@ -878,9 +878,9 @@ export default function HomePage() {
                   <div className="mt-5 grid gap-3">
                     {[
                       "Segunda — Post (oferta rápida)",
-                      "Terça — Reels (produto destaque)",
+                      "Terça — Vídeo curto (produto destaque)",
                       "Quarta — Post (benefício do produto)",
-                      "Quinta — Reels (prova / rotina)",
+                      "Quinta — Vídeo curto (prova / rotina)",
                       "Sexta — Post (urgência / estoque)",
                       "Sábado — Post (combo / oportunidade)",
                       "Domingo — Post (lembrete / última chance)",

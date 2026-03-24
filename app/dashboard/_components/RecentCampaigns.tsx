@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatCampaignStatus, getStatusBadgeClass, getStatusAccentClass } from "@/lib/formatters/statusLabels";
 
 type Campaign = {
   id: string;
@@ -7,29 +8,7 @@ type Campaign = {
   created_at: string;
 };
 
-function formatStatus(status: string | null) {
-  const s = (status ?? "").toLowerCase();
-  if (!s) return { label: "Rascunho", tone: "neutral" as const };
-  if (s === "draft") return { label: "Rascunho", tone: "neutral" as const };
-  if (s === "generated") return { label: "Gerado", tone: "success" as const };
-  if (s === "scheduled") return { label: "Agendado", tone: "warning" as const };
-  if (s === "published") return { label: "Publicado", tone: "success" as const };
-  return { label: status ?? "Rascunho", tone: "neutral" as const };
-}
 
-function badgeClass(tone: "neutral" | "success" | "warning") {
-  if (tone === "success")
-    return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  if (tone === "warning")
-    return "border-orange-200 bg-orange-50 text-orange-700";
-  return "border-slate-200 bg-slate-50 text-slate-700";
-}
-
-function accentClass(tone: "neutral" | "success" | "warning") {
-  if (tone === "success") return "bg-emerald-500";
-  if (tone === "warning") return "bg-orange-500";
-  return "bg-slate-400";
-}
 
 function formatDateCompact(date: string) {
   return new Date(date).toLocaleDateString("pt-BR");
@@ -92,7 +71,7 @@ export function RecentCampaigns({
           {/* Scroll discreto: mantém dashboard “curta” */}
           <div className="mt-4 max-h-[420px] space-y-3 overflow-auto pr-1">
             {campaigns.map((c) => {
-              const st = formatStatus(c.status);
+              const st = formatCampaignStatus(c.status);
 
               return (
                 <div
@@ -102,41 +81,45 @@ export function RecentCampaigns({
                   <div
                     className={[
                       "absolute left-0 top-0 h-full w-1.5",
-                      accentClass(st.tone),
+                      getStatusAccentClass(st.tone),
                     ].join(" ")}
                   />
 
                   <div className="flex items-center justify-between gap-4 pl-2">
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-vendeo-text">
-                        {c.product_name}
+                    <div className="flex items-center gap-4 min-w-0">
+                      {/* Thumbnail Placeholder */}
+                      <div className="hidden sm:flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-vendeo-bg border overflow-hidden relative group-hover:scale-105 transition-transform">
+                        <div className="absolute inset-0 bg-glass-gradient" />
+                        <span className="text-xl">📦</span>
                       </div>
 
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <span
-                          className={[
-                            "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold",
-                            badgeClass(st.tone),
-                          ].join(" ")}
-                        >
-                          {st.label}
-                        </span>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-bold text-vendeo-text">
+                          {c.product_name}
+                        </div>
 
-                        <span className="text-xs text-vendeo-muted">
-                          {formatDateCompact(c.created_at)}
-                        </span>
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                          <span
+                            className={[
+                              "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                              getStatusBadgeClass(st.tone),
+                            ].join(" ")}
+                          >
+                            {st.label}
+                          </span>
 
-                        <span className="hidden sm:inline text-xs text-vendeo-muted">
-                          • pronto em minutos
-                        </span>
+                          <span className="text-xs text-vendeo-muted">
+                            {formatDateCompact(c.created_at)}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
                     <Link
                       href={`/dashboard/campaigns/${c.id}`}
-                      className="shrink-0 inline-flex items-center justify-center rounded-xl border px-3 py-2 text-sm font-semibold text-vendeo-text transition group-hover:bg-slate-50"
+                      className="shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-xl border bg-white shadow-sm transition-all hover:bg-slate-50 hover:border-slate-300 active:scale-95"
                     >
-                      Abrir <span className="ml-1">→</span>
+                      <span className="text-lg">→</span>
                     </Link>
                   </div>
                 </div>

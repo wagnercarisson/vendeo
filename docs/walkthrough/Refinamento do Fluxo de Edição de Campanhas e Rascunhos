@@ -1,0 +1,30 @@
+# Walkthrough: Refinamento do Fluxo de Edição de Campanhas e Rascunhos
+
+Este documento detalha as implementações técnicas realizadas para unificar e corrigir o fluxo de edição de campanhas (`DRAFT`), garantindo a integridade dos dados e a melhoria da experiência do usuário (UX).
+
+## 1. Unificação da Interface de Edição
+A página de edição de rascunhos (`?mode=edit`) foi redesenhada para ser idêntica à página de criação de novas campanhas.
+- **Componentes Reutilizados**: Implementamos os cartões `ProductFormCard` e `StrategyFormCard` na visualização de edição, garantindo consistência visual e funcional.
+- **Campos Estratégicos**: Campos como Público, Objetivo e Posicionamento agora estão disponíveis para edição em rascunhos, permitindo ajustes finos antes da geração final.
+
+## 2. Correções Críticas de Dados e Formatação
+Resolvemos bugs fundamentais que afetavam a persistência de informações financeiras e textuais.
+- **Bug do Preço (Centavos)**: Corrigimos a falha onde o preço "249,90" era exibido como "24,99" ao reabrir a edição. A inicialização agora converte o valor decimal do banco para centavos inteiros antes de aplicar a máscara BRL, eliminando erros de arredondamento e exibição.
+- **Persistência da Descrição (Detalhes)**: O campo "Detalhes" (opcional) agora é salvo e recuperado da coluna `body_text` no banco de dados. Anteriormente, esse campo era usado apenas para o prompt da IA e descartado. Agora, ele é mantido fielmente entre sessões de edição.
+- **Limpeza de "Sujeira"**: Substituímos o preenchimento automático de descrição que trazia códigos internos (ex: "POPULAR") por um campo limpo que foca apenas no conteúdo digitado pelo usuário.
+
+## 3. Lógica de Controle e UX (Dirty State)
+Implementamos uma monitoria rigorosa do estado do formulário para evitar ações desnecessárias e perda de dados.
+- **Monitoramento de Alterações**: O botão "Salvar rascunho" inicia **desabilitado** e só é ativado quando qualquer campo (Nome, Preço, Descrição ou Estratégia) sofre uma mudança real em relação aos dados originais do banco.
+- **Alertas de Confirmação**: Adicionamos diálogos de confirmação (`window.confirm`) para as ações de **Cancelar** e **Salvar rascunho**, garantindo que o usuário esteja ciente das consequências (perda de alterações ou persistência de dados).
+- **Navegação Fluida**: 
+    - O botão **Cancelar** agora redireciona imediatamente para a tela anterior (`router.back()`) após a confirmação.
+    - O botão **Salvar rascunho**, após o sucesso da operação, exibe um alerta de confirmação e redireciona o usuário para o Dashboard principal.
+
+## 4. Próximos Passos e Verificação
+- **Teste de Rascunho**: Validado via browser que o salvamento e a recuperação de dados (preço com vírgula e descrição longa) estão operando 100%.
+- **Persistência de ID**: Confirmado que a edição de rascunhos utiliza o método `update`, preservando o ID original da campanha e evitando duplicatas na lista de campanhas.
+
+---
+**Status da Implementação**: Concluído e Validado
+**Data**: 20 de Março de 2026
