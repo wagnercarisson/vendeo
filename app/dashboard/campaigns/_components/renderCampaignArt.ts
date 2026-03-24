@@ -1,3 +1,5 @@
+import { resolveImageUrl } from "@/lib/supabase/storage";
+
 type Layout = "solid" | "floating" | "split";
 
 type StoreData = {
@@ -426,7 +428,9 @@ export async function renderCampaignArtToBlob(
     const layout: Layout = input.layout || "solid";
     const primary_color = getPrimaryColor(input.store);
 
-    const img = await loadImage(input.image_url);
+    const resolvedUrl = await resolveImageUrl(input.image_url);
+    if (!resolvedUrl) throw new Error("Não foi possível resolver a URL da imagem.");
+    const img = await loadImage(resolvedUrl);
 
     const canvas = document.createElement("canvas");
     canvas.width = WIDTH;
