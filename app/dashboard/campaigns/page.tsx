@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+import { SecureImage } from "@/components/storage/SecureImage";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/lib/supabase";
@@ -215,12 +215,10 @@ export default function CampaignsPage() {
               >
                 <div className="relative w-24 aspect-[4/5] flex-none overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 shadow-sm">
                   {selectors.hasAnyVisualAsset(c) ? (
-                    <Image
+                    <SecureImage
                       src={c.image_url || c.product_image_url || ""}
                       alt={c.product_name || "Campanha"}
-                      fill
-                      className="object-cover transition-transform duration-500 group-hover:scale-[1.08]"
-                      sizes="96px"
+                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.08]"
                     />
                   ) : (
                     <div className="grid h-full w-full place-items-center">

@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { X, Copy, Check, Sparkles, Video, Download, Image as ImageIcon, Printer } from "lucide-react";
 import { ReelsPreviewCard } from "../new/_components/ReelsPreviewCard";
+import { SecureImage } from "@/components/storage/SecureImage";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getCampaignImageSignedUrl } from "@/lib/supabase/storage-utils";
 
 function useCopy() {
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -57,7 +60,9 @@ export function PostModal({ campaign, onClose }: ModalProps) {
         if (!image_url || artStatus !== "idle") return;
         try {
             setArtStatus("copying");
-            const res = await fetch(image_url);
+            const supabase = createSupabaseBrowserClient();
+            const resolvedUrl = await getCampaignImageSignedUrl(supabase, image_url);
+            const res = await fetch(resolvedUrl);
             const blob = await res.blob();
             const pngBlob = blob.type === "image/png" ? blob : await convertToPng(blob);
             await (navigator.clipboard as any).write([
@@ -78,7 +83,9 @@ export function PostModal({ campaign, onClose }: ModalProps) {
         if (!image_url || artStatus === "saving") return;
         try {
             setArtStatus("saving");
-            const res = await fetch(image_url);
+            const supabase = createSupabaseBrowserClient();
+            const resolvedUrl = await getCampaignImageSignedUrl(supabase, image_url);
+            const res = await fetch(resolvedUrl);
             const blob = await res.blob();
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
@@ -147,8 +154,11 @@ export function PostModal({ campaign, onClose }: ModalProps) {
                             <div className="sticky top-6">
                                 <div className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-900 shadow-lg max-w-[400px] mx-auto aspect-[4/5]">
                                     {image_url ? (
-                                        // eslint-disable-next-line @next/next/no-img-element
-                                        <img src={image_url} alt="Arte da Campanha" className="w-full h-full object-cover" />
+                                        <SecureImage 
+                                            src={image_url} 
+                                            alt="Arte da Campanha" 
+                                            className="w-full h-full object-cover" 
+                                        />
                                     ) : (
                                         <div className="flex h-full items-center justify-center text-sm text-zinc-500">Arte não disponível</div>
                                     )}

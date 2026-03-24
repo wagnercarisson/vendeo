@@ -4,17 +4,10 @@ import React, { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-    Sparkles,
-    ArrowLeft,
-    Video,
-    Download,
-    Check,
-    Copy,
-    Image as ImageIcon,
-    Printer,
-    Calendar,
-} from "lucide-react";
+import { Check, Copy, Download, Edit2, Eye, FileText, Image as ImageIcon, Loader2, Sparkles, Printer, ArrowLeft, Calendar, Video } from "lucide-react";
+import { SecureImage } from "@/components/storage/SecureImage";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getCampaignImageSignedUrl } from "@/lib/supabase/storage-utils";
 
 import SalesFeedbackInline from "@/components/feedback/SalesFeedbackInline";
 import { CampaignEditForm, CampaignSavePayload } from "./CampaignEditForm";
@@ -725,7 +718,9 @@ export function CampaignPreviewClient({
 
         setArtStatus("copying");
         try {
-            const res = await fetch(finalArtUrlClean);
+            const supabase = createSupabaseBrowserClient();
+            const resolvedUrl = await getCampaignImageSignedUrl(supabase, finalArtUrlClean);
+            const res = await fetch(resolvedUrl);
             const blob = await res.blob();
             const pngBlob = blob.type === "image/png" ? blob : await convertToPng(blob);
             const item = new ClipboardItem({ "image/png": pngBlob });
@@ -744,7 +739,9 @@ export function CampaignPreviewClient({
 
         try {
             setArtStatus("saving");
-            const res = await fetch(finalArtUrlClean);
+            const supabase = createSupabaseBrowserClient();
+            const resolvedUrl = await getCampaignImageSignedUrl(supabase, finalArtUrlClean);
+            const res = await fetch(resolvedUrl);
             const blob = await res.blob();
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
@@ -862,7 +859,7 @@ export function CampaignPreviewClient({
                     <div className="flex flex-col items-center gap-6 rounded-3xl border border-black/5 bg-white p-6 shadow-sm sm:flex-row">
                         <div className="relative h-32 w-32 sm:h-40 sm:w-40 shrink-0 overflow-hidden rounded-2xl border border-black/5 bg-zinc-50">
                             {heroImageUrlClean ? (
-                                <img
+                                <SecureImage
                                     src={heroImageUrlClean}
                                     alt="Post"
                                     className="h-full w-full object-cover"
@@ -1032,7 +1029,7 @@ export function CampaignPreviewClient({
                                   <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
                                     <div className="aspect-[4/5] relative rounded-2xl overflow-hidden shadow-lg max-w-[400px] mx-auto border border-zinc-100">
                                         {campaign.image_url ? (
-                                            <img
+                                            <SecureImage
                                                 src={finalArtUrlClean}
                                                 alt="Arte"
                                                 className="w-full h-full object-cover"
