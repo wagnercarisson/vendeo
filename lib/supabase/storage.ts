@@ -17,7 +17,6 @@ export function getPathFromUrl(url: string, bucket: string = "campaign-images") 
   }
   return url.substring(index + part.length).split("?")[0].split("#")[0];
 }
-
 /**
  * Gera uma URL assinada para um recurso privado.
  */

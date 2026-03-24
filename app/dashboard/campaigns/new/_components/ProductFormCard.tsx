@@ -25,6 +25,7 @@ export function ProductFormCard({
     const [uploadProgress, setUploadProgress] = useState(0);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+
     function updateField<K extends keyof CampaignFormData>(
         field: K,
         fieldValue: CampaignFormData[K]
