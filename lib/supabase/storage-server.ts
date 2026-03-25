@@ -13,21 +13,32 @@ export async function getSignedImageUrl(path: string, expiresIn = 3600) {
     return path;
   }
 
-  // Extrair o path relativo se for uma URL completa do Supabase
+  // Detectar o bucket da URL ou usar o padrão 'campaign-images'
+  let bucket = "campaign-images";
   let relativePath = path;
-  if (path.includes("/storage/v1/object/public/campaign-images/")) {
-    relativePath = path.split("/storage/v1/object/public/campaign-images/")[1];
-  } else if (path.includes("/storage/v1/object/sign/campaign-images/")) {
-    relativePath = path.split("/storage/v1/object/sign/campaign-images/")[1].split("?")[0];
+
+  // Padrão Supabase: /storage/v1/object/[public|sign]/[bucket]/[path]
+  const storagePatterns = [
+    "/storage/v1/object/public/",
+    "/storage/v1/object/sign/"
+  ];
+
+  for (const pattern of storagePatterns) {
+    if (path.includes(pattern)) {
+      const parts = path.split(pattern)[1].split("/");
+      bucket = parts[0];
+      relativePath = parts.slice(1).join("/").split("?")[0];
+      break;
+    }
   }
 
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase.storage
-    .from("campaign-images")
+    .from(bucket)
     .createSignedUrl(relativePath, expiresIn);
 
   if (error) {
-    console.error(`[storage-server] Error creating signed URL for ${relativePath}:`, error.message);
+    console.error(`[storage-server] Error creating signed URL for bucket ${bucket}, path ${relativePath}:`, error.message);
     return path; // Fallback para a URL original em caso de erro
   }
 

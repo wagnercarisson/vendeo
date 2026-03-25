@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, AlertCircle } from "lucide-react";
 import { MotionWrapper } from "@/app/dashboard/_components/MotionWrapper";
+import { getSignedUrlAction } from "@/lib/supabase/storage-actions";
 
 // Functions reused from page
 function getWeekStartMondayISO(today = new Date()) {
@@ -122,8 +123,15 @@ export function WizardShell({
 
     if (!error) {
       const rows = (data as Store[]) ?? [];
-      setStores(rows);
-      if (rows.length && !storeId) setStoreId(rows[0].id);
+      
+      // Assinar logotipos em lote (V2)
+      const signedRows = await Promise.all(rows.map(async s => ({
+        ...s,
+        logo_url: s.logo_url ? await getSignedUrlAction(s.logo_url) : null
+      })));
+
+      setStores(signedRows);
+      if (signedRows.length && !storeId) setStoreId(signedRows[0].id);
     }
     setLoadingStores(false);
   }
@@ -382,7 +390,7 @@ export function WizardShell({
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-6 space-y-8">
+    <main className={`mx-auto max-w-5xl px-6 py-6 space-y-8 ${(generatingPlan || approvingPlan || loadingPlan) ? "cursor-wait" : ""}`}>
       {/* Modal de Confirmação de Sobrescrita */}
       {showOverwriteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">

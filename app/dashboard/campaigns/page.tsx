@@ -23,6 +23,7 @@ import { MotionWrapper } from "../_components/MotionWrapper";
 import { PostModal, ReelsModal } from "./_components/CampaignModals";
 import * as selectors from "@/lib/domain/campaigns/logic";
 import { formatAudience, formatObjective } from "@/lib/formatters/strategyLabels";
+import { CampaignCard } from "./_components/CampaignCard";
 
 import { Store } from "@/lib/domain/stores/types";
 import { Campaign as CampaignModel } from "@/lib/domain/campaigns/types";
@@ -193,144 +194,17 @@ export default function CampaignsPage() {
         </MotionWrapper>
       ) : (
         <MotionWrapper delay={0.2} className="grid gap-4">
-          {campaigns.map((c) => {
-            const hasArt = selectors.hasGeneratedArt(c);
-            const hasVideo = selectors.hasGeneratedVideo(c);
-            const metadataParts = [];
-            if (c.price) metadataParts.push(formatBRL(c.price));
-            if (c.audience) metadataParts.push(formatAudience(c.audience));
-            if (c.objective) metadataParts.push(formatObjective(c.objective));
-            const metadataLine = metadataParts.join(" • ");
-            const strategyLabel = selectors.getCampaignStrategyLabel(c);
-            const formattedDate = c.created_at
-              ? format(new Date(c.created_at), "d MMM yyyy", { locale: ptBR })
-              : "";
-
-            const displayStatuses = selectors.getCampaignDisplayStatuses(c);
-
-            return (
-              <div
-                key={c.id}
-                className="group relative flex flex-row items-stretch gap-6 rounded-2xl border border-black/10 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg"
-              >
-                <div className="relative w-24 aspect-[4/5] flex-none overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 shadow-sm">
-                  {selectors.hasAnyVisualAsset(c) ? (
-                    <Image
-                      src={c.image_url || c.product_image_url || ""}
-                      alt={c.product_name || "Campanha"}
-                      fill
-                      className="object-cover transition-transform duration-500 group-hover:scale-[1.08]"
-                      sizes="96px"
-                    />
-                  ) : (
-                    <div className="grid h-full w-full place-items-center">
-                      <ImageIcon className="h-6 w-6 text-zinc-300" />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 rounded-lg ring-1 ring-inset ring-black/5" />
-                </div>
-
-                <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
-                  <div>
-                    <div className="flex items-start justify-between gap-4">
-                      <h3 className="truncate text-base font-bold text-slate-900 transition-colors group-hover:text-emerald-700">
-                        {c.product_name}
-                      </h3>
-                      <time className="flex-none whitespace-nowrap text-xs font-medium text-slate-400">
-                        {formattedDate}
-                      </time>
-                    </div>
-
-                    <div className="mt-1">
-                      <div className="text-[13px] font-medium text-slate-500">{metadataLine}</div>
-                      <div className="mt-1.5 inline-flex items-center rounded-md border border-slate-200/50 bg-slate-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-600">
-                        {strategyLabel}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-auto flex items-center justify-between gap-4 border-t border-slate-50 pt-4">
-                    <div className="flex flex-wrap gap-2">
-                      {displayStatuses.map((ds, idx) => {
-                        const isApproved = ds.variant === "approved";
-                        const isPending = ds.variant === "pending";
-                        
-                        return (
-                          <div
-                            key={idx}
-                            className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                              isApproved 
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-100" 
-                                : isPending 
-                                  ? "bg-amber-50 text-amber-700 border-amber-100"
-                                  : "bg-zinc-50 text-zinc-500 border-zinc-100"
-                            }`}
-                          >
-                            {isApproved ? (
-                              <CheckCircle2 className="h-3 w-3" />
-                            ) : isPending ? (
-                              <FileText className="h-3 w-3" />
-                            ) : (
-                              <Sparkles className="h-3 w-3" />
-                            )}
-                            {ds.label}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    <div className="flex flex-none items-center gap-2">
-                      {c.post_status === "approved" && (
-                        <button
-                          onClick={() => setSelectedPostCampaign(c)}
-                          className="flex h-9 items-center gap-2 rounded-xl bg-zinc-900 px-4 text-xs font-bold text-white shadow-sm transition hover:bg-zinc-800"
-                          type="button"
-                        >
-                          <Eye className="h-4 w-4 text-emerald-400" />
-                          VER ARTE
-                        </button>
-                      )}
-
-                      {c.reels_status === "approved" && (
-                        <button
-                          onClick={() => setSelectedReelsCampaign(c)}
-                          className="flex h-9 items-center gap-2 rounded-xl bg-zinc-900 px-4 text-xs font-bold text-white shadow-sm transition hover:bg-zinc-800"
-                          type="button"
-                        >
-                          <Eye className="h-4 w-4 text-indigo-400" />
-                          VER VÍDEO
-                        </button>
-                      )}
-
-                      <button
-                        onClick={() => {
-                          const url = `/dashboard/campaigns/${c.id}`;
-                          router.push(url);
-                        }}
-                        className="flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 shadow-sm transition hover:bg-slate-50"
-                      >
-                        <Edit2 className="h-3.5 w-3.5 text-slate-400" />
-                        ABRIR
-                      </button>
-
-                      <button
-                        onClick={() => handleDuplicate(c)}
-                        disabled={!!duplicatingId}
-                        className="flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
-                      >
-                        {duplicatingId === c.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Copy className="h-3.5 w-3.5 text-slate-400" />
-                        )}
-                        DUPLICAR
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          {campaigns.map((c) => (
+            <CampaignCard
+              key={c.id}
+              campaign={c}
+              onViewArt={setSelectedPostCampaign}
+              onViewVideo={setSelectedReelsCampaign}
+              onOpen={(campaign) => router.push(`/dashboard/campaigns/${campaign.id}`)}
+              onDuplicate={handleDuplicate}
+              duplicatingId={duplicatingId}
+            />
+          ))}
         </MotionWrapper>
       )}
 

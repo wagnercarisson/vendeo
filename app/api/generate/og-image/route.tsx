@@ -46,7 +46,8 @@ export async function POST(req: NextRequest) {
 
         const normalizeImageUrl = (url: string) => {
             if (!url) return "";
-            return url.split("?")[0].split("#")[0];
+            // Preservar parâmetros de query (?token=...) necessários para Signed URLs
+            return url.split("#")[0];
         };
 
         const buildImageCandidates = (rawUrl: string) => {

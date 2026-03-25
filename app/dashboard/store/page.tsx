@@ -274,7 +274,8 @@ export default function StorePage() {
 
       const safeName = file.name.replace(/[^\w.\-]+/g, "_");
       const timestamp = Date.now();
-      const path = `logos/${auth.user.id}/${timestamp}_${safeName}`;
+      const folder = activeStoreId ? `stores/${activeStoreId}` : `logos/${auth.user.id}`;
+      const path = `${folder}/logos/${timestamp}_${safeName}`;
 
       setUploadProgress(30);
 

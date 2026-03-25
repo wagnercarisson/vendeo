@@ -186,6 +186,9 @@ Atualiza:
 * `image_url`
 * campos de conteúdo de campanha
 
+📌 **Nota Técnica (v3.1)**:
+A aprovação agora dispara a renderização via **Client-side Canvas**. O navegador compõe a imagem final (chapa) e faz o upload direto para o Storage, garantindo que o arquivo final seja 100% fiel ao que o usuário revisou na tela.
+
 ---
 
 ## 5.3 Aprovação de vídeo
@@ -354,6 +357,9 @@ Até que isso exista oficialmente, o único campo estratégico padronizado de po
 * `product_image_url` nunca deve ser sobrescrito pela IA
 * `image_url` só existe após aprovação da arte
 
+⚠️ **Segurança de Ativos (v3.1)**:
+As imagens em `campaign-images` e `store-logos` são armazenadas em buckets **privados**. A exibição em qualquer parte da UI exige o uso de **Signed URLs** geradas pelo servidor. URLs estáticas ou públicas do Supabase não devem ser usadas.
+
 ---
 
 # 9. REGENERAÇÃO
@@ -409,7 +415,7 @@ VND-<MÓDULO>-<AÇÃO>-<ID>
 
 Exemplos:
 
-* VND-NC-OG-01
+* VND-NC-OG-01 (Depreciado em favor da renderização estável via Canvas)
 * VND-NC-SAVE-01
 * VND-LIST-LOAD-01
 

@@ -300,6 +300,14 @@ export function CampaignPreviewClient({
         isFromEditFlow = false
     ) {
         if (!canGenerate && !overrides) return;
+
+        if (force && hasArt) {
+            const proceed = window.confirm(
+                "Esta campanha já possui uma arte gerada. Gerar uma nova irá sobrepor a atual e consumir créditos de IA. Deseja continuar?"
+            );
+            if (!proceed) return;
+        }
+
         try {
             setErrorMsg(null);
             setLoadingText(true);
@@ -335,8 +343,11 @@ export function CampaignPreviewClient({
                 }),
             });
 
-            const genData = await res.json();
-            if (!genData.ok) throw new Error(genData.error);
+            const genData = await res.json().catch(() => ({}));
+            if (!res.ok || genData.ok === false) {
+                console.error("[generateText] API Error:", genData);
+                throw new Error(genData.message || genData.error || "Erro na geração");
+            }
 
             const aiOutput = genData.output;
             const rawStore = campaign.stores;
@@ -550,6 +561,13 @@ export function CampaignPreviewClient({
     async function generateReels(force = false, overrides?: Partial<CampaignSavePayload>) {
         if (!canGenerate && !overrides) return;
 
+        if (force && hasVideo) {
+            const proceed = window.confirm(
+                "Esta campanha já possui um roteiro de vídeo gerado. Gerar um novo irá sobrepor o atual e consumir créditos de IA. Deseja continuar?"
+            );
+            if (!proceed) return;
+        }
+
         try {
             setErrorMsg(null);
             setLoadingReels(true);
@@ -585,12 +603,11 @@ export function CampaignPreviewClient({
                 }),
             });
 
-            if (!res.ok) {
-                const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData.message || errorData.error || "Erro na geração");
+            const genData = await res.json().catch(() => ({}));
+            if (!res.ok || genData.ok === false) {
+                console.error("[generateReels] API Error:", genData);
+                throw new Error(genData.message || genData.error || "Erro na geração");
             }
-
-            const genData = await res.json();
             const reels = genData.reels;
 
             setPreviewData((prev) => ({
@@ -790,7 +807,7 @@ export function CampaignPreviewClient({
     }
 
     return (
-        <div className="mx-auto max-w-6xl space-y-6">
+        <div className={cx("mx-auto max-w-6xl space-y-6", (loadingText || loadingReels || isSaving) && "cursor-wait")}>
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <Link
                     href="/dashboard/campaigns"
@@ -968,7 +985,8 @@ export function CampaignPreviewClient({
                                             setActiveTab("art");
                                             startEditing();
                                         }}
-                                        className="rounded-xl bg-zinc-900 px-8 py-2.5 font-bold text-white transition-all hover:bg-black"
+                                        disabled={loadingText || loadingReels || isSaving}
+                                        className="rounded-xl bg-zinc-900 px-8 py-2.5 font-bold text-white transition-all hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         Gerar Arte com IA
                                     </button>
@@ -1094,7 +1112,8 @@ export function CampaignPreviewClient({
                                                     setActiveTab("art");
                                                     startEditing(true);
                                                 }}
-                                                className="inline-flex h-11 items-center justify-center rounded-xl border border-black/10 bg-white px-6 text-sm font-bold text-zinc-600 shadow-sm transition hover:bg-zinc-50"
+                                                disabled={loadingText || loadingReels || isSaving}
+                                                className="inline-flex h-11 items-center justify-center rounded-xl border border-black/10 bg-white px-6 text-sm font-bold text-zinc-600 shadow-sm transition hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
                                                 Regerar
                                             </button>
@@ -1117,7 +1136,8 @@ export function CampaignPreviewClient({
                                             setActiveTab("video");
                                             startEditing(true);
                                         }}
-                                        className="rounded-xl bg-zinc-900 px-8 py-2.5 font-bold text-white transition-all hover:bg-black"
+                                        disabled={loadingText || loadingReels || isSaving}
+                                        className="rounded-xl bg-zinc-900 px-8 py-2.5 font-bold text-white transition-all hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         Gerar Roteiro de Vídeo
                                     </button>
@@ -1210,7 +1230,8 @@ export function CampaignPreviewClient({
                                                 setActiveTab("video");
                                                 startEditing(true);
                                             }}
-                                            className="inline-flex h-11 items-center justify-center rounded-xl border border-black/10 bg-white px-6 text-sm font-bold text-zinc-600 shadow-sm transition hover:bg-zinc-50"
+                                            disabled={loadingText || loadingReels || isSaving}
+                                            className="inline-flex h-11 items-center justify-center rounded-xl border border-black/10 bg-white px-6 text-sm font-bold text-zinc-600 shadow-sm transition hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             Regerar
                                         </button>

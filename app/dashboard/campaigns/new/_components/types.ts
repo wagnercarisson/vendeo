@@ -27,6 +27,7 @@ export type CampaignPreviewData = {
     hashtags?: string;
     price?: number | string;
     store?: {
+        id?: string;
         name: string;
         address?: string;
         whatsapp?: string;

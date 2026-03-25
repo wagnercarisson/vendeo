@@ -10,12 +10,14 @@ import { formatBRLMask } from "@/lib/formatters/priceMask";
 
 type ProductFormCardProps = {
     value: CampaignFormData;
+    storeId?: string;
     onChange: (next: CampaignFormData) => void;
     disableTypeSwitch?: boolean;
 };
 
 export function ProductFormCard({
     value,
+    storeId,
     onChange,
     disableTypeSwitch = false,
 }: ProductFormCardProps) {
@@ -81,7 +83,8 @@ export function ProductFormCard({
 
             const safeName = file.name.replace(/[^\w.\-]+/g, "_");
             const timestamp = Date.now();
-            const path = `uploads/${auth.user.id}/${timestamp}_${safeName}`;
+            const folder = storeId ? `stores/${storeId}` : `uploads/${auth.user.id}`;
+            const path = `${folder}/products/${timestamp}_${safeName}`;
 
             setUploadProgress(30);
 

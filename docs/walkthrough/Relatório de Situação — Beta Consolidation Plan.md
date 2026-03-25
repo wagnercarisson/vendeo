@@ -26,8 +26,10 @@ Conforme documentado em `BETA_CONSOLIDATION_PLAN.md`, o projeto concluiu com suc
 *   **Implementado**: 
     *   Status **Aguardando Aprovação** (Âmbar) visível no Dashboard via `getCampaignDisplayStatuses`.
     *   Trava de segurança: Se o usuário tentar criar uma campanha a partir de um plano em `draft`, o sistema alerta e redireciona para a aprovação do plano (visto em `NewCampaignShell.tsx`).
-    *   Navegação inteligente no Wizard preservando `week_start`.
-*   **Conformidade**: 100% (Versão 1.2 consolidada).
+    *   **Canvas Rendering**: Wizard de campanhas unificado para renderização estável no cliente.
+    *   **Path Standardization**: Organização hierárquica `stores/{storeId}/...` implementada para todos os uploads (Artes, Fotos e Logotipos).
+*   **Conformidade**: 100%.
+ (Versão 1.2 consolidada).
 
 ---
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { X, Copy, Check, Sparkles, Video, Download, Image as ImageIcon, Printer } from "lucide-react";
 import { ReelsPreviewCard } from "../new/_components/ReelsPreviewCard";
+import { getSignedUrlAction } from "@/lib/supabase/storage-actions";
 
 function useCopy() {
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -27,6 +28,17 @@ type ModalProps = {
 export function PostModal({ campaign, onClose }: ModalProps) {
     const { copiedKey, copy } = useCopy();
     const [artStatus, setArtStatus] = useState<"idle" | "copying" | "copied" | "saving">("idle");
+    const [signedImageUrl, setSignedImageUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        async function sign() {
+            if (campaign.image_url) {
+                const signed = await getSignedUrlAction(campaign.image_url);
+                setSignedImageUrl(signed);
+            }
+        }
+        sign();
+    }, [campaign.image_url]);
 
     useEffect(() => {
         function onKeyDown(e: KeyboardEvent) {
@@ -45,7 +57,7 @@ export function PostModal({ campaign, onClose }: ModalProps) {
     const cta       = parsedText?.cta       || campaign.ai_cta     || campaign.cta || "";
     const caption   = campaign.ai_caption    || "";
     const hashtags  = campaign.ai_hashtags   || "";
-    const image_url = campaign.image_url     || "";
+    const image_url = signedImageUrl || campaign.image_url || "";
 
     // "Copiar Tudo" inclui headline + body + cta + legenda + hashtags
     const allText = [headline, "", body_text, "", cta, "", caption, hashtags]

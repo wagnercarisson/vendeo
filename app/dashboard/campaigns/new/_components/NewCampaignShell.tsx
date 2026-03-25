@@ -9,6 +9,7 @@ import { ProductFormCard } from "./ProductFormCard";
 import { StrategyFormCard } from "./StrategyFormCard";
 import { GenerateCampaignCard } from "./GenerateCampaignCard";
 import { CampaignPreviewPanel } from "./CampaignPreviewPanel";
+import { renderCampaignArtToBlob } from "../../_components/renderCampaignArt";
 import { MotionWrapper } from "@/app/dashboard/_components/MotionWrapper";
 import type {
     CampaignGenerationState,
@@ -74,7 +75,19 @@ export function NewCampaignShell() {
     const [isChildEditing, setIsChildEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [campaignId, setCampaignId] = useState<string | null>(null);
+    const [storeId, setStoreId] = useState<string | null>(null);
     const [isRegenerating, setIsRegenerating] = useState(false);
+
+    useEffect(() => {
+        async function fetchStore() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data } = await supabase.from("stores").select("id").eq("owner_user_id", user.id).single();
+                if (data) setStoreId(data.id);
+            }
+        }
+        fetchStore();
+    }, []);
 
     useEffect(() => {
         const typeParam = searchParams.get("type");
@@ -436,7 +449,7 @@ export function NewCampaignShell() {
         if (!campaignId) return;
 
         const confirmed = confirm(
-            "Deseja gerar uma nova arte para esta campanha? Isso consumirá créditos de IA."
+            "Esta campanha já possui uma arte gerada. Gerar uma nova irá sobrepor a atual e consumir créditos de IA. Deseja continuar?"
         );
         if (!confirmed) return;
 
@@ -453,10 +466,11 @@ export function NewCampaignShell() {
             });
 
             const data = await response.json().catch(() => null);
-            if (data?.ok === false) {
+            if (data?.ok === false || !response.ok) {
+                console.error("[regenerateArt] API Error:", data);
                 throw new Error(
-                    data.message ||
-                    data.error ||
+                    data?.message ||
+                    data?.error ||
                     "Não conseguimos gerar uma nova arte agora. Código: VND-NC-ART-01"
                 );
             }
@@ -478,7 +492,7 @@ export function NewCampaignShell() {
         if (!campaignId) return;
 
         const confirmed = confirm(
-            "Deseja gerar um novo reels para esta campanha? Isso consumirá créditos de IA."
+            "Esta campanha já possui um roteiro de vídeo gerado. Gerar um novo irá sobrepor o atual e consumir créditos de IA. Deseja continuar?"
         );
         if (!confirmed) return;
 
@@ -494,10 +508,11 @@ export function NewCampaignShell() {
             });
 
             const data = await response.json().catch(() => null);
-            if (data?.ok === false) {
+            if (data?.ok === false || !response.ok) {
+                console.error("[regenerateReels] API Error:", data);
                 throw new Error(
-                    data.message ||
-                    data.error ||
+                    data?.message ||
+                    data?.error ||
                     "Não conseguimos gerar um novo reels agora. Código: VND-NC-REELS-01"
                 );
             }
@@ -541,7 +556,8 @@ export function NewCampaignShell() {
                 });
 
                 const genData = await genResponse.json();
-                if (genData.ok === false) {
+                if (genData.ok === false || !genResponse.ok) {
+                    console.error("[handleGenerateCampaign] Campaign API Error:", genData);
                     throw new Error(
                         genData.message ||
                         genData.error ||
@@ -560,7 +576,8 @@ export function NewCampaignShell() {
                 });
 
                 const reelsData = await reelsResponse.json().catch(() => null);
-                if (reelsData?.ok === false) {
+                if (reelsData?.ok === false || !reelsResponse.ok) {
+                    console.error("[handleGenerateCampaign] Reels API Error:", reelsData);
                     throw new Error(
                         reelsData.message ||
                         reelsData.error ||
@@ -613,33 +630,20 @@ export function NewCampaignShell() {
             setGenerationState("generating");
 
             if (strategy.generate_post) {
-                const ogResponse = await fetch("/api/generate/og-image", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        layout: artPreview.layout || "solid",
-                        image_url: artPreview.image_url
-                            ? artPreview.image_url.split("#")[0]
-                            : "",
-                        headline: artPreview.headline,
-                        body_text: artPreview.body_text,
-                        cta: artPreview.cta,
-                        price: artPreview.price,
-                        store_name: artPreview.store?.name,
-                        store_address: artPreview.store?.address,
-                        whatsapp: artPreview.store?.whatsapp,
-                        primary_color: artPreview.store?.primary_color,
-                    }),
+                // UNIFICAÇÃO: Usando renderização via Canvas no navegador (idêntico à Edição)
+                // Evita problemas de segurança/fetch no Edge Runtime do servidor.
+                const imageBlob = await renderCampaignArtToBlob({
+                    layout: artPreview.layout || "solid",
+                    image_url: artPreview.image_url || "",
+                    headline: artPreview.headline,
+                    body_text: artPreview.body_text,
+                    cta: artPreview.cta,
+                    price: artPreview.price,
+                    store: artPreview.store
                 });
 
-                if (!ogResponse.ok) {
-                    throw new Error(
-                        "Não conseguimos gerar a arte final com essa imagem. Tente novamente ou use JPG/PNG. Código: VND-NC-OG-01"
-                    );
-                }
-
-                const imageBlob = await ogResponse.blob();
-                const fileName = `art-${campaignId}-${Date.now()}.png`;
+                const finalStoreId = artPreview.store?.id || storeId;
+                const fileName = `stores/${finalStoreId}/campaigns/${campaignId}/art-${Date.now()}.png`;
 
                 const { error: uploadErr } = await supabase.storage
                     .from("campaign-images")
@@ -781,7 +785,7 @@ export function NewCampaignShell() {
     const planContentLabel = planContentType === "reels" ? "reels" : "post";
 
     return (
-        <main className="mx-auto max-w-6xl space-y-6 px-6 py-6">
+        <main className={`mx-auto max-w-6xl space-y-6 px-6 py-6 ${(generationState === "generating" || isSaving || isRegenerating) ? "cursor-wait" : ""}`}>
             {generationState === "idle" || generationState === "error" ? (
                 <div className="space-y-8">
                     {/* Cabeçalho */}
@@ -833,6 +837,7 @@ export function NewCampaignShell() {
                         <MotionWrapper delay={0.3}>
                             <ProductFormCard
                                 value={product}
+                                storeId={storeId ?? undefined}
                                 onChange={setProduct}
                             />
                         </MotionWrapper>
@@ -845,27 +850,27 @@ export function NewCampaignShell() {
                                 O Vendeo vai criar arte, copy e reels em uma única geração.
                             </p>
                             <div className="mt-6 flex flex-col gap-4">
-                                <button
-                                    onClick={handleGenerateCampaign}
-                                    disabled={!canGenerate || isSaving || isChildEditing}
-                                    className={`relative flex h-14 items-center justify-center gap-3 overflow-hidden rounded-2xl px-8 font-bold text-white transition-all active:scale-95 shadow-lg shadow-emerald-200/50 ${
-                                        !canGenerate || isSaving || isChildEditing
-                                            ? "bg-zinc-300 cursor-not-allowed opacity-70"
-                                            : "bg-emerald-600 hover:bg-emerald-700 hover:shadow-emerald-300/50"
-                                    }`}
-                                >
-                                    <span className="relative z-10 flex items-center gap-2">
-                                        ✨ Gerar Campanha
-                                    </span>
-                                </button>
+                                    <button
+                                        onClick={handleGenerateCampaign}
+                                        disabled={!canGenerate || isSaving || isChildEditing || isRegenerating}
+                                        className={`relative flex h-14 items-center justify-center gap-3 overflow-hidden rounded-2xl px-8 font-bold text-white transition-all active:scale-95 shadow-lg shadow-emerald-200/50 ${
+                                            !canGenerate || isSaving || isChildEditing || isRegenerating
+                                                ? "bg-zinc-300 cursor-not-allowed opacity-70"
+                                                : "bg-emerald-600 hover:bg-emerald-700 hover:shadow-emerald-300/50"
+                                        }`}
+                                    >
+                                        <span className="relative z-10 flex items-center gap-2">
+                                            ✨ Gerar Campanha
+                                        </span>
+                                    </button>
 
                                 <div className="flex items-center justify-center gap-4 pt-2">
                                     <button
                                         onClick={handleCancel}
                                         type="button"
-                                        disabled={isSaving || isChildEditing}
+                                        disabled={isSaving || isChildEditing || isRegenerating}
                                         className={`h-11 px-6 rounded-xl border font-bold transition-all text-sm ${
-                                            isSaving || isChildEditing
+                                            isSaving || isChildEditing || isRegenerating
                                                 ? "border-zinc-100 text-zinc-300 cursor-not-allowed"
                                                 : "border-zinc-200 text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700"
                                         }`}
@@ -876,9 +881,9 @@ export function NewCampaignShell() {
                                     <button
                                         onClick={handleSaveDraft}
                                         type="button"
-                                        disabled={!isFormDirty || isSaving || isChildEditing}
+                                        disabled={!isFormDirty || isSaving || isChildEditing || isRegenerating}
                                         className={`h-11 rounded-xl px-6 font-bold transition-all text-sm border ${
-                                            !isFormDirty || isSaving || isChildEditing
+                                            !isFormDirty || isSaving || isChildEditing || isRegenerating
                                                 ? "border-zinc-100 bg-zinc-50 text-zinc-300 cursor-not-allowed"
                                                 : "bg-zinc-900 text-white hover:bg-zinc-800 shadow-sm"
                                         }`}
@@ -921,18 +926,18 @@ export function NewCampaignShell() {
                                 <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
                                     <button
                                         onClick={handleSaveDraftReview}
-                                        disabled={isSaving || isChildEditing}
+                                        disabled={isSaving || isChildEditing || isRegenerating}
                                         className={`rounded-xl border border-zinc-900 bg-white px-6 py-2.5 text-sm font-bold shadow-sm transition-all sm:w-auto ${
-                                            isChildEditing ? "opacity-50 cursor-not-allowed border-zinc-200 text-zinc-400" : "text-zinc-900 hover:bg-zinc-50"
+                                            isChildEditing || isSaving || isRegenerating ? "opacity-50 cursor-not-allowed border-zinc-200 text-zinc-400" : "text-zinc-900 hover:bg-zinc-50"
                                         }`}
                                     >
                                         {isSaving ? "Salvando..." : "Salvar rascunho"}
                                     </button>
                                     <button
                                         onClick={handleApprove}
-                                        disabled={isSaving || isChildEditing}
+                                        disabled={isSaving || isChildEditing || isRegenerating}
                                         className={`rounded-xl px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-all sm:w-auto ${
-                                            isChildEditing ? "bg-zinc-300 cursor-not-allowed shadow-none" : "bg-emerald-600 hover:bg-emerald-700"
+                                            isChildEditing || isSaving || isRegenerating ? "bg-zinc-300 cursor-not-allowed shadow-none" : "bg-emerald-600 hover:bg-emerald-700"
                                         }`}
                                     >
                                         Aprovar e Salvar

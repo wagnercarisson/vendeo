@@ -16,7 +16,7 @@ Dia 3 — Baseline e Migrations
 Dia 4 — Auditoria Temporal  
 Dia 5 — UI / UX e Semântica de Status  
 Dia 6 — Segurança e Storage  
-Dia 7 — Documentação Final
+Dia 7 — Fechamento e Documentação
 
 ---
 
@@ -716,22 +716,25 @@ Dia 2 — Segurança de Rotas    ✅ Concluído
 Dia 3 — Fluxo de Campanha     ✅ Concluído
 Dia 4 — Geração de Conteúdo   ✅ Concluído
 Dia 5 — UI / UX e Status      ✅ Concluído (v1.2)
-Dia 6 — Segurança e Storage   ⏳ Planejado (Para iniciar)
-Dia 7 — Fechamento            ⏳ Planejado
+Dia 6 — Segurança e Storage   ✅ Concluído
+Dia 7 — Fechamento            ▶ Em execução
 
 ---
 
-# Dia 6 — Segurança
+# ✅ Dia 6 — Segurança, Storage e IA (Concluído)
 
-Objetivo: reforçar segurança e governança.
+Objetivo: endurecimento de RLS, privacidade de ativos (Signed URLs), Rate Limit e refino de contexto da IA.
 
-Tarefas:
+Principais implementações:
 
-- Revisar RLS
-- Revisar bucket de imagens
-- Padronizar paths de upload
+• **Segurança e RLS**: Ativação de isolamento multi-tenant em todas as tabelas. 
+• **Privacidade**: Buckets privados e sistema de Signed URLs no servidor/cliente.
+• **Rate Limit**: Proteção contra abusos via Upstash Redis.
+• **IA Contextual**: Prompts que respeitam o nicho da loja (Loja Pet não sugere termos infantis).
+• **Estabilidade**: Renderização via Canvas no Wizard (Fim do erro OG-01).
+• **Padronização de Storage**: Organização hierárquica `stores/{id}/...` para fotos, artes e logos.
 
-Status: ⬜
+Status: ✅ Concluído
 
 ---
 
