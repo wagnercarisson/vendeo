@@ -2,11 +2,11 @@ erDiagram
 
     STORES {
         uuid id PK
+        uuid owner_user_id "FK → auth.users.id (Unique)"
         text name
         text city
         text state
         text logo_url
-        timestamp created_at
         text brand_positioning
         text main_segment
         text tone_of_voice
@@ -17,21 +17,30 @@ erDiagram
         text instagram
         text primary_color
         text secondary_color
-        uuid owner_user_id  "FK → auth.users.id"
+        timestamptz created_at
+        timestamptz updated_at
     }
 
     CAMPAIGNS {
         uuid id PK
         uuid store_id FK
+        uuid weekly_plan_item_id FK "Vínculo com Plano"
+        text origin "manual | plan"
+        text content_type "product | service | info"
+        text campaign_type "post | reels | both"
         text product_name
         numeric price
         text audience
         text objective
+        text product_positioning
+        text status "Global: draft | ready | approved"
+        text post_status "none | draft | ready | approved"
+        text reels_status "none | draft | ready | approved"
         text headline
         text body_text
         text cta
-        text status  "default: draft"
-        timestamp created_at
+        text image_url
+        text product_image_url
         text ai_text
         text ai_caption
         text ai_hashtags
@@ -47,40 +56,56 @@ erDiagram
         text reels_cta
         text reels_hashtags
         timestamptz reels_generated_at
-        text product_positioning
+        timestamptz created_at
+        timestamptz updated_at
     }
 
     WEEKLY_PLANS {
         uuid id PK
         uuid store_id FK
-        date week_start  "must be Monday (ISO DOW = 1)"
-        text status  "default: generated"
+        date week_start "Must be Monday"
+        text status "draft | approved"
         jsonb strategy
         timestamptz created_at
+        timestamptz updated_at
     }
 
     WEEKLY_PLAN_ITEMS {
         uuid id PK
         uuid plan_id FK
-        int day_of_week  "1–7 (ISO: 1=Seg ... 7=Dom)"
-        text content_type  "post | reels"
+        int day_of_week "1-7"
+        text content_type "post | reels | both"
         text theme
         text recommended_time
-        uuid campaign_id FK
+        text status "draft | ready | approved"
         jsonb brief
         timestamptz created_at
     }
 
-    STORE_MEMBERS {
+    BETA_FEEDBACKS {
         uuid id PK
-        uuid store_id FK
         uuid user_id FK
-        text role  "default: owner"
+        uuid store_id FK
+        int rating "1-5"
+        text comment
+        text category
+        jsonb metadata
+        timestamptz created_at
+    }
+
+    CAMPAIGN_METRICS {
+        uuid id PK
+        uuid campaign_id FK
+        text metric_type "usefulness | regeneration"
+        text value_text
+        numeric value_num
+        jsonb metadata
         timestamptz created_at
     }
 
     STORES ||--o{ CAMPAIGNS : "store_id"
     STORES ||--o{ WEEKLY_PLANS : "store_id"
     WEEKLY_PLANS ||--o{ WEEKLY_PLAN_ITEMS : "plan_id"
-    CAMPAIGNS ||--o{ WEEKLY_PLAN_ITEMS : "campaign_id (optional)"
-    STORES ||--o{ STORE_MEMBERS : "store_id"
+    WEEKLY_PLAN_ITEMS ||--o| CAMPAIGNS : "weekly_plan_item_id (Nova)"
+    STORES ||--o{ BETA_FEEDBACKS : "store_id"
+    CAMPAIGNS ||--o{ CAMPAIGN_METRICS : "campaign_id"

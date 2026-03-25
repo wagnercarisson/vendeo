@@ -738,14 +738,26 @@ Status: ✅ Concluído
 
 ---
 
-# Dia 7 — Fechamento
+# ✅ Dia 7 — Fechamento e Documentação Final (Concluído)
 
-Objetivo: finalizar consolidação.
+Objetivo: finalizar a consolidação técnica e garantir que o sistema está pronto para o lançamento Beta com documentação de suporte e segurança endurecida.
 
-Tarefas:
+### Principais entregas realizadas:
 
-- Atualizar schema.sql
-- Criar documentação do banco
-- Auditoria final
+- **Consolidação de Banco de Dados**: 15 migrations incrementais foram unificadas no arquivo oficial `database/schema.sql` (UTF-8).
+- **Documentação de Dados (ERD)**: Criação e atualização do `database/ERD.md` e `database/erd.mmd` (Mermaid), detalhando relacionamentos, enums de status e regras de negócio.
+- **Endurecimento de Segurança (Ativos)**: 
+    - Padronização de caminhos de storage seguindo a hierarquia `stores/{storeId}/` em todo o sistema.
+    - Implementação de **Signed URLs** no fluxo de aprovação de arte (`CampaignPreviewClient.tsx`), eliminando o uso de URLs públicas.
+- **Auditoria de APIs**: Validação de todas as rotas de geração de IA para garantir isolamento multi-tenant via `store_id`.
 
-Status: ⬜
+### Status Final do Plano:
+- Dia 1 — Modelo de Loja        ✅ Concluído
+- Dia 2 — Segurança de Rotas    ✅ Concluído
+- Dia 3 — Fluxo de Campanha     ✅ Concluído
+- Dia 4 — Geração de Conteúdo   ✅ Concluído
+- Dia 5 — UI / UX e Status      ✅ Concluído
+- Dia 6 — Segurança e Storage   ✅ Concluído
+- Dia 7 — Fechamento            ✅ Concluído
+
+Certificação: O sistema Vendeo está tecnicamente consolidado para a fase Beta.

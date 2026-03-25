@@ -26,6 +26,7 @@ import { PreviewReadyState } from "../../new/_components/PreviewReadyState";
 import { renderCampaignArtToBlob } from "@/app/dashboard/campaigns/_components/renderCampaignArt";
 import { mapCampaignToPreviewData } from "@/lib/domain/campaigns/mapper";
 import { calculateGlobalStatus } from "@/lib/domain/campaigns/logic";
+import { getSignedUrlAction } from "@/lib/supabase/storage-actions";
 
 export type Campaign = CampaignModel & {
     stores?: Store | null;
@@ -412,7 +413,7 @@ export function CampaignPreviewClient({
                     store: previewData.store,
                 });
 
-                const path = `art-${campaign.id}-${Date.now()}.png`;
+                const path = `stores/${campaign.store_id}/campaigns/${campaign.id}/art-${Date.now()}.png`;
 
                 const { error: upErr } = await supabase.storage
                     .from("campaign-images")
@@ -423,11 +424,9 @@ export function CampaignPreviewClient({
 
                 if (upErr) throw upErr;
 
-                const { data: pub } = supabase.storage
-                    .from("campaign-images")
-                    .getPublicUrl(path);
-
-                finalImageUrl = pub.publicUrl;
+                // Em conformidade com auditoria Dia 7: Usar Signed URL em vez de PublicUrl
+                const signedUrl = await getSignedUrlAction(path);
+                finalImageUrl = signedUrl || "";
             }
 
             const artData = {
