@@ -22,5 +22,7 @@ export async function GET(request: Request) {
         );
     }
 
-    return NextResponse.redirect(`${origin}${next}`);
+    // Garante que o redirecionamento seja para uma URL absoluta correta
+    const finalUrl = new URL(next, origin);
+    return NextResponse.redirect(finalUrl.toString());
 }
