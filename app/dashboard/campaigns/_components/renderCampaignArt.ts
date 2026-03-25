@@ -190,28 +190,30 @@ function drawPriceBadge(
 ) {
     if (!price) return;
 
-    const paddingX = 60;
+    const paddingX = 80;
+    ctx.font = "900 42px sans-serif";
     const textWidth = ctx.measureText(price).width;
     const w = Math.max(190, textWidth + paddingX);
     const h = 100;
+    const startX = x - (w - 190);
 
     ctx.save();
     ctx.shadowColor = "rgba(0,0,0,0.25)";
     ctx.shadowBlur = 24;
     ctx.shadowOffsetY = 10;
 
-    drawRoundedRectFill(ctx, x - (w - 190), y, w, h, 24, primary_color);
-    drawRoundedRectStroke(ctx, x - (w - 190), y, w, h, 24, "#ffffff", 4);
+    drawRoundedRectFill(ctx, startX, y, w, h, 24, primary_color);
+    drawRoundedRectStroke(ctx, startX, y, w, h, 24, "#ffffff", 4);
 
     ctx.shadowColor = "transparent";
     ctx.fillStyle = "rgba(255,255,255,0.9)";
     ctx.font = "800 20px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("OFERTA", x + w / 2, y + 28);
+    ctx.fillText("OFERTA", startX + w / 2, y + 28);
 
     ctx.fillStyle = "#ffffff";
     ctx.font = "900 42px sans-serif";
-    ctx.fillText(price, x + w / 2, y + 72);
+    ctx.fillText(price, startX + w / 2, y + 72);
     ctx.restore();
 }
 
