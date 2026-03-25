@@ -190,7 +190,9 @@ function drawPriceBadge(
 ) {
     if (!price) return;
 
-    const w = 190;
+    const paddingX = 60;
+    const textWidth = ctx.measureText(price).width;
+    const w = Math.max(190, textWidth + paddingX);
     const h = 100;
 
     ctx.save();
@@ -198,8 +200,8 @@ function drawPriceBadge(
     ctx.shadowBlur = 24;
     ctx.shadowOffsetY = 10;
 
-    drawRoundedRectFill(ctx, x, y, w, h, 24, primary_color);
-    drawRoundedRectStroke(ctx, x, y, w, h, 24, "#ffffff", 4);
+    drawRoundedRectFill(ctx, x - (w - 190), y, w, h, 24, primary_color);
+    drawRoundedRectStroke(ctx, x - (w - 190), y, w, h, 24, "#ffffff", 4);
 
     ctx.shadowColor = "transparent";
     ctx.fillStyle = "rgba(255,255,255,0.9)";

@@ -173,7 +173,8 @@ export async function POST(req: NextRequest) {
                                 backgroundColor: primaryColor,
                                 border: "4px solid white",
                                 borderRadius: "24px",
-                                padding: "16px 32px",
+                                padding: "16px 48px",
+                                minWidth: "200px",
                                 transform: "rotate(6deg)",
                                 boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
                             }}
@@ -584,7 +585,8 @@ export async function POST(req: NextRequest) {
                                     backgroundColor: primaryColor,
                                     border: "4px solid white",
                                     borderRadius: "24px",
-                                    padding: "16px 32px",
+                                    padding: "16px 48px",
+                                    minWidth: "200px",
                                     boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
                                 }}
                             >

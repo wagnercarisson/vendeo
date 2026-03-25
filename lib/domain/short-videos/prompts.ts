@@ -23,10 +23,12 @@ CONTEXTO DA CAMPANHA:
 - PRODUTO: ${campaign.product_name} (Preço: ${campaign.price ?? "não informado"}).
 - ESTRATÉGIA: ${campaign.objective} para ${campaign.audience}.
 - RACIOCÍNIO VAREJISTA: ${campaign.theme || options?.extra || "Focar no desejo imediato e benefícios do produto."}
+- DATA ATUAL: ${new Date().toLocaleDateString("pt-BR", { day: '2-digit', month: 'long', year: 'numeric' })}
 
 DIRETRIZES DE ROTEIRO (FOCO EM EXECUÇÃO REAL):
-1. O GANCHO (HOOK) DE 3 SEGUNDOS: Comece com uma pergunta direta ou um visual impactante do produto. Fuja de introduções lentas como "Olá pessoal". Ex: "O segredo de ${store.city} para...", "Pare tudo o que está fazendo e veja esse/essa ${campaign.product_name}".
-2. REGRA DE OURO (CONCORDÂNCIA DE GÊNERO): Verifique o gênero do produto (${campaign.product_name}). Use "O seu/O melhor" para masculinos e "A sua/A melhor" para femininos. NUNCA erre a concordância no roteiro ou nos textos de tela.
+1. SINTONIA SAZONAL E VALIDAÇÃO: Use a DATA ATUAL para contextualizar feriados brasileiros (ex: Páscoa, Dia das Mães, etc). Valide a relação entre o PRODUTO e o feriado. Se o produto é "Ovo de Páscoa", o roteiro DEVE ser sobre a Páscoa. Não mencione outros feriados se o produto for específico de um deles.
+2. O GANCHO (HOOK) DE 3 SEGUNDOS: Comece com uma pergunta direta ou um visual impactante do produto. Fuja de introduções lentas como "Olá pessoal". Ex: "O segredo de ${store.city} para...", "Pare tudo o que está fazendo e veja esse/essa ${campaign.product_name}".
+3. REGRA DE OURO (CONCORDÂNCIA DE GÊNERO): Verifique o gênero do produto (${campaign.product_name}). Use "O seu/O melhor" para masculinos e "A sua/A melhor" para femininos. NUNCA erre a concordância no roteiro ou nos textos de tela.
 3. CENAS REALISTAS (MÃO NA MASSA): Proibido sugerir cenas com figurantes, multidões ou decorações complexas. Sugira tomadas simples:
    - POV (Ponto de Vista): O lojista segurando o produto ou tirando da prateleira.
    - CLOSE-UP: Foco total no detalhe, na textura ou no rótulo.

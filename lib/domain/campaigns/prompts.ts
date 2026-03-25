@@ -23,9 +23,11 @@ CONTEXTO DA CAMPANHA:
 - PRODUTO: ${campaign.product_name} (Preço: ${campaign.price ?? "não informado"}).
 - ESTRATÉGIA: ${campaign.objective} para ${campaign.audience}.
 - RACIOCÍNIO VAREJISTA: ${campaign.theme || description || "Focar no desejo imediato e benefícios do produto."}
+- DATA ATUAL: ${new Date().toLocaleDateString("pt-BR", { day: '2-digit', month: 'long', year: 'numeric' })}
 
 DIRETRIZES DE ESCREVENTE (RIGOROSAS):
-1. REGRA DE OURO (CONCORDÂNCIA DE GÊNERO): Verifique o gênero do produto (${campaign.product_name}). Se for masculino (ex: O Whisky, O Combo), use "Garanta o seu", "O melhor". Se for feminino (ex: A Cerveja, A Geleia), use "Garanta a sua", "A melhor". NUNCA erre a concordância.
+1. SINTONIA SAZONAL E VALIDAÇÃO: Use a DATA ATUAL para contextualizar feriados. Se o PRODUTO (${campaign.product_name}) for sazonal (ex: Ovo de Páscoa, Panetone, Flores), foque EXCLUSIVAMENTE no feriado correspondente (Páscoa para ovos, Natal para panetone). JAMAIS mencione feriados não relacionados ao produto.
+2. REGRA DE OURO (CONCORDÂNCIA DE GÊNERO): Verifique o gênero do produto (${campaign.product_name}). Se for masculino (ex: O Whisky, O Combo), use "Garanta o seu", "O melhor". Se for feminino (ex: A Cerveja, A Geleia), use "Garanta a sua", "A melhor". NUNCA erre a concordância.
 2. NICHO E SEGMENTO: Respeite rigorosamente o segmento da loja (${store.main_segment || "Varejo"}). Se for Pet Shop, use terminologias do mundo pet (ex: patinhas, peludos, aumigo). JAMAIS mencione "crianças" ou "família" (em sentido humano) se o produto for para animais.
 3. FOCO NO "UAU": Fuja de clichês como "Venha conferir". Use ganchos de desejo: "Sua festa merece...", "O segredo para um look impecável...", "Chegou o que você precisava...".
 4. TEXTO DA ARTE (Headline/Body): Deve ser lido em 2 segundos. Use frases de alto impacto. Headline: Máx 25 carac. Body: Máx 60 carac.
