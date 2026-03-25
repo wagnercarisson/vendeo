@@ -1,8 +1,8 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { DetailedFeedback, GenerationFeedback } from "./types";
 
 export async function saveDetailedFeedback(feedback: DetailedFeedback) {
-  const supabase = createSupabaseServerClient();
+  const supabase = getSupabaseAdmin();
   const { error } = await supabase
     .from("feedback_messages")
     .insert(feedback);
@@ -16,7 +16,7 @@ export async function saveDetailedFeedback(feedback: DetailedFeedback) {
 }
 
 export async function saveGenerationFeedback(feedback: GenerationFeedback) {
-  const supabase = createSupabaseServerClient();
+  const supabase = getSupabaseAdmin();
   const { error } = await supabase
     .from("generation_feedback")
     .insert(feedback);
