@@ -84,7 +84,7 @@ export default function FeedbackModal({ isOpen, onClose }: Props) {
         handleClose();
       }, 3000);
     } catch (err: any) {
-      alert(`Erro ao enviar feedback: ${err.message || "Tente novamente."}`);
+      alert("Erro ao enviar feedback. Tente novamente.");
     } finally {
       setLoading(false);
     }
