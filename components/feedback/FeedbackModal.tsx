@@ -74,14 +74,17 @@ export default function FeedbackModal({ isOpen, onClose }: Props) {
         }),
       });
 
-      if (!res.ok) throw new Error("Falha ao enviar feedback");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.details || "Falha ao enviar feedback");
+      }
 
       setSuccess(true);
       setTimeout(() => {
         handleClose();
       }, 3000);
-    } catch (err) {
-      alert("Erro ao enviar feedback. Tente novamente.");
+    } catch (err: any) {
+      alert(`Erro ao enviar feedback: ${err.message || "Tente novamente."}`);
     } finally {
       setLoading(false);
     }
@@ -205,11 +208,14 @@ export default function FeedbackModal({ isOpen, onClose }: Props) {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-zinc-700">5) O que tornaria esse resultado melhor?</label>
+                  <label className="text-sm font-semibold text-zinc-700">
+                    5) O que tornaria esse resultado melhor? {score < 7 && <span className="text-red-500">*</span>}
+                  </label>
                   <textarea
+                    required={score < 7}
                     value={improvement}
                     onChange={(e) => setImprovement(e.target.value)}
-                    placeholder="Ideias, sugestões ou o que faltou..."
+                    placeholder={score < 7 ? "Por favor, nos conte o que falhou ou o que podemos ajustar..." : "Ideias, sugestões ou o que faltou..."}
                     className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none min-h-[80px] resize-none"
                     maxLength={2000}
                   />
