@@ -1,0 +1,32 @@
+# Walkthrough: Evolução do Sistema de Feedback Beta
+
+Neste ciclo, implementamos o rastreamento automático de campanhas no sistema de feedback para permitir uma análise profunda da eficácia da IA durante o Beta.
+
+## 🛠️ Mudanças Realizadas
+
+### 1. Backend: Vínculo de Campanha
+- **Domínio**: Atualizamos os tipos e schemas Zod para aceitar `campaign_id` nas mensagens de feedback detalhado.
+- **Serviço**: O serviço de persistência foi ajustado para salvar o ID da campanha no banco de dados.
+- **API**: A rota `/api/feedback` agora processa o `campaignId` recebido do frontend.
+
+### 2. Frontend: Captura Automática Contextual
+- **FeedbackModal**: Implementamos uma lógica de auto-captura. Se o usuário abrir o feedback enquanto estiver visualizando uma campanha específica (ex: `/dashboard/campaigns/[ID]`), o sistema extrai automaticamente esse ID da URL e o vincula ao feedback.
+- **Robustez**: Adicionamos validação por Regex para garantir que apenas UUIDs válidos sejam extraídos da URL.
+
+## 🧪 Como Testar
+
+1. **Rodar a Migration:** 
+   Execute o seguinte SQL no seu console Supabase para preparar o banco:
+   ```sql
+   ALTER TABLE public.feedback_messages 
+   ADD COLUMN campaign_id uuid REFERENCES public.campaigns(id) ON DELETE SET NULL;
+   ```
+
+2. **Validar Captura:** 
+   - Acesse uma campanha específica no dashboard.
+   - Clique no botão de feedback flutuante.
+   - Envie um comentário simples.
+   - Verifique na tabela `feedback_messages` se o campo `campaign_id` foi preenchido corretamente.
+
+---
+**Resultado:** Agora, cada crítica ou elogio dos lojistas estará diretamente conectado à arte ou legenda que a IA gerou, permitindo ajustes precisos em nossos prompts.

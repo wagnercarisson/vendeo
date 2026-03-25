@@ -14,6 +14,7 @@ export type DetailedFeedback = {
   score?: number;
   allow_contact?: boolean;
   user_agent?: string;
+  campaign_id?: string;
 };
 
 export type GenerationFeedback = {

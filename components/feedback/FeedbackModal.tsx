@@ -63,6 +63,14 @@ export default function FeedbackModal({ isOpen, onClose }: Props) {
           allowContact,
           pagePath: window.location.pathname,
           userAgent: navigator.userAgent,
+          campaignId: (() => {
+            const parts = window.location.pathname.split("/");
+            const idCandidate = parts[parts.length - 1];
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            return (window.location.pathname.startsWith("/dashboard/campaigns/") && uuidRegex.test(idCandidate))
+              ? idCandidate
+              : null;
+          })(),
         }),
       });
 

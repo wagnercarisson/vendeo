@@ -31,6 +31,7 @@ export async function POST(req: Request) {
       allow_contact: body.data.allowContact,
       page_path: body.data.pagePath,
       user_agent: body.data.userAgent,
+      campaign_id: body.data.campaignId,
     });
 
     if (result.ok === false) {

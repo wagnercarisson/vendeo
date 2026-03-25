@@ -12,6 +12,7 @@ export const DetailedFeedbackSchema = z.object({
   allowContact: z.boolean().default(false),
   pagePath: z.string().optional(),
   userAgent: z.string().optional(),
+  campaignId: z.string().uuid().optional().nullable(),
 });
 
 export const GenerationFeedbackSchema = z.object({
