@@ -7,6 +7,7 @@ import { Upload, Loader2, Image as ImageIcon, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { MotionWrapper } from "../_components/MotionWrapper";
 import { getSignedUrlAction } from "@/lib/supabase/storage-actions";
+import { saveStoreAction } from "@/lib/domain/stores/actions";
 
 function Toast({
   message,
@@ -577,37 +578,19 @@ export default function StorePage() {
         secondary_color: secondaryColor || null,
       };
 
-      if (activeStoreId) {
-        const { error: updateError } = await supabase
-          .from("stores")
-          .update(payload)
-          .eq("id", activeStoreId);
+      // ✅ Usa Server Action para salvar e invalidar cache (Etapa 1.2)
+      const { error: saveError } = await saveStoreAction(payload, activeStoreId);
 
-        if (updateError) {
-          showToast(updateError.message, "error");
-          setSaving(false);
-          return;
-        }
+      if (saveError) {
+        showToast(saveError, "error");
+        setSaving(false);
+        return;
+      }
 
-        showToast("Alterações salvas com sucesso!", "success");
-      } else {
-        const { data: inserted, error: insertError } = await supabase
-          .from("stores")
-          .insert(payload)
-          .select("id")
-          .single();
+      showToast(activeStoreId ? "Alterações salvas!" : "Loja cadastrada!", "success");
 
-        if (insertError) {
-          showToast(insertError.message, "error");
-          setSaving(false);
-          return;
-        }
-
-        showToast("Loja cadastrada com sucesso!", "success");
-
-        // recarrega lista e seta loja ativa
-        const newId = (inserted as any)?.id as string | undefined;
-        if (newId) setActiveStoreId(newId);
+      if (!activeStoreId) {
+        // recarrega lista se for nova loja
         await loadStoresAndMaybeSelectDefault();
       }
 

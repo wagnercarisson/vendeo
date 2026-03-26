@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getStoreByOwner } from "@/lib/domain/stores/queries";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 
 export default async function DashboardLayout({
@@ -17,14 +18,8 @@ export default async function DashboardLayout({
     redirect(`/login?mode=login&next=${encodeURIComponent("/dashboard")}`);
   }
 
-  // ✅ Loja é opcional no layout (para não criar loop em /dashboard/store)
-  const { data: store } = await supabase
-    .from("stores")
-    .select("id,name,city,state")
-    .eq("owner_user_id", user.id)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  // ✅ Busca unificada e memoizada (Etapa 1.1)
+  const store = await getStoreByOwner(user.id);
 
   return (
     <DashboardShell

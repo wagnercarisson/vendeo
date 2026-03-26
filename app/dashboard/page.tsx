@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getStoreByOwner } from "@/lib/domain/stores/queries";
 import { DashboardActions } from "./_components/DashboardActions";
 import { RecentCampaigns } from "./_components/RecentCampaigns";
 import { CurrentPlanCard } from "./_components/CurrentPlanCard";
@@ -92,16 +93,10 @@ export default async function DashboardPage() {
     redirect(`/login?next=${encodeURIComponent("/dashboard")}`);
   }
 
-  // 1 usuário = 1 loja (por enquanto): pega a primeira loja do owner
-  const { data: store, error: storeErr } = await supabase
-    .from("stores")
-    .select("id,name,city,state,main_segment,tone_of_voice")
-    .eq("owner_user_id", user.id)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  // ✅ Busca unificada e memoizada (Etapa 1.1)
+  const store = await getStoreByOwner(user.id);
 
-  if (storeErr || !store?.id) {
+  if (!store?.id) {
     redirect("/dashboard/store");
   }
 

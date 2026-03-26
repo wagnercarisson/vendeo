@@ -1,6 +1,27 @@
+import { cache } from "react";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { StoreContext } from "./types";
+import { StoreContext, Store } from "./types";
 import { mapDbStoreToDomain } from "./mapper";
+
+/**
+ * Busca a única loja do usuário logado (padrão do sistema).
+ * Memoizado via React cache() para evitar múltiplas queries por requisição.
+ */
+export const getStoreByOwner = cache(async (userId: string): Promise<Store | null> => {
+  const supabase = createSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from("stores")
+    .select("*")
+    .eq("owner_user_id", userId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return mapDbStoreToDomain(data);
+});
 
 /**
  * Busca os campos de contexto da loja necessários para geração de IA.
