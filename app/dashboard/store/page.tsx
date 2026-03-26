@@ -613,6 +613,7 @@ export default function StorePage() {
 
       // volta para o dashboard
       window.setTimeout(() => {
+        router.refresh();
         router.push("/dashboard");
       }, 650);
     } catch (err: any) {
