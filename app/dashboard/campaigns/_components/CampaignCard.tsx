@@ -51,14 +51,20 @@ export function CampaignCard({
 
   useEffect(() => {
     async function loadSignedUrl() {
-      const rawUrl = campaign.image_url || campaign.product_image_url;
+      const isApproved = campaign.status === "approved";
+      const rawUrl = isApproved 
+        ? (campaign.image_url || campaign.product_image_url)
+        : campaign.product_image_url;
+
       if (rawUrl) {
         const signed = await getSignedUrlAction(rawUrl);
         setSignedUrl(signed);
+      } else {
+        setSignedUrl(null);
       }
     }
     loadSignedUrl();
-  }, [campaign.image_url, campaign.product_image_url]);
+  }, [campaign.image_url, campaign.product_image_url, campaign.status]);
 
   const metadataParts = [];
   if (campaign.price) metadataParts.push(formatBRL(campaign.price));

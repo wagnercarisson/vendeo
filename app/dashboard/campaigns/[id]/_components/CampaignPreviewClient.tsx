@@ -119,7 +119,10 @@ export function CampaignPreviewClient({
     };
 
     const finalArtUrlClean = (campaign.image_url || "").split("#")[0];
-    const heroImageUrlClean = (campaign.image_url || campaign.product_image_url || "").split("#")[0];
+    const isApprovedView = campaign.status === "approved";
+    const heroImageUrlClean = (isApprovedView 
+        ? (campaign.image_url || campaign.product_image_url || "")
+        : (campaign.product_image_url || "")).split("#")[0];
 
     const priceText = useMemo(() => {
         if (campaign.price == null) return null;
@@ -181,6 +184,7 @@ export function CampaignPreviewClient({
             const payload = {
                 ...buildStrategySafeBaseUpdate(data),
                 status: nextStatus as "draft" | "ready" | "approved",
+                image_url: null, // Limpeza sistemática ao editar base
             };
 
             const { error } = await supabase
@@ -316,18 +320,21 @@ export function CampaignPreviewClient({
             const { error: updateErr } = await supabase
                 .from("campaigns")
                 .update(
-                    buildStrategySafeBaseUpdate({
-                        product_name: overrides?.product_name ?? campaign.product_name ?? "",
-                        price: overrides?.price ?? campaign.price ?? null,
-                        audience: overrides?.audience ?? campaign.audience ?? "",
-                        objective: overrides?.objective ?? campaign.objective ?? "",
-                        product_positioning:
-                            overrides?.product_positioning ?? campaign.product_positioning ?? "",
-                        product_image_url:
-                            overrides?.product_image_url ?? campaign.product_image_url ?? "",
-                        content_type:
-                            overrides?.content_type ?? campaign.content_type ?? "product",
-                    })
+                    {
+                        ...buildStrategySafeBaseUpdate({
+                            product_name: overrides?.product_name ?? campaign.product_name ?? "",
+                            price: overrides?.price ?? campaign.price ?? null,
+                            audience: overrides?.audience ?? campaign.audience ?? "",
+                            objective: overrides?.objective ?? campaign.objective ?? "",
+                            product_positioning:
+                                overrides?.product_positioning ?? campaign.product_positioning ?? "",
+                            product_image_url:
+                                overrides?.product_image_url ?? campaign.product_image_url ?? "",
+                            content_type:
+                                overrides?.content_type ?? campaign.content_type ?? "product",
+                        }),
+                        image_url: null, // Limpeza sistemática ao gerar texto
+                    }
                 )
                 .eq("id", campaign.id);
 
@@ -538,6 +545,7 @@ export function CampaignPreviewClient({
                 reels_cta: previewData.reels_cta,
                 reels_hashtags: previewData.reels_hashtags,
                 status: "ready" as const,
+                image_url: null, // Limpeza sistemática ao salvar rascunho de conteúdo
             };
 
             const { error } = await supabase
@@ -574,18 +582,21 @@ export function CampaignPreviewClient({
             const { error: updateErr } = await supabase
                 .from("campaigns")
                 .update(
-                    buildStrategySafeBaseUpdate({
-                        product_name: overrides?.product_name ?? campaign.product_name ?? "",
-                        price: overrides?.price ?? campaign.price ?? null,
-                        audience: overrides?.audience ?? campaign.audience ?? "",
-                        objective: overrides?.objective ?? campaign.objective ?? "",
-                        product_positioning:
-                            overrides?.product_positioning ?? campaign.product_positioning ?? "",
-                        product_image_url:
-                            overrides?.product_image_url ?? campaign.product_image_url ?? "",
-                        content_type:
-                            overrides?.content_type ?? campaign.content_type ?? "product",
-                    })
+                    {
+                        ...buildStrategySafeBaseUpdate({
+                            product_name: overrides?.product_name ?? campaign.product_name ?? "",
+                            price: overrides?.price ?? campaign.price ?? null,
+                            audience: overrides?.audience ?? campaign.audience ?? "",
+                            objective: overrides?.objective ?? campaign.objective ?? "",
+                            product_positioning:
+                                overrides?.product_positioning ?? campaign.product_positioning ?? "",
+                            product_image_url:
+                                overrides?.product_image_url ?? campaign.product_image_url ?? "",
+                            content_type:
+                                overrides?.content_type ?? campaign.content_type ?? "product",
+                        }),
+                        image_url: null, // Limpeza sistemática ao gerar reels
+                    }
                 )
                 .eq("id", campaign.id);
 

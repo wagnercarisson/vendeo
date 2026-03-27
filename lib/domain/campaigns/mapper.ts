@@ -103,8 +103,9 @@ export function mapCampaignToPreviewData(
   campaign: Campaign,
   store?: any
 ): any {
+  const isApproved = campaign.status === "approved";
   return {
-    image_url: campaign.image_url || campaign.product_image_url || "",
+    image_url: isApproved ? (campaign.image_url || campaign.product_image_url || "") : (campaign.product_image_url || ""),
     headline: campaign.headline || campaign.product_name || "",
     body_text: campaign.ai_text || "",
     cta: campaign.ai_cta || "",

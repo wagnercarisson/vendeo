@@ -304,14 +304,7 @@ export function NewCampaignShell() {
 
         const fullStore = await getFullStore(storeId);
 
-        const nextImageUrl = options?.preserveArt
-            ? artPreview?.image_url ||
-            finalCampaign.image_url ||
-            finalCampaign.product_image_url ||
-            ""
-            : finalCampaign.image_url ||
-            finalCampaign.product_image_url ||
-            "";
+        const nextImageUrl = finalCampaign.product_image_url || "";
 
         setArtPreview({
             image_url: nextImageUrl,
@@ -396,6 +389,7 @@ export function NewCampaignShell() {
             origin: isPlanDerived ? ("plan" as const) : ("manual" as const),
             weekly_plan_item_id: isPlanDerived ? planItemId : null,
             content_type: product.type,
+            image_url: null, // Limpa arte gerada anterior se houver mudança/rascunho
         };
 
 
@@ -764,6 +758,7 @@ export function NewCampaignShell() {
                     reels_cta: artPreview.reels_cta,
                     reels_hashtags: artPreview.reels_hashtags,
                     status: "ready",
+                    image_url: null, // Limpa arte obsoleta ao salvar rascunho de edição
                 })
                 .eq("id", campaignId);
 
