@@ -136,6 +136,45 @@ function drawImageCover(
     ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
 }
 
+function drawCircleImage(
+    ctx: CanvasRenderingContext2D,
+    img: HTMLImageElement,
+    x: number,
+    y: number,
+    size: number,
+    borderWidth = 0,
+    borderColor = "#ffffff"
+) {
+    ctx.save();
+    
+    // Sombra suave
+    ctx.shadowColor = "rgba(0,0,0,0.1)";
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetY = 4;
+
+    // Círculo base
+    ctx.beginPath();
+    ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+
+    // Desenha a imagem (cover style)
+    drawImageCover(ctx, img, x, y, size, size);
+
+    // Borda (opcional)
+    if (borderWidth > 0) {
+        ctx.restore();
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+        ctx.strokeStyle = borderColor;
+        ctx.lineWidth = borderWidth;
+        ctx.stroke();
+    }
+
+    ctx.restore();
+}
+
 function drawWrappedText(
     ctx: CanvasRenderingContext2D,
     text: string,
@@ -220,6 +259,7 @@ function drawPriceBadge(
 function drawSolidLayout(
     ctx: CanvasRenderingContext2D,
     img: HTMLImageElement,
+    logoImg: HTMLImageElement | null,
     input: Required<RenderCampaignArtInput> & { primary_color: string }
 ) {
     const { headline, body_text, cta, store, primary_color } = input;
@@ -284,6 +324,7 @@ function drawSolidLayout(
 function drawFloatingLayout(
     ctx: CanvasRenderingContext2D,
     img: HTMLImageElement,
+    logoImg: HTMLImageElement | null,
     input: Required<RenderCampaignArtInput> & { primary_color: string }
 ) {
     const { headline, body_text, cta, store, primary_color } = input;
@@ -350,6 +391,7 @@ function drawFloatingLayout(
 function drawSplitLayout(
     ctx: CanvasRenderingContext2D,
     img: HTMLImageElement,
+    logoImg: HTMLImageElement | null,
     input: Required<RenderCampaignArtInput> & { primary_color: string }
 ) {
     const { headline, body_text, cta, store, primary_color } = input;
@@ -367,9 +409,14 @@ function drawSplitLayout(
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, WIDTH / 2, HEIGHT);
 
-    ctx.fillStyle = "rgba(255,255,255,0.45)";
-    ctx.font = "900 22px sans-serif";
-    ctx.fillText((store?.name || "").toUpperCase(), 600, 82);
+    const logoSize = 88;
+    if (logoImg) {
+        drawCircleImage(ctx, logoImg, 600, 42, logoSize, 2, "rgba(255,255,255,0.2)");
+    } else {
+        ctx.fillStyle = "rgba(255,255,255,0.45)";
+        ctx.font = "900 24px sans-serif";
+        ctx.fillText((store?.name || "").toUpperCase(), 600, 82);
+    }
 
     ctx.fillStyle = "#ffffff";
     ctx.font = "900 italic 62px sans-serif";
@@ -455,12 +502,14 @@ export async function renderCampaignArtToBlob(
         primary_color: primary_color,
     };
 
+    const logoImg = input.store?.logo_url ? await loadImage(input.store.logo_url).catch(() => null) : null;
+
     if (layout === "floating") {
-        drawFloatingLayout(ctx, img, normalizedInput);
+        drawFloatingLayout(ctx, img, logoImg, normalizedInput);
     } else if (layout === "split") {
-        drawSplitLayout(ctx, img, normalizedInput);
+        drawSplitLayout(ctx, img, logoImg, normalizedInput);
     } else {
-        drawSolidLayout(ctx, img, normalizedInput);
+        drawSolidLayout(ctx, img, logoImg, normalizedInput);
     }
 
     const blob = await new Promise<Blob | null>((resolve) => {

@@ -35,9 +35,12 @@ function isValidHexColor(v: string) {
 }
 
 function isValidUrlOrEmpty(v: string) {
-  if (!v.trim()) return true;
+  const s = v.trim();
+  if (!s) return true;
+  // ✅ Permite caminhos internos do storage (Etapa 2)
+  if (s.startsWith("stores/") || s.startsWith("logos/")) return true;
   try {
-    const u = new URL(v.trim());
+    const u = new URL(s);
     return u.protocol === "http:" || u.protocol === "https:";
   } catch {
     return false;
@@ -217,6 +220,7 @@ export default function StorePage() {
   const [whatsapp, setWhatsapp] = useState("");
   const [instagram, setInstagram] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState("");
 
   // Upload states
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -275,8 +279,9 @@ export default function StorePage() {
 
       const safeName = file.name.replace(/[^\w.\-]+/g, "_");
       const timestamp = Date.now();
+      // ✅ Simplifica o caminho para evitar duplicação logos/logos/ (Etapa 2)
       const folder = activeStoreId ? `stores/${activeStoreId}` : `logos/${auth.user.id}`;
-      const path = `${folder}/logos/${timestamp}_${safeName}`;
+      const path = `${folder}/${timestamp}_${safeName}`;
 
       setUploadProgress(30);
 
@@ -300,7 +305,9 @@ export default function StorePage() {
       setUploadProgress(100);
       
       const signedUrl = await getSignedUrlAction(path);
-      setLogoUrl(signedUrl || publicUrl);
+      // ✅ IMPORTANTE: Salvar o PATH no banco, não a URL assinada (Etapa 2)
+      setLogoUrl(path);
+      setLogoPreviewUrl(signedUrl || publicUrl);
 
       setTimeout(() => {
         setUploadingLogo(false);
@@ -503,8 +510,9 @@ export default function StorePage() {
     
     fillFromStore({
       ...storeData,
-      logo_url: signedLogo,
+      logo_url: storeData.logo_url ?? "",
     });
+    setLogoPreviewUrl(signedLogo || "");
 
     const { count: campaignsCount } = await supabase
       .from("campaigns")
@@ -794,7 +802,7 @@ export default function StorePage() {
                               <div className="relative h-24 w-24 rounded-2xl overflow-hidden border border-zinc-200 bg-white shadow-sm transition-transform group-hover:scale-105">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
-                                  src={logoUrl.trim()}
+                                  src={logoPreviewUrl || (logoUrl.startsWith("http") ? logoUrl : "")}
                                   alt="Preview do Logo"
                                   className="w-full h-full object-contain p-2"
                                 />

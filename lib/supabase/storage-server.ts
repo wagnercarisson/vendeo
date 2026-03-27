@@ -8,8 +8,11 @@ import { getSupabaseAdmin } from "./admin";
 export async function getSignedImageUrl(path: string, expiresIn = 3600) {
   if (!path) return null;
   
-  // Se a URL já for externa (contém http e não é do nosso storage), retorna ela mesma
-  if (path.startsWith("http") && !path.includes("supabase.co")) {
+  // Heurística de segurança: se o "caminho" já for uma URL completa do nosso storage, 
+  // tenta extrair o path puro para re-gerar a assinatura (Healing)
+  const isSupabaseUrl = path.includes("supabase.co") && (path.includes("/object/public/") || path.includes("/object/sign/"));
+  
+  if (path.startsWith("http") && !isSupabaseUrl) {
     return path;
   }
 
