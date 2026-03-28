@@ -23,7 +23,7 @@ import { Store } from "@/lib/domain/stores/types";
 import { Campaign as CampaignModel, ActiveTab, ViewMode } from "@/lib/domain/campaigns/types";
 import { CampaignPreviewData } from "../../new/_components/types";
 import { PreviewReadyState } from "../../new/_components/PreviewReadyState";
-import { renderCampaignArtToBlob } from "@/app/dashboard/campaigns/_components/renderCampaignArt";
+import { renderGraphicToBlob } from "@/lib/graphics/renderer";
 import { mapCampaignToPreviewData } from "@/lib/domain/campaigns/mapper";
 import { calculateGlobalStatus } from "@/lib/domain/campaigns/logic";
 import { getSignedUrlAction } from "@/lib/supabase/storage-actions";
@@ -410,14 +410,20 @@ export function CampaignPreviewClient({
             let finalImageUrl = previewData.image_url;
 
             if (activeTab === "art") {
-                const blob = await renderCampaignArtToBlob({
+                const blob = await renderGraphicToBlob({
                     layout: previewData.layout || "solid",
                     image_url: previewData.image_url?.split("#")[0] || "",
                     headline: previewData.headline || "",
                     body_text: previewData.body_text || "",
                     cta: previewData.cta || "",
                     price: previewData.price,
-                    store: previewData.store,
+                    store: {
+                        name: previewData.store?.name || "",
+                        whatsapp: previewData.store?.whatsapp,
+                        address: previewData.store?.address,
+                        primary_color: previewData.store?.primary_color,
+                        logo_url: previewData.store?.logo_url, // Corrigido V27 (Split Fix)
+                    },
                 });
 
                 const path = `stores/${campaign.store_id}/campaigns/${campaign.id}/art-${Date.now()}.png`;

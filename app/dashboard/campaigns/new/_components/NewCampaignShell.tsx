@@ -9,7 +9,7 @@ import { ProductFormCard } from "./ProductFormCard";
 import { StrategyFormCard } from "./StrategyFormCard";
 import { GenerateCampaignCard } from "./GenerateCampaignCard";
 import { CampaignPreviewPanel } from "./CampaignPreviewPanel";
-import { renderCampaignArtToBlob } from "../../_components/renderCampaignArt";
+import { renderGraphicToBlob } from "@/lib/graphics/renderer";
 import { MotionWrapper } from "@/app/dashboard/_components/MotionWrapper";
 import type {
     CampaignGenerationState,
@@ -626,7 +626,7 @@ export function NewCampaignShell() {
             if (strategy.generate_post) {
                 // UNIFICAÇÃO: Usando renderização via Canvas no navegador (idêntico à Edição)
                 // Evita problemas de segurança/fetch no Edge Runtime do servidor.
-                const imageBlob = await renderCampaignArtToBlob({
+                const imageBlob = await renderGraphicToBlob({
                     layout: artPreview.layout || "solid",
                     image_url: artPreview.image_url || "",
                     headline: artPreview.headline,

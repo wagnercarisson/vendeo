@@ -225,34 +225,43 @@ function drawPriceBadge(
     price: string,
     primary_color: string,
     x: number,
-    y: number
+    y: number,
+    layout: Layout
 ) {
     if (!price) return;
 
-    const paddingX = 80;
-    ctx.font = "900 42px sans-serif";
+    const rotation = layout === "floating" ? (6 * Math.PI) / 180 : 0;
+    const paddingX = 64; // Reduzi o padding interno para um visual mais clean
+    const fontPrimary = "900 42px 'Inter', 'Outfit', system-ui, sans-serif";
+    const fontLabel = "800 18px 'Inter', 'Outfit', system-ui, sans-serif";
+    
+    ctx.font = fontPrimary;
     const textWidth = ctx.measureText(price).width;
-    const w = Math.max(190, textWidth + paddingX);
-    const h = 100;
-    const startX = x - (w - 190);
+    const w = Math.max(180, textWidth + paddingX);
+    const h = 90; // Badge um pouco mais curto
+    const startX = x - (w - 180);
 
     ctx.save();
-    ctx.shadowColor = "rgba(0,0,0,0.25)";
-    ctx.shadowBlur = 24;
-    ctx.shadowOffsetY = 10;
+    ctx.translate(startX + w / 2, y + h / 2);
+    ctx.rotate(rotation);
+    ctx.translate(-(startX + w / 2), -(y + h / 2));
 
-    drawRoundedRectFill(ctx, startX, y, w, h, 24, primary_color);
-    drawRoundedRectStroke(ctx, startX, y, w, h, 24, "#ffffff", 4);
+    ctx.shadowColor = "rgba(0,0,0,0.18)"; // Sombra muito mais suave
+    ctx.shadowBlur = 40;
+    ctx.shadowOffsetY = 12;
+
+    drawRoundedRectFill(ctx, startX, y, w, h, 22, primary_color);
+    drawRoundedRectStroke(ctx, startX, y, w, h, 22, "#ffffff", 4);
 
     ctx.shadowColor = "transparent";
-    ctx.fillStyle = "rgba(255,255,255,0.9)";
-    ctx.font = "800 20px sans-serif";
+    ctx.fillStyle = "rgba(255,255,255,0.88)";
+    ctx.font = fontLabel;
     ctx.textAlign = "center";
-    ctx.fillText("OFERTA", startX + w / 2, y + 28);
+    ctx.fillText("OFERTA", startX + w / 2, y + 30);
 
     ctx.fillStyle = "#ffffff";
-    ctx.font = "900 42px sans-serif";
-    ctx.fillText(price, startX + w / 2, y + 72);
+    ctx.font = fontPrimary;
+    ctx.fillText(price, startX + w / 2, y + 70);
     ctx.restore();
 }
 
@@ -274,27 +283,27 @@ function drawSolidLayout(
 
     const grad = ctx.createLinearGradient(0, topH - 220, 0, topH);
     grad.addColorStop(0, "rgba(0,0,0,0)");
-    grad.addColorStop(1, "rgba(0,0,0,0.22)");
+    grad.addColorStop(1, "rgba(0,0,0,0.28)"); // Um pouco mais de contraste para destacar o texto
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, WIDTH, topH);
 
-    drawPriceBadge(ctx, price, primary_color, WIDTH - 240, 42);
+    drawPriceBadge(ctx, price, primary_color, WIDTH - 240, 42, "solid");
 
     const bodyY = topH;
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, bodyY, WIDTH, HEIGHT - bodyY);
 
     ctx.fillStyle = primary_color;
-    ctx.font = "800 24px sans-serif";
-    ctx.fillText((store?.name || "").toUpperCase(), 60, bodyY + 68);
+    ctx.font = "800 22px 'Inter', 'Outfit', system-ui, sans-serif";
+    ctx.fillText((store?.name || "").toUpperCase(), 80, bodyY + 74);
 
     ctx.fillStyle = "#18181b";
-    ctx.font = "900 italic 58px sans-serif";
-    let cursorY = drawWrappedText(ctx, headline || "", 60, bodyY + 135, 880, 66, 2);
+    ctx.font = "900 italic 56px 'Inter', 'Outfit', system-ui, sans-serif";
+    let cursorY = drawWrappedText(ctx, headline || "", 80, bodyY + 135, 920, 64, 2);
 
     ctx.fillStyle = "#52525b";
-    ctx.font = "500 28px sans-serif";
-    cursorY = drawWrappedText(ctx, body_text || "", 60, cursorY + 18, 860, 40, 3);
+    ctx.font = "500 26px 'Inter', 'Outfit', system-ui, sans-serif";
+    cursorY = drawWrappedText(ctx, body_text || "", 80, cursorY + 28, 880, 40, 3);
 
     ctx.strokeStyle = "#f4f4f5";
     ctx.lineWidth = 3;
@@ -304,20 +313,20 @@ function drawSolidLayout(
     ctx.stroke();
 
     ctx.fillStyle = "#52525b";
-    ctx.font = "700 24px sans-serif";
+    ctx.font = "700 22px 'Inter', 'Outfit', system-ui, sans-serif";
     if (whatsapp) {
-        ctx.fillText(whatsapp, 60, HEIGHT - 105);
+        ctx.fillText(whatsapp, 80, HEIGHT - 105);
     }
 
     ctx.fillStyle = "#a1a1aa";
-    ctx.font = "500 20px sans-serif";
-    drawWrappedText(ctx, store?.address || "", 60, HEIGHT - 72, 500, 28, 2);
+    ctx.font = "500 19px 'Inter', 'Outfit', system-ui, sans-serif";
+    drawWrappedText(ctx, store?.address || "", 80, HEIGHT - 72, 500, 28, 2);
 
-    drawRoundedRectFill(ctx, 700, HEIGHT - 138, 320, 74, 16, "#18181b");
+    drawRoundedRectFill(ctx, 680, HEIGHT - 142, 320, 74, 16, "#18181b");
     ctx.fillStyle = "#ffffff";
-    ctx.font = "900 24px sans-serif";
+    ctx.font = "900 22px 'Inter', 'Outfit', system-ui, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText((cta || "").toUpperCase(), 860, HEIGHT - 92);
+    ctx.fillText((cta || "").toUpperCase(), 840, HEIGHT - 96);
     ctx.textAlign = "start";
 }
 
@@ -340,28 +349,28 @@ function drawFloatingLayout(
     ctx.fillStyle = overlay;
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-    drawPriceBadge(ctx, price, primary_color, WIDTH - 240, 42);
+    drawPriceBadge(ctx, price, primary_color, WIDTH - 240, 42, "floating");
 
     ctx.save();
-    ctx.shadowColor = "rgba(0,0,0,0.25)";
-    ctx.shadowBlur = 30;
-    ctx.shadowOffsetY = 12;
-    drawRoundedRectFill(ctx, 40, HEIGHT - 430, WIDTH - 80, 350, 32, "rgba(0,0,0,0.56)");
-    drawRoundedRectStroke(ctx, 40, HEIGHT - 430, WIDTH - 80, 350, 32, "rgba(255,255,255,0.18)", 2);
+    ctx.shadowColor = "rgba(0,0,0,0.3)";
+    ctx.shadowBlur = 60; // Sombra gigante para efeito de profundidade
+    ctx.shadowOffsetY = 24;
+    drawRoundedRectFill(ctx, 60, HEIGHT - 440, WIDTH - 120, 370, 40, "rgba(0,0,0,0.55)");
+    drawRoundedRectStroke(ctx, 60, HEIGHT - 440, WIDTH - 120, 370, 40, "rgba(255,255,255,0.22)", 2);
     ctx.restore();
 
-    drawRoundedRectFill(ctx, 72, HEIGHT - 388, 230, 44, 12, primary_color);
+    drawRoundedRectFill(ctx, 102, HEIGHT - 392, 220, 46, 12, primary_color);
     ctx.fillStyle = "#ffffff";
-    ctx.font = "800 18px sans-serif";
-    ctx.fillText((store?.name || "").toUpperCase(), 92, HEIGHT - 358);
+    ctx.font = "800 19px 'Inter', 'Outfit', system-ui, sans-serif";
+    ctx.fillText((store?.name || "").toUpperCase(), 122, HEIGHT - 362);
 
     ctx.fillStyle = "#ffffff";
-    ctx.font = "900 italic 58px sans-serif";
-    let cursorY = drawWrappedText(ctx, headline || "", 72, HEIGHT - 290, 860, 66, 2);
+    ctx.font = "900 italic 56px 'Inter', 'Outfit', system-ui, sans-serif";
+    let cursorY = drawWrappedText(ctx, headline || "", 102, HEIGHT - 295, 860, 68, 2);
 
-    ctx.fillStyle = "rgba(255,255,255,0.82)";
-    ctx.font = "500 28px sans-serif";
-    cursorY = drawWrappedText(ctx, body_text || "", 72, cursorY + 12, 820, 40, 3);
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.font = "500 26px 'Inter', 'Outfit', system-ui, sans-serif";
+    cursorY = drawWrappedText(ctx, body_text || "", 102, cursorY + 22, 820, 40, 3);
 
     ctx.strokeStyle = "rgba(255,255,255,0.12)";
     ctx.lineWidth = 2;
@@ -370,21 +379,21 @@ function drawFloatingLayout(
     ctx.lineTo(WIDTH - 72, HEIGHT - 155);
     ctx.stroke();
 
-    ctx.fillStyle = "rgba(255,255,255,0.82)";
-    ctx.font = "700 22px sans-serif";
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.font = "700 24px 'Inter', 'Outfit', system-ui, sans-serif";
     if (whatsapp) {
-        ctx.fillText(whatsapp, 72, HEIGHT - 112);
+        ctx.fillText(whatsapp, 72, HEIGHT - 115);
     }
 
-    ctx.fillStyle = "rgba(255,255,255,0.62)";
-    ctx.font = "500 18px sans-serif";
-    drawWrappedText(ctx, store?.address || "", 72, HEIGHT - 82, 430, 24, 2);
+    ctx.fillStyle = "rgba(255,255,255,0.65)";
+    ctx.font = "500 20px 'Inter', 'Outfit', system-ui, sans-serif";
+    drawWrappedText(ctx, store?.address || "", 72, HEIGHT - 82, 450, 26, 2);
 
-    drawRoundedRectFill(ctx, 760, HEIGHT - 136, 248, 70, 16, "#ffffff");
+    drawRoundedRectFill(ctx, 730, HEIGHT - 136, 280, 76, 16, "#ffffff");
     ctx.fillStyle = "#18181b";
-    ctx.font = "900 22px sans-serif";
+    ctx.font = "900 24px 'Inter', 'Outfit', system-ui, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText((cta || "").toUpperCase(), 884, HEIGHT - 92);
+    ctx.fillText((cta || "").toUpperCase(), 870, HEIGHT - 90);
     ctx.textAlign = "start";
 }
 
@@ -419,28 +428,28 @@ function drawSplitLayout(
     }
 
     ctx.fillStyle = "#ffffff";
-    ctx.font = "900 italic 62px sans-serif";
-    let cursorY = drawWrappedText(ctx, headline || "", 600, 185, 420, 70, 3);
-
-    drawRoundedRectFill(ctx, 600, cursorY + 10, 88, 8, 4, primary_color);
-
-    ctx.fillStyle = "rgba(255,255,255,0.62)";
-    ctx.font = "500 28px sans-serif";
-    cursorY = drawWrappedText(ctx, body_text || "", 600, cursorY + 72, 410, 40, 4);
+    ctx.font = "900 italic 58px 'Inter', 'Outfit', system-ui, sans-serif";
+    let cursorY = drawWrappedText(ctx, headline || "", 580, 185, 460, 68, 3);
+ 
+    drawRoundedRectFill(ctx, 580, cursorY + 14, 80, 8, 4, primary_color);
+ 
+    ctx.fillStyle = "rgba(255,255,255,0.78)";
+    ctx.font = "500 26px 'Inter', 'Outfit', system-ui, sans-serif";
+    cursorY = drawWrappedText(ctx, body_text || "", 580, cursorY + 82, 440, 42, 4);
 
     if (price) {
-        ctx.fillStyle = "rgba(255,255,255,0.45)";
-        ctx.font = "700 20px sans-serif";
-        ctx.fillText("VALOR", 600, HEIGHT - 280);
-
+        ctx.fillStyle = "rgba(255,255,255,0.55)";
+        ctx.font = "700 20px 'Inter', 'Outfit', system-ui, sans-serif";
+        ctx.fillText("VALOR", 580, HEIGHT - 290);
+ 
         ctx.fillStyle = primary_color;
-        ctx.font = "900 74px sans-serif";
-        ctx.fillText(price, 600, HEIGHT - 190);
+        ctx.font = "900 78px 'Inter', 'Outfit', system-ui, sans-serif";
+        ctx.fillText(price, 580, HEIGHT - 195);
     }
-
-    drawRoundedRectFill(ctx, 600, HEIGHT - 150, 400, 78, 16, "#ffffff");
+ 
+    drawRoundedRectFill(ctx, 580, HEIGHT - 156, 440, 84, 16, "#ffffff");
     ctx.fillStyle = "#18181b";
-    ctx.font = "900 24px sans-serif";
+    ctx.font = "900 24px 'Inter', 'Outfit', system-ui, sans-serif";
     ctx.textAlign = "center";
     ctx.fillText((cta || "").toUpperCase(), 800, HEIGHT - 100);
     ctx.textAlign = "start";
@@ -452,15 +461,15 @@ function drawSplitLayout(
     ctx.lineTo(1010, HEIGHT - 220);
     ctx.stroke();
 
-    ctx.fillStyle = "rgba(255,255,255,0.72)";
-    ctx.font = "700 20px sans-serif";
+    ctx.fillStyle = "rgba(255,255,255,0.75)";
+    ctx.font = "700 22px 'Inter', 'Outfit', system-ui, sans-serif";
     if (whatsapp) {
-        ctx.fillText(whatsapp, 600, HEIGHT - 40);
+        ctx.fillText(whatsapp, 580, HEIGHT - 40);
     }
-
-    ctx.fillStyle = "rgba(255,255,255,0.45)";
-    ctx.font = "500 18px sans-serif";
-    drawWrappedText(ctx, store?.address || "", 600, HEIGHT - 12, 380, 22, 2);
+ 
+    ctx.fillStyle = "rgba(255,255,255,0.5)";
+    ctx.font = "500 18px 'Inter', 'Outfit', system-ui, sans-serif";
+    drawWrappedText(ctx, store?.address || "", 580, HEIGHT - 12, 420, 24, 2);
 }
 
 export async function renderCampaignArtToBlob(
