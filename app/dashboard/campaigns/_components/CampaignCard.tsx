@@ -16,15 +16,16 @@ import {
 } from "lucide-react";
 import { getSignedUrlAction } from "@/lib/supabase/storage-actions";
 import { formatAudience, formatObjective } from "@/lib/formatters/strategyLabels";
-import * as selectors from "@/lib/domain/campaigns/logic";
-import { Campaign } from "../page";
+import * as selectors from "@/lib/domain/campaigns/selectors";
+import { CampaignListItem } from "@/lib/domain/campaigns/types";
+import { Store } from "@/lib/domain/stores/types";
 
 interface CampaignCardProps {
-  campaign: Campaign;
-  onViewArt: (c: Campaign) => void;
-  onViewVideo: (c: Campaign) => void;
-  onOpen: (c: Campaign) => void;
-  onDuplicate: (c: Campaign) => void;
+  campaign: CampaignListItem & { stores?: Store | null };
+  onViewArt: (c: any) => void;
+  onViewVideo: (c: any) => void;
+  onOpen: (c: any) => void;
+  onDuplicate: (c: any) => void;
   duplicatingId: string | null;
 }
 
@@ -72,7 +73,7 @@ export function CampaignCard({
   if (campaign.objective) metadataParts.push(formatObjective(campaign.objective));
   const metadataLine = metadataParts.join(" • ");
   
-  const strategyLabel = selectors.getCampaignStrategyLabel(campaign);
+  const strategyLabel = selectors.getStrategicLabel(campaign);
   const formattedDate = campaign.created_at
     ? format(new Date(campaign.created_at), "d MMM yyyy", { locale: ptBR })
     : "";

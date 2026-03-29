@@ -13,6 +13,7 @@ type ProductFormCardProps = {
     storeId?: string;
     onChange: (next: CampaignFormData) => void;
     disableTypeSwitch?: boolean;
+    isImageRequired?: boolean;
 };
 
 export function ProductFormCard({
@@ -20,6 +21,7 @@ export function ProductFormCard({
     storeId,
     onChange,
     disableTypeSwitch = false,
+    isImageRequired = false,
 }: ProductFormCardProps) {
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const [uploadingImage, setUploadingImage] = useState(false);
@@ -37,10 +39,10 @@ export function ProductFormCard({
         });
     }
 
-    const contentTypes: { id: CampaignContentType; label: string; icon: any }[] = [
+    const contentTypes: { id: CampaignContentType; label: string; icon: any; comingSoon?: boolean }[] = [
         { id: "product", label: "Produto", icon: Package },
         { id: "service", label: "Serviço", icon: Ruler },
-        { id: "info", label: "Aviso", icon: Megaphone },
+        { id: "info", label: "Aviso", icon: Megaphone, comingSoon: true },
     ];
 
     const labels = {
@@ -156,22 +158,31 @@ export function ProductFormCard({
                     {contentTypes.map((type) => {
                         const Icon = type.icon;
                         const isSelected = value.type === type.id;
+                        const isComingSoon = type.comingSoon;
+
                         return (
                             <button
                                 key={type.id}
                                 type="button"
-                                disabled={disableTypeSwitch}
+                                disabled={disableTypeSwitch || isComingSoon}
                                 onClick={() => updateField("type", type.id)}
                                 className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 text-xs font-medium rounded-lg transition-all ${
                                     isSelected
                                         ? "bg-white text-emerald-700 shadow-sm ring-1 ring-zinc-200"
-                                        : disableTypeSwitch
-                                            ? "text-zinc-400 opacity-50 cursor-not-allowed"
+                                        : disableTypeSwitch || isComingSoon
+                                            ? "text-zinc-400 opacity-50 cursor-not-allowed grayscale"
                                             : "text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100/50"
                                 }`}
                             >
-                                <Icon className={`h-3.5 w-3.5 ${isSelected ? "text-emerald-500" : disableTypeSwitch ? "text-zinc-300" : "text-zinc-400"}`} />
-                                {type.label}
+                                <Icon className={`h-3.5 w-3.5 ${isSelected ? "text-emerald-500" : disableTypeSwitch || isComingSoon ? "text-zinc-300" : "text-zinc-400"}`} />
+                                <div className="flex flex-col items-start leading-none">
+                                    <span>{type.label}</span>
+                                    {isComingSoon && (
+                                        <span className="text-[8px] font-bold uppercase tracking-tighter text-zinc-400">
+                                            Em breve
+                                        </span>
+                                    )}
+                                </div>
                             </button>
                         );
                     })}
@@ -232,7 +243,7 @@ export function ProductFormCard({
 
                 <div className="space-y-1.5">
                     <label className="text-sm font-medium text-zinc-700">
-                        Imagem (opcional)
+                        Imagem {isImageRequired ? "*" : "(opcional)"}
                     </label>
 
                     {errorMsg && (

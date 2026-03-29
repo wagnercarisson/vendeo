@@ -9,6 +9,7 @@ import { StrategyFormCard } from "../../new/_components/StrategyFormCard";
 import { ProductFormCard } from "../../new/_components/ProductFormCard";
 import { MotionWrapper } from "@/app/dashboard/_components/MotionWrapper";
 import { CampaignFormData, StrategyData } from "../../new/_components/types";
+import * as selectors from "@/lib/domain/campaigns/selectors";
 
 export type CampaignSavePayload = {
     product_name: string;
@@ -40,7 +41,6 @@ interface CampaignEditFormProps {
     isGeneratingVideo?: boolean;
     activeTab?: "art" | "video";
     lockContext?: boolean;
-    lockStrategyFields?: boolean;
 }
 
 export function CampaignEditForm({
@@ -54,8 +54,8 @@ export function CampaignEditForm({
     isGeneratingVideo = false,
     activeTab = "art",
     lockContext = false,
-    lockStrategyFields = false,
 }: CampaignEditFormProps) {
+    const lockStrategyFields = selectors.isStrategyLocked(campaign);
     const [formData, setFormData] = useState<CampaignFormData>({
         type: campaign.content_type || "product",
         product_name: campaign.product_name || "",
@@ -106,9 +106,12 @@ export function CampaignEditForm({
     }, [formData, strategyData, initialData]);
 
     const canGenerate = useMemo(() => {
+        const hasRequiredImage = !strategyData.generate_post || formData.image_url?.trim().length > 0;
+
         return (
             formData.product_name.trim().length > 1 &&
             (formData.type === "info" || formData.price.trim().length > 0) &&
+            hasRequiredImage &&
             strategyData.audience.trim().length > 0 &&
             strategyData.objective.trim().length > 0 &&
             strategyData.product_positioning.trim().length > 0
@@ -150,6 +153,7 @@ export function CampaignEditForm({
                         value={formData}
                         onChange={setFormData}
                         disableTypeSwitch={lockContext}
+                        isImageRequired={strategyData.generate_post}
                     />
                 </MotionWrapper>
             </div>

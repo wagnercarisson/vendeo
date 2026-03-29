@@ -221,10 +221,12 @@ export function NewCampaignShell() {
             product.type === "info" || product.price.trim().length > 0;
         const hasGenerationType =
             strategy.generate_post || strategy.generate_reels;
+        const hasRequiredImage = !strategy.generate_post || product.image_url.trim().length > 0;
 
         return (
             hasBasicInfo &&
             hasRequiredPrice &&
+            hasRequiredImage &&
             hasGenerationType &&
             strategy.audience.trim().length > 0 &&
             strategy.objective.trim().length > 0 &&
@@ -832,8 +834,9 @@ export function NewCampaignShell() {
                         <MotionWrapper delay={0.3}>
                             <ProductFormCard
                                 value={product}
-                                storeId={storeId ?? undefined}
+                                storeId={storeId || undefined}
                                 onChange={setProduct}
+                                isImageRequired={strategy.generate_post}
                             />
                         </MotionWrapper>
                     </div>

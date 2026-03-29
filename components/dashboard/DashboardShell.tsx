@@ -498,13 +498,10 @@ export function DashboardShell({
                   className="absolute right-0 mt-2 w-56 rounded-2xl border border-vendeo-border bg-white shadow-soft p-2 z-50"
                   onMouseLeave={() => setOpenAccount(false)}
                 >
-                  <Link
-                    href="/profile"
-                    className="block rounded-xl px-3 py-2 text-sm text-vendeo-text hover:bg-slate-100"
-                    onClick={() => setOpenAccount(false)}
-                  >
-                    Perfil
-                  </Link>
+                  <div className="flex items-center justify-between rounded-xl px-3 py-2 text-sm text-zinc-400 grayscale opacity-60 cursor-not-allowed">
+                    <span>Perfil</span>
+                    <span className="text-[10px] font-bold uppercase tracking-tight text-zinc-400">Em breve</span>
+                  </div>
 
                   <div className="h-px bg-vendeo-border my-1" />
 

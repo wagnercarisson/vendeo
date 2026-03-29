@@ -24,8 +24,8 @@ import { Campaign as CampaignModel, ActiveTab, ViewMode } from "@/lib/domain/cam
 import { CampaignPreviewData } from "../../new/_components/types";
 import { PreviewReadyState } from "../../new/_components/PreviewReadyState";
 import { renderGraphicToBlob } from "@/lib/graphics/renderer";
-import { mapCampaignToPreviewData } from "@/lib/domain/campaigns/mapper";
-import { calculateGlobalStatus } from "@/lib/domain/campaigns/logic";
+import { mapCampaignToPreviewData, mapAiArtToPreview, mapAiReelsToPreview } from "@/lib/domain/campaigns/mapper";
+import * as selectors from "@/lib/domain/campaigns/selectors";
 import { getSignedUrlAction } from "@/lib/supabase/storage-actions";
 
 export type Campaign = CampaignModel & {
@@ -62,13 +62,11 @@ export function CampaignPreviewClient({
     const [isSaving, setIsSaving] = useState(false);
     const [pendingSaveData, setPendingSaveData] = useState<CampaignSavePayload | null>(null);
     const [isCloning, setIsCloning] = useState(false);
-    const hasAnyReadyContent = 
-        campaign.status === "ready" || campaign.status === "approved" || 
-        campaign.post_status === "ready" || campaign.reels_status === "ready";
+    const hasAnyReadyContent = selectors.isCampaignReady(campaign as any);
 
     const [previewData, setPreviewData] = useState<CampaignPreviewData | null>(
         hasAnyReadyContent
-            ? mapCampaignToPreviewData(campaign, campaign.stores)
+            ? mapCampaignToPreviewData(campaign as any, campaign.stores)
             : null
     );
     const [loadingText, setLoadingText] = useState(false);
@@ -86,10 +84,10 @@ export function CampaignPreviewClient({
     };
     const [isReviewDirty, setIsReviewDirty] = useState(false);
 
-    const hasArt = !!(campaign.image_url || campaign.ai_generated_at || previewData?.headline);
-    const hasVideo = !!(campaign.reels_script || campaign.reels_generated_at || previewData?.reels_hook);
-    const isApproved = campaign.status === "approved";
-    const isEmptyDraft = !hasArt && !hasVideo;
+    const hasArt = selectors.hasArt(campaign as any) || !!previewData?.headline;
+    const hasVideo = selectors.hasVideo(campaign as any) || !!previewData?.reels_hook;
+    const isApproved = selectors.getGlobalStatus(campaign as any) === "approved";
+    const isEmptyDraft = selectors.getUIStatus(campaign as any) === "none";
 
     const [activeTab, setActiveTab] = useState<ActiveTab>(
         campaign.campaign_type === "reels" ? "video" : "art"
@@ -179,11 +177,9 @@ export function CampaignPreviewClient({
             setErrorMsg(null);
             setIsSaving(true);
             
-            const nextStatus = campaign.status === 'approved' ? 'ready' : (campaign.status || 'draft');
-
-            const payload = {
+            const payload: any = {
                 ...buildStrategySafeBaseUpdate(data),
-                status: nextStatus as "draft" | "ready" | "approved",
+                status: selectors.getGlobalStatus(campaign as any) === 'approved' ? 'ready' : (campaign.status || 'draft'),
                 image_url: null, // Limpeza sistemática ao editar base
             };
 
@@ -323,6 +319,7 @@ export function CampaignPreviewClient({
                     {
                         ...buildStrategySafeBaseUpdate({
                             product_name: overrides?.product_name ?? campaign.product_name ?? "",
+                            description: overrides?.description ?? campaign.body_text ?? "",
                             price: overrides?.price ?? campaign.price ?? null,
                             audience: overrides?.audience ?? campaign.audience ?? "",
                             objective: overrides?.objective ?? campaign.objective ?? "",
@@ -358,32 +355,22 @@ export function CampaignPreviewClient({
             }
 
             const aiOutput = genData.output;
-            const rawStore = campaign.stores;
+            const mappedArt = mapAiArtToPreview(campaign as any, aiOutput);
 
             setPreviewData((prev) => ({
                 ...prev,
+                ...mappedArt,
                 image_url: overrides?.product_image_url || campaign.product_image_url || prev?.image_url || "",
-                headline:
-                    aiOutput?.headline ||
-                    overrides?.product_name ||
-                    campaign.product_name ||
-                    prev?.headline ||
-                    "",
-                body_text: aiOutput?.text || prev?.body_text || "",
-                cta: aiOutput?.cta || prev?.cta || "",
-                caption: aiOutput?.caption || prev?.caption || "",
-                hashtags: aiOutput?.hashtags || prev?.hashtags || "",
                 price: overrides?.price !== undefined ? overrides.price : campaign.price,
                 layout: "solid",
-                store: rawStore
+                store: campaign.stores
                     ? {
-                        name: rawStore.name,
-                        address: `${rawStore.address || ""}${rawStore.neighborhood ? `, ${rawStore.neighborhood}` : ""
-                            }`,
-                        whatsapp: rawStore.whatsapp || rawStore.phone || "",
-                        primary_color: rawStore.primary_color,
-                        secondary_color: rawStore.secondary_color,
-                        logo_url: rawStore.logo_url,
+                        name: campaign.stores.name,
+                        address: `${campaign.stores.address || ""}${campaign.stores.neighborhood ? `, ${campaign.stores.neighborhood}` : ""}`,
+                        whatsapp: campaign.stores.whatsapp || campaign.stores.phone || "",
+                        primary_color: campaign.stores.primary_color,
+                        secondary_color: campaign.stores.secondary_color,
+                        logo_url: campaign.stores.logo_url,
                     }
                     : prev?.store,
             }));
@@ -447,6 +434,7 @@ export function CampaignPreviewClient({
                     typeof previewData.price === "string"
                         ? parseFloat(previewData.price.replace(",", ".")) || 0
                         : previewData.price,
+                body_text: campaign.body_text, // Preservar detalhes do produto
                 audience: campaign.audience,
                 objective: campaign.objective,
                 product_positioning: campaign.product_positioning,
@@ -478,11 +466,10 @@ export function CampaignPreviewClient({
             };
 
             if (activeTab === "video") {
-                const newGlobalStatus = calculateGlobalStatus(
-                    localPostStatus,
-                    "approved",
-                    campaign.campaign_type
-                );
+                const newGlobalStatus = selectors.getGlobalStatus({
+                  ...campaign,
+                  reels_status: "approved"
+                } as any);
 
                 const { error: videoErr } = await supabase
                     .from("campaigns")
@@ -495,11 +482,10 @@ export function CampaignPreviewClient({
                 if (videoErr) throw videoErr;
                 setLocalReelsStatus("approved");
             } else {
-                const newGlobalStatus = calculateGlobalStatus(
-                    "approved",
-                    localReelsStatus,
-                    campaign.campaign_type
-                );
+                const newGlobalStatus = selectors.getGlobalStatus({
+                  ...campaign,
+                  post_status: "approved"
+                } as any);
 
                 const { error: dbErr } = await supabase
                     .from("campaigns")
@@ -536,6 +522,7 @@ export function CampaignPreviewClient({
                     typeof previewData.price === "string"
                         ? parseFloat(previewData.price.replace(",", ".")) || 0
                         : previewData.price,
+                body_text: campaign.body_text, // Preservar detalhes do produto
                 headline: previewData.headline,
                 ai_text: previewData.body_text,
                 ai_cta: previewData.cta,
@@ -591,6 +578,7 @@ export function CampaignPreviewClient({
                     {
                         ...buildStrategySafeBaseUpdate({
                             product_name: overrides?.product_name ?? campaign.product_name ?? "",
+                            description: overrides?.description ?? campaign.body_text ?? "",
                             price: overrides?.price ?? campaign.price ?? null,
                             audience: overrides?.audience ?? campaign.audience ?? "",
                             objective: overrides?.objective ?? campaign.objective ?? "",
@@ -625,21 +613,14 @@ export function CampaignPreviewClient({
                 throw new Error(genData.message || genData.error || "Erro na geração");
             }
             const reels = genData.reels;
+            const mappedReels = mapAiReelsToPreview(reels);
 
             setPreviewData((prev) => ({
                 ...prev,
+                ...mappedReels,
                 image_url: overrides?.product_image_url || campaign.product_image_url || prev?.image_url || "",
                 headline: overrides?.product_name || campaign.product_name || prev?.headline || "",
                 price: overrides?.price !== undefined ? overrides.price : campaign.price,
-                reels_hook: reels.hook || "",
-                reels_script: reels.script || "",
-                reels_shotlist: reels.shotlist || [],
-                reels_on_screen_text: reels.on_screen_text || [],
-                reels_audio_suggestion: reels.audio_suggestion || "",
-                reels_duration_seconds: reels.duration_seconds || 30,
-                reels_caption: reels.caption || "",
-                reels_cta: reels.cta || "",
-                reels_hashtags: reels.hashtags || "",
                 store: campaign.stores
                     ? {
                         name: campaign.stores.name,
@@ -888,7 +869,6 @@ export function CampaignPreviewClient({
                     onApprove={handleApproveFromEdit}
                     activeTab={activeTab}
                     lockContext={lockContext}
-                    lockStrategyFields={isPlanLinked}
                     isSaving={isSaving}
                     isGeneratingArt={loadingText}
                     isGeneratingVideo={loadingReels}

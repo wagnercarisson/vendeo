@@ -15,4 +15,55 @@ export const CampaignAISchema = z.object({
   hashtags: z.string().optional(),
 });
 
+export const CampaignReelsSchema = z.object({
+  hook: z.string().optional(),
+  script: z.string().optional(),
+  shotlist: z.array(z.any()).optional(),
+  on_screen_text: z.array(z.string()).optional(),
+  audio_suggestion: z.string().optional(),
+  duration_seconds: z.number().optional(),
+  caption: z.string().optional(),
+  cta: z.string().optional(),
+  hashtags: z.string().optional(),
+});
+
+export const DbCampaignSchema = z.object({
+  id: z.string(),
+  store_id: z.string(),
+  product_name: z.string().nullable(),
+  price: z.coerce.number().nullable(),
+  audience: z.string().nullable(),
+  objective: z.string().nullable(),
+  product_positioning: z.string().nullable(),
+  status: z.string().nullable(),
+  campaign_type: z.enum(["post", "reels", "both"]).nullable(),
+  content_type: z.enum(["product", "service", "info"]).nullable(),
+  post_status: z.enum(["none", "draft", "ready", "approved"]).nullable(),
+  reels_status: z.enum(["none", "draft", "ready", "approved"]).nullable(),
+  origin: z.enum(["manual", "plan"]).default("manual"),
+  weekly_plan_item_id: z.string().nullable(),
+  image_url: z.string().nullable(),
+  product_image_url: z.string().nullable(),
+  headline: z.string().nullable(),
+  body_text: z.string().nullable(),
+  cta: z.string().nullable(),
+  ai_caption: z.string().nullable(),
+  ai_text: z.string().nullable(),
+  ai_cta: z.string().nullable(),
+  ai_hashtags: z.string().nullable(),
+  ai_generated_at: z.string().nullable(),
+  reels_hook: z.string().nullable(),
+  reels_script: z.string().nullable(),
+  reels_shotlist: z.any().nullable(),
+  reels_on_screen_text: z.any().nullable(),
+  reels_audio_suggestion: z.string().nullable(),
+  reels_duration_seconds: z.coerce.number().nullable(),
+  reels_caption: z.string().nullable(),
+  reels_cta: z.string().nullable(),
+  reels_hashtags: z.string().nullable(),
+  reels_generated_at: z.string().nullable(),
+  created_at: z.string().optional(),
+});
+
 export type CampaignRequest = z.infer<typeof CampaignRequestSchema>;
+export type DbCampaignRaw = z.infer<typeof DbCampaignSchema>;

@@ -18,18 +18,16 @@ import {
   CheckCircle2,
   FileText,
 } from "lucide-react";
-import { mapDbCampaignToDomain } from "@/lib/domain/campaigns/mapper";
+import { mapDbCampaignToDomain, mapCampaignToListItem } from "@/lib/domain/campaigns/mapper";
 import { MotionWrapper } from "../_components/MotionWrapper";
 import { PostModal, ReelsModal } from "./_components/CampaignModals";
-import * as selectors from "@/lib/domain/campaigns/logic";
 import { formatAudience, formatObjective } from "@/lib/formatters/strategyLabels";
 import { CampaignCard } from "./_components/CampaignCard";
 
 import { Store } from "@/lib/domain/stores/types";
-import { Campaign as CampaignModel } from "@/lib/domain/campaigns/types";
+import { CampaignListItem, Campaign as CampaignModel } from "@/lib/domain/campaigns/types";
 
-/** Campanha com relação de loja incluída (para listagem). */
-export type Campaign = CampaignModel & {
+export type CampaignListItemWithStore = CampaignListItem & {
   stores?: Store | null;
 };
 
@@ -45,14 +43,14 @@ function formatBRL(value: number) {
 }
 
 export default function CampaignsPage() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [campaigns, setCampaigns] = useState<CampaignListItemWithStore[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<any>(null);
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const router = useRouter();
 
-  const [selectedPostCampaign, setSelectedPostCampaign] = useState<Campaign | null>(null);
-  const [selectedReelsCampaign, setSelectedReelsCampaign] = useState<Campaign | null>(null);
+  const [selectedPostCampaign, setSelectedPostCampaign] = useState<any | null>(null);
+  const [selectedReelsCampaign, setSelectedReelsCampaign] = useState<any | null>(null);
 
   const loadCampaigns = useCallback(async () => {
     try {
@@ -68,10 +66,11 @@ export default function CampaignsPage() {
 
       const mapped = (data || []).map((row) => {
         const domain = mapDbCampaignToDomain(row);
+        const listItem = mapCampaignToListItem(domain);
         return {
-          ...domain,
+          ...listItem,
           stores: row.stores || null,
-        } as Campaign;
+        } as CampaignListItemWithStore;
       });
 
       setCampaigns(mapped);
@@ -83,7 +82,7 @@ export default function CampaignsPage() {
     }
   }, []);
 
-  const handleDuplicate = async (c: Campaign) => {
+  const handleDuplicate = async (c: CampaignListItemWithStore) => {
     if (duplicatingId) return;
 
     try {

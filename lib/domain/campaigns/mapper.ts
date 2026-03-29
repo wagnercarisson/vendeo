@@ -1,7 +1,21 @@
 import { z } from "zod";
-import { CampaignAISchema } from "./schemas";
-import { Campaign, CampaignContext, CampaignAIOutput } from "./types";
+import { 
+  CampaignAISchema, 
+  CampaignReelsSchema, 
+  DbCampaignSchema, 
+  DbCampaignRaw 
+} from "./schemas";
+import { 
+  Campaign, 
+  CampaignContext, 
+  CampaignAIOutput,
+  CampaignAudience,
+  CampaignObjective,
+  ProductPositioning,
+  CampaignListItem
+} from "./types";
 import { StoreContext } from "@/lib/domain/stores/types";
+import * as selectors from "./selectors";
 
 type AIData = z.infer<typeof CampaignAISchema>;
 
@@ -33,17 +47,22 @@ export function mapAiCampaignToDomain(
 }
 
 /**
- * Mapeia uma linha crua do banco para o tipo de domínio Campaign.
+ * Mapeia uma linha crua do banco para o tipo de domínio Campaign de forma segura.
  */
-export function mapDbCampaignToDomain(raw: any): Campaign {
+export function mapDbCampaignToDomain(data: unknown): Campaign {
+  const raw = DbCampaignSchema.parse(data);
+
   return {
     id: String(raw.id),
     store_id: String(raw.store_id),
     product_name: raw.product_name ?? null,
     price: raw.price != null ? Number(raw.price) : null,
-    audience: raw.audience ?? null,
-    objective: raw.objective ?? null,
-    product_positioning: raw.product_positioning ?? null,
+    
+    // Casting de segurança com fallbacks (Blindagem de Domínio)
+    audience: (raw.audience as CampaignAudience) || null,
+    objective: (raw.objective as CampaignObjective) || null,
+    product_positioning: (raw.product_positioning as ProductPositioning) || null,
+    
     status: raw.status ?? null,
     campaign_type: raw.campaign_type ?? "both",
     content_type: raw.content_type ?? "product",
@@ -83,15 +102,16 @@ export function mapDbCampaignToDomain(raw: any): Campaign {
 /**
  * Mapeia dados do banco para o contexto lean usado pela IA.
  */
-export function mapDbCampaignToAIContext(raw: any, theme?: string | null): CampaignContext {
+export function mapDbCampaignToAIContext(data: unknown, theme?: string | null): CampaignContext {
+  const raw = DbCampaignSchema.parse(data);
   return {
     id: String(raw.id),
     store_id: String(raw.store_id),
     product_name: String(raw.product_name || "Produto"),
     price: raw.price != null ? String(raw.price) : null,
-    audience: String(raw.audience || "Público Geral"),
-    objective: String(raw.objective || "Vendas"),
-    product_positioning: raw.product_positioning ?? null,
+    audience: (raw.audience as CampaignAudience) || "geral",
+    objective: (raw.objective as CampaignObjective) || "promocao",
+    product_positioning: (raw.product_positioning as ProductPositioning) || null,
     theme: theme ?? null,
   };
 }
@@ -103,7 +123,7 @@ export function mapCampaignToPreviewData(
   campaign: Campaign,
   store?: any
 ): any {
-  const isApproved = campaign.status === "approved";
+  const isApproved = campaign.status === "approved" || campaign.post_status === "approved";
   return {
     image_url: isApproved ? (campaign.image_url || campaign.product_image_url || "") : (campaign.product_image_url || ""),
     headline: campaign.headline || campaign.product_name || "",
@@ -130,5 +150,81 @@ export function mapCampaignToPreviewData(
       secondary_color: store.secondary_color,
       logo_url: store.logo_url,
     } : undefined,
+  };
+}
+
+/**
+ * Valida e mapeia a resposta da IA de Arte para o formato de preview.
+ */
+export function mapAiArtToPreview(
+  campaign: Campaign,
+  aiResponse: unknown
+): Partial<any> {
+  const ai = CampaignAISchema.parse(aiResponse);
+  
+  return {
+    headline: ai.headline || campaign.product_name || "",
+    body_text: ai.text || "",
+    cta: ai.cta || "",
+    caption: ai.caption || "",
+    hashtags: ai.hashtags || "",
+  };
+}
+
+/**
+ * Valida e mapeia a resposta da IA de Reels para o formato de preview.
+ */
+export function mapAiReelsToPreview(
+  aiResponse: unknown
+): Partial<any> {
+  const reels = CampaignReelsSchema.parse(aiResponse);
+  
+  return {
+    reels_hook: reels.hook || "",
+    reels_script: reels.script || "",
+    reels_shotlist: reels.shotlist || [],
+    reels_on_screen_text: reels.on_screen_text || [],
+    reels_audio_suggestion: reels.audio_suggestion || "",
+    reels_duration_seconds: reels.duration_seconds || 30,
+    reels_caption: reels.caption || "",
+    reels_cta: reels.cta || "",
+    reels_hashtags: reels.hashtags || "",
+  };
+}
+
+/**
+ * Mapeia uma campanha do domínio para o modelo simplificado de lista.
+ */
+export function mapCampaignToListItem(c: Campaign): CampaignListItem {
+  return {
+    id: c.id,
+    store_id: c.store_id,
+    product_name: c.product_name || "Sem nome",
+    price: c.price,
+    audience: c.audience,
+    objective: c.objective,
+    product_positioning: c.product_positioning,
+    status: selectors.getGlobalStatus(c),
+    ui_status: selectors.getUIStatus(c),
+    image_url: c.image_url || null,
+    product_image_url: c.product_image_url || null,
+    created_at: c.created_at,
+    campaign_type: c.campaign_type,
+    post_status: c.post_status,
+    reels_status: c.reels_status,
+    ai_text: c.ai_text,
+    ai_caption: c.ai_caption,
+    ai_cta: c.ai_cta,
+    ai_hashtags: c.ai_hashtags,
+    headline: c.headline,
+    reels_hook: c.reels_hook,
+    reels_script: c.reels_script,
+    reels_shotlist: c.reels_shotlist,
+    reels_on_screen_text: c.reels_on_screen_text,
+    reels_audio_suggestion: c.reels_audio_suggestion,
+    reels_duration_seconds: c.reels_duration_seconds,
+    reels_caption: c.reels_caption,
+    reels_cta: c.reels_cta,
+    reels_hashtags: c.reels_hashtags,
   };
 }
