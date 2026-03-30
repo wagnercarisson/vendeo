@@ -3,6 +3,7 @@
 import React, { useEffect } from "react";
 import Link from "next/link";
 import BrandLogo from "@/components/dashboard/BrandLogo";
+import ShowcaseSection from "@/components/landing/ShowcaseSection";
 
 function Container({ children }: { children: React.ReactNode }) {
   return (
@@ -420,7 +421,7 @@ export default function HomePage() {
                 </Reveal>
               </div>
 
-              <div id="exemplos">
+              <div>
                 <Reveal delay={120}>
                   <PreviewCard />
                 </Reveal>
@@ -695,6 +696,9 @@ export default function HomePage() {
             </Reveal>
           </Container>
         </section>
+
+        {/* EXEMPLOS DIVIDER */}
+        <ShowcaseSection />
 
         {/* PARA QUEM É */}
         <section

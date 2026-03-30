@@ -191,12 +191,12 @@ export function CampaignEditForm({
                             </span>
                         </button>
 
-                        <div className="flex items-center justify-center gap-4 pt-2">
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
                             <button
                                 onClick={onCancel}
                                 type="button"
                                 disabled={isSaving || isGeneratingArt || isGeneratingVideo}
-                                className={`h-11 px-6 rounded-xl border font-bold transition-all text-sm ${
+                                className={`h-11 w-full sm:w-auto px-6 rounded-xl border font-bold transition-all text-sm ${
                                     isSaving || isGeneratingArt || isGeneratingVideo
                                         ? "border-zinc-100 text-zinc-300 cursor-not-allowed"
                                         : "border-zinc-200 text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700"
@@ -207,7 +207,7 @@ export function CampaignEditForm({
                             <button
                                 type="submit"
                                 disabled={!isDirty || isSaving || isGeneratingArt || isGeneratingVideo}
-                                className={`h-11 rounded-xl px-6 font-bold transition-all text-sm border ${
+                                className={`h-11 w-full sm:w-auto rounded-xl px-6 font-bold transition-all text-sm border ${
                                     !isDirty || isSaving || isGeneratingArt || isGeneratingVideo
                                         ? "border-zinc-100 bg-zinc-50 text-zinc-300 cursor-not-allowed"
                                         : "bg-zinc-900 text-white hover:bg-zinc-800 shadow-sm"

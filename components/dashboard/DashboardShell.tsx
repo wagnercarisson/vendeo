@@ -202,6 +202,7 @@ export function DashboardShell({
           "relative h-full overflow-hidden bg-[#0F3D2E] text-white flex flex-col",
           "border-r border-white/10",
           "transition-[width] duration-200 ease-out",
+          "hidden lg:flex",
           sidebarWidth
         )}
       >

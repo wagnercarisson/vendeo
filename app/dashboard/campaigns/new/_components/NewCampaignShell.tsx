@@ -782,7 +782,7 @@ export function NewCampaignShell() {
     const planContentLabel = planContentType === "reels" ? "reels" : "post";
 
     return (
-        <main className={`mx-auto max-w-6xl space-y-6 px-6 py-6 ${(generationState === "generating" || isSaving || isRegenerating) ? "cursor-wait" : ""}`}>
+        <main className={`mx-auto max-w-6xl space-y-6 px-4 lg:px-6 py-6 ${(generationState === "generating" || isSaving || isRegenerating) ? "cursor-wait" : ""}`}>
             {generationState === "idle" || generationState === "error" ? (
                 <div className="space-y-8">
                     {/* Cabeçalho */}
@@ -862,12 +862,12 @@ export function NewCampaignShell() {
                                         </span>
                                     </button>
 
-                                <div className="flex items-center justify-center gap-4 pt-2">
+                                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
                                     <button
                                         onClick={handleCancel}
                                         type="button"
                                         disabled={isSaving || isChildEditing || isRegenerating}
-                                        className={`h-11 px-6 rounded-xl border font-bold transition-all text-sm ${
+                                        className={`h-11 w-full sm:w-auto px-6 rounded-xl border font-bold transition-all text-sm ${
                                             isSaving || isChildEditing || isRegenerating
                                                 ? "border-zinc-100 text-zinc-300 cursor-not-allowed"
                                                 : "border-zinc-200 text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700"
@@ -875,12 +875,11 @@ export function NewCampaignShell() {
                                     >
                                         Cancelar
                                     </button>
-
                                     <button
                                         onClick={handleSaveDraft}
                                         type="button"
                                         disabled={!isFormDirty || isSaving || isChildEditing || isRegenerating}
-                                        className={`h-11 rounded-xl px-6 font-bold transition-all text-sm border ${
+                                        className={`h-11 w-full sm:w-auto rounded-xl px-6 font-bold transition-all text-sm border ${
                                             !isFormDirty || isSaving || isChildEditing || isRegenerating
                                                 ? "border-zinc-100 bg-zinc-50 text-zinc-300 cursor-not-allowed"
                                                 : "bg-zinc-900 text-white hover:bg-zinc-800 shadow-sm"
@@ -925,7 +924,7 @@ export function NewCampaignShell() {
                                     <button
                                         onClick={handleSaveDraftReview}
                                         disabled={isSaving || isChildEditing || isRegenerating}
-                                        className={`rounded-xl border border-zinc-900 bg-white px-6 py-2.5 text-sm font-bold shadow-sm transition-all sm:w-auto ${
+                                        className={`w-full sm:w-auto rounded-xl border border-zinc-900 bg-white px-6 py-2.5 text-sm font-bold shadow-sm transition-all ${
                                             isChildEditing || isSaving || isRegenerating ? "opacity-50 cursor-not-allowed border-zinc-200 text-zinc-400" : "text-zinc-900 hover:bg-zinc-50"
                                         }`}
                                     >
@@ -934,7 +933,7 @@ export function NewCampaignShell() {
                                     <button
                                         onClick={handleApprove}
                                         disabled={isSaving || isChildEditing || isRegenerating}
-                                        className={`rounded-xl px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-all sm:w-auto ${
+                                        className={`w-full sm:w-auto rounded-xl px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-all ${
                                             isChildEditing || isSaving || isRegenerating ? "bg-zinc-300 cursor-not-allowed shadow-none" : "bg-emerald-600 hover:bg-emerald-700"
                                         }`}
                                     >
