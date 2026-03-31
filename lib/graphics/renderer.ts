@@ -398,58 +398,65 @@ async function drawSplitLayout(ctx: CanvasRenderingContext2D, img: HTMLImageElem
     grad.addColorStop(0, "rgba(0,0,0,0)"); grad.addColorStop(1, "rgba(0,0,0,0.5)");
     ctx.fillStyle = grad; ctx.fillRect(0, 0, WIDTH / 2, HEIGHT);
 
-    // LOGO + NOME Conjuntos V29 (+5% Logo -> 84px)
-    let headerX = 620; 
+    // Constante Mestra de Alinhamento
+    const contentX = 580;
+    const contentW = 440;
+
+    // LOGO + NOME Unificados e Centralizados Linearmente
+    let headerX = contentX; 
     if (store?.logo_url) {
-        await drawStoreLogo(ctx, store.logo_url, 620, 120, 84);
-        headerX += 95; // Mantido para fixar posição do nome
+        await drawStoreLogo(ctx, store.logo_url, headerX, 90, 84); // Elevado (Y: 120 -> 90)
+        headerX += 105; // Gap logo + texto
     }
     
     if (store?.name) {
         ctx.fillStyle = primaryColor;
         ctx.font = TOKENS.fonts.label;
         ctx.textAlign = "start";
-        ctx.fillText(store.name.toUpperCase(), headerX, 170); // Alinhado verticalmente centro logo
+        const maxNameWidth = contentW - (headerX - contentX);
+        // Utilizando drawWrappedText para corrigir o truncamento:
+        drawWrappedText(ctx, store.name.toUpperCase(), headerX, 128, maxNameWidth, 32, 2); 
     }
 
     ctx.fillStyle = "#ffffff";
     ctx.font = TOKENS.fonts.headline;
-    let cursorY = drawWrappedText(ctx, headline, 620, 280, 420, 72, 3); // Baixado Y V26
-    drawRoundedRectFill(ctx, 620, cursorY + 16, 95, 10, 4, primaryColor); // +15px V30 (Total 95px)
+    let cursorY = drawWrappedText(ctx, headline, contentX, 250, contentW, 70, 3); // Elevado e alinhado ao contentX
+    
+    // Divisor fino corrigido (height: 7px)
+    drawRoundedRectFill(ctx, contentX, cursorY + 16, 95, 7, 2, primaryColor); 
 
     ctx.fillStyle = TOKENS.colors.textMutedLight;
     ctx.font = TOKENS.fonts.body;
-    cursorY = drawWrappedText(ctx, body_text, 620, cursorY + 84, 430, 42, 4); // x:620 V26
+    cursorY = drawWrappedText(ctx, body_text, contentX, cursorY + 76, contentW, 42, 4); // Alinhado ao contentX
 
     if (price) {
         ctx.fillStyle = "rgba(255,255,255,0.55)";
         ctx.font = TOKENS.fonts.footerBold;
         ctx.textAlign = "start";
-        ctx.fillText("VALOR", 580, HEIGHT - 430); // Elevado 100px V24
+        ctx.fillText("VALOR", contentX, HEIGHT - 430); 
         ctx.fillStyle = primaryColor;
         ctx.font = "900 82px 'Inter', 'Outfit', sans-serif";
-        ctx.fillText(price, 580, HEIGHT - 325); // Elevado 100px V24
+        ctx.fillText(price, contentX, HEIGHT - 325); 
     }
 
-    drawRoundedRectFill(ctx, 580, HEIGHT - 280, 440, 92, 16, "#ffffff"); // Elevado 100px V24
+    drawRoundedRectFill(ctx, contentX, HEIGHT - 280, contentW, 92, 16, "#ffffff"); 
     ctx.fillStyle = TOKENS.colors.textDark;
-    ctx.font = "900 24.5px 'Inter', 'Outfit', sans-serif"; // +1.5px V25
+    ctx.font = "900 26px 'Inter', 'Outfit', sans-serif"; 
     ctx.textAlign = "center";
-    ctx.fillText(cta.toUpperCase(), 800, HEIGHT - 222); // Elevado 100px V24
+    ctx.fillText(cta.toUpperCase(), contentX + (contentW / 2), HEIGHT - 222); 
 
     if (whatsapp) {
         ctx.textAlign = "start";
-        await drawWhatsappIcon(ctx, 580, HEIGHT - 134, 28); // 40px para baixo V25
+        await drawWhatsappIcon(ctx, contentX, HEIGHT - 134, 28); 
         ctx.fillStyle = "rgba(255,255,255,0.85)";
         ctx.font = TOKENS.fonts.footerBold;
-        ctx.fillText(whatsapp, 618, HEIGHT - 111); // 40px para baixo V25
+        ctx.fillText(whatsapp, contentX + 38, HEIGHT - 111); 
     }
 
-    // Endereço adicionado e elevado V24
     ctx.fillStyle = "#a1a1aa";
     ctx.font = TOKENS.fonts.footerRegular;
     ctx.textAlign = "start";
-    drawWrappedText(ctx, store?.address || "", 580, HEIGHT - 80, 440, 28, 2);
+    drawWrappedText(ctx, store?.address || "", contentX, HEIGHT - 80, contentW, 28, 2);
 }
 
 export async function renderGraphicToBlob(input: GraphicInput): Promise<Blob> {

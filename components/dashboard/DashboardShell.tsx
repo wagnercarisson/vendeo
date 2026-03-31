@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useMemo, useEffect, useRef, useState } from "react";
 import LogoutButton from "@/components/dashboard/LogoutButton";
 import Brand from "@/components/dashboard/BrandLogo";
+import { changelogData } from "@/lib/data/changelog";
 import {
   LayoutDashboard,
   Store,
@@ -463,6 +464,18 @@ export function DashboardShell({
             )}
             {!sidebarCollapsed && <span className="font-semibold">Recolher</span>}
           </button>
+
+          <div className="mt-3 flex justify-center w-full">
+            <Link 
+              href="/changelog" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="text-[11px] text-white/40 hover:text-white/80 transition-colors uppercase tracking-wider font-semibold"
+              title="Abrir o mural de novidades em uma nova aba"
+            >
+              {sidebarCollapsed ? changelogData[0]?.version.split('-')[0] : `Novidades - ${changelogData[0]?.version.split('-')[0]}`}
+            </Link>
+          </div>
         </div>
       </aside>
 

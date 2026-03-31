@@ -192,26 +192,7 @@ export default function ShowcaseSection() {
           </p>
         </div>
 
-        {/* Niche Selector */}
-        <div className="mb-10 flex flex-wrap justify-center gap-2 md:gap-4">
-          {niches.map((niche) => {
-            const isActive = niche.id === activeNicheId;
-            return (
-              <button
-                key={niche.id}
-                onClick={() => setActiveNicheId(niche.id)}
-                className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-300 ${
-                  isActive
-                    ? "bg-vendeo-green text-white shadow-md scale-105"
-                    : "bg-white text-black/70 hover:bg-black/5 border border-black/10"
-                }`}
-              >
-                <span className="text-lg">{niche.icon}</span>
-                <span>{niche.label}</span>
-              </button>
-            );
-          })}
-        </div>
+
 
         {/* Layout do Vídeo + Slider */}
         <div className="grid gap-8 lg:grid-cols-[1fr_2fr] items-center max-w-5xl mx-auto">
@@ -243,6 +224,27 @@ export default function ShowcaseSection() {
           {/* Slider e Painel Dinâmico */}
           <div className="flex flex-col gap-6">
             
+            {/* Niche Selector (Ajuste Compacto e Rolável Horizontal) */}
+            <div className="flex w-full overflow-x-auto scrollbar-hide flex-nowrap items-center justify-start gap-2 md:gap-3 pb-2 -mb-2 pt-1 px-1 -mx-1">
+              {niches.map((niche) => {
+                const isActive = niche.id === activeNicheId;
+                return (
+                  <button
+                    key={niche.id}
+                    onClick={() => setActiveNicheId(niche.id)}
+                    className={`flex shrink-0 min-w-fit items-center gap-2 rounded-xl px-3 py-2 text-[13px] whitespace-nowrap font-semibold transition-all duration-300 ${
+                      isActive
+                        ? "bg-vendeo-green text-white shadow-md scale-105"
+                        : "bg-white text-black/70 hover:bg-black/5 border border-black/10"
+                    }`}
+                  >
+                    <span className="text-lg">{niche.icon}</span>
+                    <span>{niche.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
             <div key={activeNiche.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <BeforeAfterSlider 
                 beforeImg={activeNiche.beforeImg} 

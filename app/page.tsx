@@ -942,6 +942,9 @@ export default function HomePage() {
               <Link href="/privacy" className="hover:text-white">
                 Privacidade
               </Link>
+              <Link href="/changelog" className="hover:text-white">
+                Novidades <span className="ml-1 inline-flex items-center rounded-sm bg-orange-500/20 px-1 py-0.5 text-[10px] uppercase text-orange-400">Beta</span>
+              </Link>
               <Link href="/contact" className="hover:text-white">
                 Contato
               </Link>

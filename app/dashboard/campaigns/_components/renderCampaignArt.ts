@@ -418,58 +418,65 @@ function drawSplitLayout(
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, WIDTH / 2, HEIGHT);
 
-    const logoSize = 88;
+    const contentX = 580;
+    const contentW = 440;
+
+    let headerX = contentX;
     if (logoImg) {
-        drawCircleImage(ctx, logoImg, 600, 42, logoSize, 2, "rgba(255,255,255,0.2)");
-    } else {
-        ctx.fillStyle = "rgba(255,255,255,0.45)";
-        ctx.font = "900 24px sans-serif";
-        ctx.fillText((store?.name || "").toUpperCase(), 600, 82);
+        drawCircleImage(ctx, logoImg, headerX, 90, 84, 2, "rgba(255,255,255,0.2)");
+        headerX += 105;
+    }
+    
+    if (store?.name) {
+        ctx.fillStyle = primary_color;
+        ctx.font = "800 26px 'Inter', 'Outfit', system-ui, sans-serif"; 
+        const maxNameWidth = contentW - (headerX - contentX);
+        drawWrappedText(ctx, store.name.toUpperCase(), headerX, 128, maxNameWidth, 32, 2);
     }
 
     ctx.fillStyle = "#ffffff";
     ctx.font = "900 italic 58px 'Inter', 'Outfit', system-ui, sans-serif";
-    let cursorY = drawWrappedText(ctx, headline || "", 580, 185, 460, 68, 3);
+    let cursorY = drawWrappedText(ctx, headline || "", contentX, 250, contentW, 68, 3);
  
-    drawRoundedRectFill(ctx, 580, cursorY + 14, 80, 8, 4, primary_color);
+    drawRoundedRectFill(ctx, contentX, cursorY + 16, 80, 7, 2, primary_color);
  
     ctx.fillStyle = "rgba(255,255,255,0.78)";
     ctx.font = "500 26px 'Inter', 'Outfit', system-ui, sans-serif";
-    cursorY = drawWrappedText(ctx, body_text || "", 580, cursorY + 82, 440, 42, 4);
+    cursorY = drawWrappedText(ctx, body_text || "", contentX, cursorY + 76, contentW, 42, 4);
 
     if (price) {
         ctx.fillStyle = "rgba(255,255,255,0.55)";
         ctx.font = "700 20px 'Inter', 'Outfit', system-ui, sans-serif";
-        ctx.fillText("VALOR", 580, HEIGHT - 290);
+        ctx.fillText("VALOR", contentX, HEIGHT - 430);
  
         ctx.fillStyle = primary_color;
         ctx.font = "900 78px 'Inter', 'Outfit', system-ui, sans-serif";
-        ctx.fillText(price, 580, HEIGHT - 195);
+        ctx.fillText(price, contentX, HEIGHT - 325);
     }
  
-    drawRoundedRectFill(ctx, 580, HEIGHT - 156, 440, 84, 16, "#ffffff");
+    drawRoundedRectFill(ctx, contentX, HEIGHT - 280, contentW, 84, 16, "#ffffff");
     ctx.fillStyle = "#18181b";
-    ctx.font = "900 24px 'Inter', 'Outfit', system-ui, sans-serif";
+    ctx.font = "900 26px 'Inter', 'Outfit', system-ui, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText((cta || "").toUpperCase(), 800, HEIGHT - 100);
+    ctx.fillText((cta || "").toUpperCase(), contentX + (contentW/2), HEIGHT - 222);
     ctx.textAlign = "start";
 
     ctx.strokeStyle = "rgba(255,255,255,0.08)";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(600, HEIGHT - 220);
-    ctx.lineTo(1010, HEIGHT - 220);
+    ctx.moveTo(contentX, HEIGHT - 180);
+    ctx.lineTo(contentX + contentW, HEIGHT - 180);
     ctx.stroke();
 
     ctx.fillStyle = "rgba(255,255,255,0.75)";
     ctx.font = "700 22px 'Inter', 'Outfit', system-ui, sans-serif";
     if (whatsapp) {
-        ctx.fillText(whatsapp, 580, HEIGHT - 40);
+        ctx.fillText(whatsapp, contentX, HEIGHT - 134);
     }
  
     ctx.fillStyle = "rgba(255,255,255,0.5)";
     ctx.font = "500 18px 'Inter', 'Outfit', system-ui, sans-serif";
-    drawWrappedText(ctx, store?.address || "", 580, HEIGHT - 12, 420, 24, 2);
+    drawWrappedText(ctx, store?.address || "", contentX, HEIGHT - 100, contentW, 24, 2);
 }
 
 export async function renderCampaignArtToBlob(

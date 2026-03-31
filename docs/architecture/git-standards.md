@@ -2,6 +2,8 @@
 
 Este documento define o padrão oficial de mensagens de commit para o projeto, garantindo um histórico claro e rastreável.
 
+> **Nota Arquitetural:** As classificações e descrições definidas neste documento atuam como o padrão comportamental (behavior.md) para a IA criar, ao fim do processo de fechamento de release da ferramenta, as strings do painel público de novidades `lib/data/changelog.ts`.  
+
 ## 1. Estrutura da Mensagem
 As mensagens devem seguir o formato:
 `[tipo]: breve descrição [detalhes opcionais]`

@@ -10,6 +10,7 @@ Este arquivo define as "Regras de Ouro" para interação da IA com o projeto Ven
 5. **Reporte Proativo**: Se encontrar problemas fora do escopo, prepare uma apresentação detalhada e aguarde aprovação.
 6. **Sempre Mostrar Diff**: Apresente o diff antes de aplicar qualquer mudança.
 7. **Documentação e Migrations**: NUNCA altere arquivos em `docs/`, `database/migrations/` ou `database/` sem aprovação explícita.
+8. **Fechamento de Ciclo (Commit & Changelog)**: Ao concluir um bloco, você DEVE gerar rigorosamente de forma unificada: a mensagem de commit correspondente ao arquivo `docs/architecture/git-standards.md` E registrar esse item automaticamente no payload do array histórico contido em `lib/data/changelog.ts`.
 
 ## 🗣 Comunicação
 - **Idioma**: Sempre em Português (PT-BR).
