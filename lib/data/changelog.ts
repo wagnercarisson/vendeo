@@ -16,6 +16,17 @@ export type ChangelogRelease = {
 
 export const changelogData: ChangelogRelease[] = [
     {
+        version: "v1.0.0-beta.2",
+        date: "2026-03-31",
+        title: "Expansão Institucional e Polimento de Interface",
+        description: "Inauguramos a presença institucional completa com as páginas legais e de contato, além de resolvermos gargalos de renderização na dashboard.",
+        changes: [
+            { type: "feat", scope: "system", description: "Implementação das páginas institucionais de Termos de Uso (/terms), Privacidade (/privacy) e Contato (/contact) com suporte@vendeo.tech." },
+            { type: "fix", scope: "dashboard", description: "Correção técnica de overflow em tooltips da Sidebar utilizando React Portals (createPortal), garantindo visibilidade total na dashboard colapsada." },
+            { type: "feat", scope: "contact", description: "Configuração de roteamento de e-mail suporte@vendeo.tech via ImprovMX para atendimento centralizado." }
+        ]
+    },
+    {
         version: "v1.0.0-beta.1",
         date: "2026-03-30",
         title: "Calibração Visual e Novo Motor Canvas",
@@ -24,7 +35,7 @@ export const changelogData: ChangelogRelease[] = [
             { type: "feat", scope: "landing", description: "Nova seção dinâmica 'Exemplos' com comparador antes/depois interativo de alta conversão." },
             { type: "fix", scope: "canvas", description: "Calibração milimétrica do Layout Split (Alinhamento em eixo Zigue-Zague corrigido, traço divisor ajustado para 7px e extinção do truncamento de nomes de loja longos)." },
             { type: "refactor", scope: "domain", description: "Finalização unificada da transição para Domain-Driven Architecture nos mappers de campanhas e injeção central." },
-            { type: "feat", scope: "system", description: "Inauguração do mural de Changelog (Histórico da Plataforma) conectando publico e dashboard, com baseada no padrão de commits." },
+            { type: "feat", scope: "system", description: "Inauguração do mural de Changelog (Histórico da Plataforma) conectando publico e dashboard, baseado no padrão de commits." },
             { type: "style", scope: "landing", description: "Otimização responsiva completa no seletor do showcase: reposicionamento integrado ao slider e adoção nativa do anti-wrap (botões 13px roláveis horizontalmente) curando colapsos no mobile." }
         ]
     }

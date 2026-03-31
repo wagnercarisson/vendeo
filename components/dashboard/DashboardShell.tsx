@@ -39,112 +39,119 @@ function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
-/**
- * Tooltip FIXO (position: fixed)
- * - não é cortado por overflow
- * - faz clamp no viewport
- * - se estiver muito perto do topo, abre abaixo do gatilho
- */
-function FixedTooltip({
-  children,
-  content,
-  enabled,
-}: {
-  children: React.ReactNode;
-  content: React.ReactNode;
-  enabled: boolean;
-}) {
-  const ref = useRef<HTMLSpanElement | null>(null);
-  const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
-  const [nearTop, setNearTop] = useState(false);
-
-  function computePosition() {
-    const el = ref.current;
-    if (!el) return;
-
-    const r = el.getBoundingClientRect();
-
-    const padding = 12;
-
-    // tooltip à direita do trigger (preferência)
-    let left = r.right + 12;
-
-    // fallback: se não cabe à direita, tenta à esquerda
-    const tooltipWidth = 280; // aproximado
-    if (left + tooltipWidth > window.innerWidth - padding) {
-      left = Math.max(padding, r.left - 12 - tooltipWidth);
-    }
-
-    // top padrão centralizado
-    let top = r.top + r.height / 2;
-
-    // perto do topo: abre abaixo (evita topbar)
-    const TOP_SAFE = 88;
-    if (r.top < TOP_SAFE) {
-      top = r.bottom + 14;
-      setNearTop(true);
-    } else {
-      setNearTop(false);
-    }
-
-    // clamp vertical
-    const maxTop = window.innerHeight - padding;
-    top = Math.min(Math.max(top, padding), maxTop);
-
-    setPos({ top, left });
-  }
-
-  useEffect(() => {
-    if (!open) return;
-
-    computePosition();
-
-    const onScroll = () => computePosition();
-    const onResize = () => computePosition();
-
-    window.addEventListener("scroll", onScroll, true);
-    window.addEventListener("resize", onResize);
-
-    return () => {
-      window.removeEventListener("scroll", onScroll, true);
-      window.removeEventListener("resize", onResize);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
-
-  return (
-    <span
-      ref={ref}
-      className="relative"
-      onMouseEnter={() => {
-        if (!enabled) return;
-        setOpen(true);
-        requestAnimationFrame(() => computePosition());
-      }}
-      onMouseLeave={() => setOpen(false)}
-    >
-      {children}
-
-      {enabled && open && pos && (
-        <span
-          style={{
-            position: "fixed",
-            left: pos.left,
-            top: pos.top,
-            transform: nearTop ? "translateY(0)" : "translateY(-50%)",
-            zIndex: 2147483647,
-          }}
-          className="pointer-events-none"
-        >
-          <span className="block min-w-[280px] rounded-2xl border border-black/10 bg-white px-3 py-2 text-xs text-black shadow-lg">
-            {content}
-          </span>
-        </span>
-      )}
-    </span>
-  );
-}
+import { createPortal } from "react-dom";
+ 
+ /**
+  * Tooltip FIXO (position: fixed)
+  * - não é cortado por overflow (usa createPortal)
+  * - faz clamp no viewport
+  * - se estiver muito perto do topo, abre abaixo do gatilho
+  */
+ function FixedTooltip({
+   children,
+   content,
+   enabled,
+ }: {
+   children: React.ReactNode;
+   content: React.ReactNode;
+   enabled: boolean;
+ }) {
+   const ref = useRef<HTMLSpanElement | null>(null);
+   const [open, setOpen] = useState(false);
+   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+   const [nearTop, setNearTop] = useState(false);
+   const [mounted, setMounted] = useState(false);
+ 
+   useEffect(() => {
+     setMounted(true);
+   }, []);
+ 
+   function computePosition() {
+     const el = ref.current;
+     if (!el) return;
+ 
+     const r = el.getBoundingClientRect();
+     const padding = 12;
+ 
+     // tooltip à direita do trigger (preferência)
+     let left = r.right + 12;
+ 
+     // fallback: se não cabe à direita, tenta à esquerda
+     const tooltipWidth = 280; // aproximado
+     if (left + tooltipWidth > window.innerWidth - padding) {
+       left = Math.max(padding, r.left - 12 - tooltipWidth);
+     }
+ 
+     // top padrão centralizado
+     let top = r.top + r.height / 2;
+ 
+     // perto do topo: abre abaixo (evita topbar)
+     const TOP_SAFE = 88;
+     if (r.top < TOP_SAFE) {
+       top = r.bottom + 14;
+       setNearTop(true);
+     } else {
+       setNearTop(false);
+     }
+ 
+     // clamp vertical
+     const maxTop = window.innerHeight - padding;
+     top = Math.min(Math.max(top, padding), maxTop);
+ 
+     setPos({ top, left });
+   }
+ 
+   useEffect(() => {
+     if (!open) return;
+ 
+     computePosition();
+ 
+     const onScroll = () => computePosition();
+     const onResize = () => computePosition();
+ 
+     window.addEventListener("scroll", onScroll, true);
+     window.addEventListener("resize", onResize);
+ 
+     return () => {
+       window.removeEventListener("scroll", onScroll, true);
+       window.removeEventListener("resize", onResize);
+     };
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [open]);
+ 
+   return (
+     <span
+       ref={ref}
+       className="relative"
+       onMouseEnter={() => {
+         if (!enabled) return;
+         setOpen(true);
+         requestAnimationFrame(() => computePosition());
+       }}
+       onMouseLeave={() => setOpen(false)}
+     >
+       {children}
+ 
+       {enabled && open && pos && mounted && createPortal(
+         <span
+           style={{
+             position: "fixed",
+             left: pos.left,
+             top: pos.top,
+             transform: nearTop ? "translateY(0)" : "translateY(-50%)",
+             zIndex: 2147483647,
+           }}
+           className="pointer-events-none"
+         >
+           <span className="block min-w-[280px] rounded-2xl border border-black/10 bg-white px-3 py-2 text-xs text-black shadow-lg">
+             {content}
+           </span>
+         </span>,
+         document.body
+       )}
+     </span>
+   );
+ }
 
 export function DashboardShell({
   children,
