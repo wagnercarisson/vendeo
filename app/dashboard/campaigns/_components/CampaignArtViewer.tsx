@@ -27,7 +27,7 @@ export type CampaignArtViewerProps = {
     storePillRef?: React.RefObject<HTMLSpanElement>;
     headlineRef?: React.RefObject<HTMLHeadingElement>;
     bodyTextRef?: React.RefObject<HTMLParagraphElement>;
-    ctaRef?: React.RefObject<HTMLButtonElement>;
+    ctaRef?: React.RefObject<any>;
     whatsappRef?: React.RefObject<HTMLDivElement>;
     waIconRef?: React.RefObject<HTMLImageElement>;
     waTextRef?: React.RefObject<HTMLSpanElement>;
@@ -279,7 +279,7 @@ export function CampaignArtViewer({
                     <h3 ref={headlineRef} className="text-xl font-black leading-tight text-zinc-900 italic line-clamp-2 tracking-[0.5px]">
                         {headline}
                     </h3>
-                    <p className="text-[13px] font-medium text-zinc-600 line-clamp-3 leading-tight pt-1.5">
+                    <p ref={bodyTextRef} className="text-[13px] font-medium text-zinc-600 line-clamp-3 leading-tight pt-1.5">
                         {body_text}
                     </p>
                 </div>
@@ -287,13 +287,13 @@ export function CampaignArtViewer({
                     <div className="text-[9px] text-zinc-400 font-medium max-w-[55%]">
                         {whatsappDisplay && (
                             <div className="flex items-center gap-1.5 font-bold text-zinc-600 mb-1 text-[10px]">
-                                <img src="/whatsapp.png" alt="" className="h-3 w-3 inline-block" />
-                                <span className="truncate">{whatsappDisplay}</span>
+                                <img ref={waIconRef} src="/whatsapp.png" alt="" className="h-3 w-3 inline-block" />
+                                <span ref={waTextRef} className="truncate">{whatsappDisplay}</span>
                             </div>
                         )}
-                        <p className="truncate opacity-70">{store?.address}</p>
+                        <p ref={addressRef} className="truncate opacity-70">{store?.address}</p>
                     </div>
-                    <div className="rounded-lg bg-zinc-900 px-6 py-2.5 text-[11px] font-black text-white uppercase tracking-tight min-w-[140px] text-center line-clamp-2">
+                    <div ref={ctaRef} className="rounded-lg bg-zinc-900 px-6 py-2.5 text-[11px] font-black text-white uppercase tracking-tight min-w-[140px] text-center line-clamp-2">
                         {cta}
                     </div>
                 </div>

@@ -372,46 +372,104 @@ async function drawSolidLayout(ctx: CanvasRenderingContext2D, img: HTMLImageElem
     ctx.fillStyle = TOKENS.colors.textDark;
     ctx.font = `900 italic ${hlSize}px 'Inter', 'Outfit', sans-serif`; 
     // @ts-ignore
-    if ('letterSpacing' in ctx) ctx.letterSpacing = "-1px"; // Sync HTML V11
+    if ('letterSpacing' in ctx) ctx.letterSpacing = `${0.5 * U}px`; // Sync HTML V11 (0.5px * U)
     
     let cursorY = 0;
     if (input.measuredHeadlineY !== undefined) {
         ctx.textBaseline = "top";
-        cursorY = drawWrappedText(ctx, headline, hlX, hlY, input.measuredHeadlineW ? (input.measuredHeadlineW * U + 20) : (WIDTH - SAFE_MARGIN * 2), hlLH, 2);
+        cursorY = drawWrappedText(ctx, headline, hlX, hlY, input.measuredHeadlineW ? (input.measuredHeadlineW * U) : (WIDTH - SAFE_MARGIN * 2), hlLH, 2);
         ctx.textBaseline = "alphabetic";
     } else {
         cursorY = drawWrappedText(ctx, headline, hlX, hlY, WIDTH - SAFE_MARGIN * 2, hlLH, 2);
     }
 
+    const bodySize = input.measuredBodyFontSize ? (input.measuredBodyFontSize * U) : 33.5;
+    const bodyLH = input.measuredBodyLineHeight ? (input.measuredBodyLineHeight * U) : 42;
+    const bodyX = input.measuredBodyX !== undefined ? (input.measuredBodyX * U) : SAFE_MARGIN;
+    const bodyTextY = input.measuredBodyY !== undefined ? (input.measuredBodyY * U) : cursorY + 18;
+    const bodyW = input.measuredBodyW ? (input.measuredBodyW * U) : (WIDTH - SAFE_MARGIN * 2);
+
     ctx.fillStyle = TOKENS.colors.textMuted;
-    ctx.font = TOKENS.fonts.body;
+    ctx.font = `500 ${bodySize}px 'Inter', 'Outfit', sans-serif`;
     // @ts-ignore
     if ('letterSpacing' in ctx) ctx.letterSpacing = "0px";
-    cursorY = drawWrappedText(ctx, body_text, SAFE_MARGIN, cursorY + 18, WIDTH - SAFE_MARGIN * 2, 42, 3); // Gap 18px V16
+    
+    if (input.measuredBodyY !== undefined) {
+        ctx.textBaseline = "top";
+        cursorY = drawWrappedText(ctx, body_text, bodyX, bodyTextY, bodyW, bodyLH, 3);
+        ctx.textBaseline = "alphabetic";
+    } else {
+        cursorY = drawWrappedText(ctx, body_text, bodyX, bodyTextY, bodyW, bodyLH, 3);
+    }
 
+    // 4. RODAPÉ (Linha, WhatsApp e Endereço)
+    const cardY = HEIGHT * 0.55;
+    const addrSize = input.measuredAddressFontSize ? (input.measuredAddressFontSize * U) : 22.5;
+    const addrX = input.measuredAddressX !== undefined ? (input.measuredAddressX * U) : SAFE_MARGIN;
+    const addrY = input.measuredAddressY !== undefined ? (cardY + input.measuredAddressY * U) : HEIGHT - 72;
+    const addrW = input.measuredAddressW ? (input.measuredAddressW * U) : 540;
+
+    // Linha Divisória Dinâmica (proporcional ao endereço ou CTA)
+    const lineY = input.measuredAddressY !== undefined ? (addrY - 88 * (U/2.7)) : HEIGHT - 160; 
     ctx.strokeStyle = "#f4f4f5";
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(SAFE_MARGIN, HEIGHT - 160); ctx.lineTo(WIDTH - SAFE_MARGIN, HEIGHT - 160); ctx.stroke();
+    ctx.lineWidth = 1 * U; // 1px real escalonado
+    ctx.beginPath(); 
+    ctx.moveTo(SAFE_MARGIN, lineY); 
+    ctx.lineTo(WIDTH - SAFE_MARGIN, lineY); 
+    ctx.stroke();
 
     if (whatsapp) {
-        await drawWhatsappIcon(ctx, SAFE_MARGIN, HEIGHT - 128, 28);
+        const waIconSize = input.measuredWhatsappIconSize ? (input.measuredWhatsappIconSize * U) : 28;
+        const waIconX = input.measuredWhatsappX !== undefined ? (input.measuredWhatsappX * U) : SAFE_MARGIN;
+        const waIconY = input.measuredWhatsappY !== undefined ? (cardY + input.measuredWhatsappY * U) : HEIGHT - 128;
+
+        const waFontSize = input.measuredWhatsappFontSize ? (input.measuredWhatsappFontSize * U) : 24.5;
+        const waTextX = input.measuredWhatsappTextX !== undefined ? (input.measuredWhatsappTextX * U) : SAFE_MARGIN + 38;
+        const waTextY = input.measuredWhatsappTextY !== undefined ? (cardY + input.measuredWhatsappTextY * U) : HEIGHT - 105;
+
+        // Ícone do WhatsApp Dinâmico
+        await drawWhatsappIcon(ctx, waIconX, waIconY, waIconSize);
+
+        // Texto do WhatsApp Dinâmico
         ctx.fillStyle = TOKENS.colors.textMuted;
-        ctx.font = TOKENS.fonts.footerBold;
-        ctx.fillText(whatsapp, SAFE_MARGIN + 38, HEIGHT - 105);
+        ctx.font = `700 ${waFontSize}px 'Inter', 'Outfit', sans-serif`;
+        
+        if (input.measuredWhatsappTextY !== undefined) {
+            ctx.textBaseline = "top";
+            ctx.fillText(whatsapp, waTextX, waTextY);
+            ctx.textBaseline = "alphabetic";
+        } else {
+            ctx.fillText(whatsapp, waTextX, waTextY);
+        }
     }
 
     ctx.fillStyle = "#a1a1aa";
-    ctx.font = TOKENS.fonts.footerRegular;
-    drawWrappedText(ctx, store?.address || "", SAFE_MARGIN, HEIGHT - 72, 540, 28, 2);
+    ctx.font = `500 ${addrSize}px 'Inter', 'Outfit', sans-serif`;
+    ctx.textAlign = "start";
+    
+    if (input.measuredAddressY !== undefined) {
+        ctx.textBaseline = "top";
+        drawWrappedText(ctx, store?.address || "", addrX, addrY, addrW, addrSize * 1.3, 1);
+        ctx.textBaseline = "alphabetic";
+    } else {
+        drawWrappedText(ctx, store?.address || "", addrX, addrY, addrW, 28, 2);
+    }
 
-    // CTA Expandido V15 (+1px Texto -> 29px)
-    const ctaW = 385;
-    const ctaH = 96;
-    drawRoundedRectFill(ctx, WIDTH - ctaW - SAFE_MARGIN, HEIGHT - 146, ctaW, ctaH, 16, TOKENS.colors.textDark);
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "900 29px 'Inter', 'Outfit', sans-serif"; // +1px V15
+    // CTA Dinâmico V17
+    const ctaW = input.measuredCTAW ? (input.measuredCTAW * U) : 385;
+    const ctaH = input.measuredCTAH ? (input.measuredCTAH * U) : 80;
+    const ctaX = input.measuredCTAX !== undefined ? (input.measuredCTAX * U) : (WIDTH - SAFE_MARGIN - ctaW);
+    const ctaY = input.measuredCTAY !== undefined ? (cardY + input.measuredCTAY * U) : (HEIGHT - 146);
+    const ctaSize = input.measuredCTAFontSize ? (input.measuredCTAFontSize * U) : 29;
+
+    ctx.fillStyle = TOKENS.colors.textDark;
+    drawRoundedRectFill(ctx, ctaX, ctaY, ctaW, ctaH, 16 * (U / 2.7), TOKENS.colors.textDark);
+
+    ctx.fillStyle = "white";
+    ctx.font = `900 ${ctaSize}px 'Inter', 'Outfit', sans-serif`;
     ctx.textAlign = "center";
-    ctx.fillText(cta.toUpperCase(), WIDTH - ctaW/2 - SAFE_MARGIN, HEIGHT - 92);
+    ctx.textBaseline = "middle";
+    ctx.fillText(cta.toUpperCase(), ctaX + ctaW / 2, ctaY + ctaH / 2);
 }
 
 async function drawFloatingLayout(ctx: CanvasRenderingContext2D, img: HTMLImageElement, input: GraphicInput, primaryColor: string) {

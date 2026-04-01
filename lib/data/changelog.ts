@@ -22,8 +22,10 @@ export const changelogData: ChangelogRelease[] = [
         description: "Revolução na precisão do motor gráfico com a injeção do construtor de fatores dinâmicos (U), transicionando valores engessados do Solid para eixos escalonados em tempo real pelo DOM do cliente.",
         changes: [
             { type: "feat", scope: "canvas", description: "Implementação da calibração métrica, escala e top/left tracking para o Badge, Nome e Headline no Solid." },
-            { type: "fix", scope: "preview", description: "Fix crítico em CSSOM (offsetParent isolation) setando content block 'relative', contendo bug de teletransporte de badge." },
-            { type: "refactor", scope: "renderer", description: "Substituição completa de layout hardcoded no Solid para textBaseline dinâmico com Fator U." }
+            { type: "fix", scope: "canvas", description: "Sincronização dinâmica de tracking, line-height e largura da Headline e Subtítulo no layout Solid." },
+            { type: "fix", scope: "canvas", description: "Calibração biométrica completa do rodapé (Linha, Endereço, WhatsApp e CTA) via Fator Dinâmico (U)." },
+            { type: "fix", scope: "preview", description: "Ativação de refs híbridas e isolamento de biometria no ArtViewer para suporte universal a componentes Solid." },
+            { type: "refactor", scope: "renderer", description: "Substituição total de coordenadas fixas por eixos escalonados em tempo real pelo DOM do cliente." }
         ]
     },
     {
