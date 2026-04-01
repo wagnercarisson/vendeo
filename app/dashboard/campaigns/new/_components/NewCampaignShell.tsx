@@ -217,8 +217,7 @@ export function NewCampaignShell() {
 
     const canGenerate = useMemo(() => {
         const hasBasicInfo = product.product_name.trim().length > 1;
-        const hasRequiredPrice =
-            product.type === "info" || product.price.trim().length > 0;
+        const hasRequiredPrice = true; // Preço agora é opcional em todos os tipos
         const hasGenerationType =
             strategy.generate_post || strategy.generate_reels;
         const hasRequiredImage = !strategy.generate_post || product.image_url.trim().length > 0;
@@ -378,9 +377,10 @@ export function NewCampaignShell() {
             store_id: store.id,
             product_name: product.product_name,
             price:
-                product.type === "info"
+                !product.price || product.type === "info"
                     ? null
                     : parseBRLToNumber(product.price),
+            price_label: product.price_label || null,
 
             product_image_url: product.image_url || null,
             audience: strategy.audience,
@@ -635,6 +635,7 @@ export function NewCampaignShell() {
                     body_text: artPreview.body_text,
                     cta: artPreview.cta,
                     price: artPreview.price,
+                    price_label: artPreview.price_label,
                     store: artPreview.store
                 });
 
@@ -679,11 +680,12 @@ export function NewCampaignShell() {
                         post_status: "approved",
                         reels_status: strategy.generate_reels ? "approved" : "none",
                         price:
-                            product.type === "info"
+                            (!artPreview.price || product.type === "info")
                                 ? null
                                 : typeof artPreview.price === "string"
                                     ? parseFloat(artPreview.price.replace(",", ".")) || 0
                                     : artPreview.price,
+                        price_label: artPreview.price_label || null,
                     })
                     .eq("id", campaignId);
 
@@ -700,11 +702,12 @@ export function NewCampaignShell() {
                         post_status: "none",
                         reels_status: "approved",
                         price:
-                            product.type === "info"
+                            (!artPreview.price || product.type === "info")
                                 ? null
                                 : typeof artPreview.price === "string"
                                     ? parseFloat(artPreview.price.replace(",", ".")) || 0
                                     : artPreview.price,
+                        price_label: artPreview.price_label || null,
                     })
                     .eq("id", campaignId);
 
@@ -746,9 +749,12 @@ export function NewCampaignShell() {
                     price:
                         product.type === "info"
                             ? null
-                            : typeof artPreview.price === "string"
-                                ? parseFloat(artPreview.price.replace(",", ".")) || 0
-                                : artPreview.price,
+                            : !artPreview.price 
+                                ? null
+                                : typeof artPreview.price === "string"
+                                    ? parseFloat(artPreview.price.replace(",", ".")) || 0
+                                    : artPreview.price,
+                    price_label: artPreview.price_label || null,
                     headline: artPreview.headline,
                     ai_text: artPreview.body_text,
                     ai_cta: artPreview.cta,

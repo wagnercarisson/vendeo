@@ -111,6 +111,21 @@ export function CampaignPreviewClient({
         modeParam === "edit"
     );
 
+    // Referências para Paridade Absoluta (Medição em Tempo Real)
+    const previewContainerRef = React.useRef<HTMLDivElement>(null);
+    const previewCardRef = React.useRef<HTMLDivElement>(null);
+    const previewBadgeRef = React.useRef<HTMLDivElement>(null);
+    const previewBadgeLabelRef = React.useRef<HTMLParagraphElement>(null);
+    const previewBadgePriceRef = React.useRef<HTMLParagraphElement>(null);
+    const previewStorePillRef = React.useRef<HTMLSpanElement>(null);
+    const previewHeadlineRef = React.useRef<HTMLHeadingElement>(null);
+    const previewBodyTextRef = React.useRef<HTMLParagraphElement>(null);
+    const previewCTARef = React.useRef<HTMLButtonElement>(null);
+    const previewWhatsappRef = React.useRef<HTMLDivElement>(null);
+    const previewWaIconRef = React.useRef<HTMLImageElement>(null);
+    const previewWaTextRef = React.useRef<HTMLSpanElement>(null);
+    const previewAddressRef = React.useRef<HTMLParagraphElement>(null);
+
     const startEditing = (isGenTrigger: boolean = false) => {
         setIsGenerationTriggered(isGenTrigger);
         setIsEditingBase(true);
@@ -397,6 +412,61 @@ export function CampaignPreviewClient({
             let finalImageUrl = previewData.image_url;
 
             if (activeTab === "art") {
+                // Função helper para capturar a posição de layout real (ignora transforms de rotação)
+                const getElementOffset = (el: HTMLElement) => {
+                    let top = 0;
+                    let left = 0;
+                    let current: HTMLElement | null = el;
+                    const container = previewContainerRef.current;
+                    
+                    while (current && current !== container) {
+                        top += current.offsetTop;
+                        left += current.offsetLeft;
+                        current = current.offsetParent as HTMLElement | null;
+                    }
+                    return { top, left };
+                };
+
+                const getUnscaledRelativePos = (el: HTMLElement, parent: HTMLElement) => {
+                    const elRect = el.getBoundingClientRect();
+                    const parentRect = parent.getBoundingClientRect();
+                    const container = previewContainerRef.current;
+                    if (!container) return { top: 0, left: 0 };
+                    
+                    const scale = container.getBoundingClientRect().width / container.offsetWidth;
+                    return {
+                        left: (elRect.left - parentRect.left) / scale,
+                        top: (elRect.top - parentRect.top) / scale
+                    };
+                };
+
+                const badgeOffset = previewBadgeRef.current ? getElementOffset(previewBadgeRef.current) : { top: undefined, left: undefined };
+                
+                // Medições de Texto do Conteúdo Principal (referenciadas pelo CONTAINER raiz)
+                const storePillPos = (previewStorePillRef.current && previewContainerRef.current)
+                    ? getUnscaledRelativePos(previewStorePillRef.current, previewContainerRef.current)
+                    : { top: undefined, left: undefined };
+                    
+                const headlinePos = (previewHeadlineRef.current && previewContainerRef.current)
+                    ? getUnscaledRelativePos(previewHeadlineRef.current, previewContainerRef.current)
+                    : { top: undefined, left: undefined };
+
+                const waIconRelative = (previewWaIconRef.current && previewCardRef.current) 
+                    ? getUnscaledRelativePos(previewWaIconRef.current, previewCardRef.current) 
+                    : { top: 0, left: 0 };
+                const ctaRelative = (previewCTARef.current && previewCardRef.current) 
+                    ? getUnscaledRelativePos(previewCTARef.current, previewCardRef.current) 
+                    : { top: undefined, left: undefined };
+                const waTextRelative = (previewWaTextRef.current && previewCardRef.current) 
+                    ? getUnscaledRelativePos(previewWaTextRef.current, previewCardRef.current) 
+                    : { top: 0, left: 0 };
+                const addressRelative = (previewAddressRef.current && previewCardRef.current) 
+                    ? getUnscaledRelativePos(previewAddressRef.current, previewCardRef.current) 
+                    : { top: undefined, left: undefined };
+                
+                // Medimos o tamanho real do ícone no layout (offsetWidth é unscaled se for o layout)
+                const measuredIconSize = previewWaIconRef.current?.offsetWidth || 12;
+
                 const blob = await renderGraphicToBlob({
                     layout: previewData.layout || "solid",
                     image_url: previewData.image_url?.split("#")[0] || "",
@@ -404,13 +474,92 @@ export function CampaignPreviewClient({
                     body_text: previewData.body_text || "",
                     cta: previewData.cta || "",
                     price: previewData.price,
+                    price_label: previewData.price_label,
                     store: {
                         name: previewData.store?.name || "",
                         whatsapp: previewData.store?.whatsapp,
                         address: previewData.store?.address,
                         primary_color: previewData.store?.primary_color,
-                        logo_url: previewData.store?.logo_url, // Corrigido V27 (Split Fix)
+                        logo_url: previewData.store?.logo_url,
                     },
+                    // Medição em Tempo Real para Fator Dinâmico de Captura
+                    measuredWidth: previewContainerRef.current?.offsetWidth,
+                    measuredCardWidth: previewCardRef.current?.offsetWidth,
+                    measuredCardHeight: previewCardRef.current?.offsetHeight,
+
+                    // Medição do Badge de Preço (Layout Puro)
+                    measuredBadgeW: previewBadgeRef.current?.offsetWidth,
+                    measuredBadgeH: previewBadgeRef.current?.offsetHeight,
+                    measuredBadgeX: badgeOffset.left,
+                    measuredBadgeY: badgeOffset.top,
+                    // Medição do WhatsApp (Ícone do WhatsApp Apenas)
+                    measuredWhatsappX: waIconRelative.left,
+                    measuredWhatsappY: waIconRelative.top,
+                    measuredWhatsappIconSize: measuredIconSize,
+                    measuredWhatsappTextX: waTextRelative.left,
+                    measuredWhatsappTextY: waTextRelative.top,
+                    measuredWhatsappFontSize: previewWaTextRef.current 
+                        ? parseFloat(window.getComputedStyle(previewWaTextRef.current).fontSize) 
+                        : undefined,
+                    measuredPriceFontSize: previewBadgePriceRef.current 
+                        ? parseFloat(window.getComputedStyle(previewBadgePriceRef.current).fontSize) 
+                        : undefined,
+                    measuredLabelFontSize: previewBadgeLabelRef.current 
+                        ? parseFloat(window.getComputedStyle(previewBadgeLabelRef.current).fontSize) 
+                        : undefined,
+
+                    // Medição do Pill da Loja (Nome do Loja)
+                    measuredStorePillW: previewStorePillRef.current?.offsetWidth,
+                    measuredStorePillH: previewStorePillRef.current?.offsetHeight,
+                    measuredStorePillX: storePillPos.left,
+                    measuredStorePillY: storePillPos.top,
+                    measuredStorePillFontSize: previewStorePillRef.current 
+                        ? parseFloat(window.getComputedStyle(previewStorePillRef.current).fontSize) 
+                        : undefined,
+
+                    // Medição da Headline
+                    measuredHeadlineW: previewHeadlineRef.current?.offsetWidth,
+                    measuredHeadlineH: previewHeadlineRef.current?.offsetHeight,
+                    measuredHeadlineX: headlinePos.left,
+                    measuredHeadlineY: headlinePos.top,
+                    measuredHeadlineFontSize: previewHeadlineRef.current 
+                        ? parseFloat(window.getComputedStyle(previewHeadlineRef.current).fontSize) 
+                        : undefined,
+                    measuredHeadlineLineHeight: previewHeadlineRef.current 
+                        ? parseFloat(window.getComputedStyle(previewHeadlineRef.current).lineHeight) 
+                        : undefined,
+
+                    // Medição do Subtítulo (Body Text)
+                    measuredBodyW: previewBodyTextRef.current?.offsetWidth,
+                    measuredBodyH: previewBodyTextRef.current?.offsetHeight,
+                    measuredBodyX: previewBodyTextRef.current && previewContainerRef.current 
+                        ? (previewBodyTextRef.current.getBoundingClientRect().left - previewContainerRef.current.getBoundingClientRect().left)
+                        : undefined,
+                    measuredBodyY: previewBodyTextRef.current && previewContainerRef.current 
+                        ? (previewBodyTextRef.current.getBoundingClientRect().top - previewContainerRef.current.getBoundingClientRect().top)
+                        : undefined,
+                    measuredBodyFontSize: previewBodyTextRef.current 
+                        ? parseFloat(window.getComputedStyle(previewBodyTextRef.current).fontSize) 
+                        : undefined,
+                    measuredBodyLineHeight: previewBodyTextRef.current 
+                        ? parseFloat(window.getComputedStyle(previewBodyTextRef.current).lineHeight) 
+                        : undefined,
+
+                    // Medição do CTA
+                    measuredCTAW: previewCTARef.current?.offsetWidth,
+                    measuredCTAH: previewCTARef.current?.offsetHeight,
+                    measuredCTAX: ctaRelative.left,
+                    measuredCTAY: ctaRelative.top,
+                    measuredCTAFontSize: previewCTARef.current 
+                        ? parseFloat(window.getComputedStyle(previewCTARef.current).fontSize) 
+                        : undefined,
+                    
+                    measuredAddressW: previewAddressRef.current?.offsetWidth,
+                    measuredAddressX: addressRelative.left,
+                    measuredAddressY: addressRelative.top,
+                    measuredAddressFontSize: previewAddressRef.current 
+                        ? parseFloat(window.getComputedStyle(previewAddressRef.current).fontSize) 
+                        : undefined,
                 });
 
                 const path = `stores/${campaign.store_id}/campaigns/${campaign.id}/art-${Date.now()}.png`;
@@ -1015,6 +1164,19 @@ export function CampaignPreviewClient({
                                       generate_reels={false}
                                       onRegenerateArt={() => generateText(true)}
                                       onEditingChange={setIsChildEditing}
+                                      containerRef={previewContainerRef}
+                                      cardRef={previewCardRef}
+                                      badgeRef={previewBadgeRef}
+                                      badgeLabelRef={previewBadgeLabelRef}
+                                      badgePriceRef={previewBadgePriceRef}
+                                      storePillRef={previewStorePillRef}
+                                      headlineRef={previewHeadlineRef}
+                                      bodyTextRef={previewBodyTextRef}
+                                      ctaRef={previewCTARef}
+                                      whatsappRef={previewWhatsappRef}
+                                      waIconRef={previewWaIconRef}
+                                      waTextRef={previewWaTextRef}
+                                      addressRef={previewAddressRef}
                                   />
                                   {!isChildEditing && isReviewDirty && (
                                     <div className="flex items-center justify-end animate-in fade-in slide-in-from-bottom-2">

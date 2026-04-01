@@ -13,6 +13,7 @@ export const CampaignAISchema = z.object({
   text: z.string().optional(),
   cta: z.string().optional(),
   hashtags: z.string().optional(),
+  price_label: z.string().nullable().optional(),
 });
 
 export const CampaignReelsSchema = z.object({
@@ -32,6 +33,7 @@ export const DbCampaignSchema = z.object({
   store_id: z.string(),
   product_name: z.string().nullable(),
   price: z.coerce.number().nullable(),
+  price_label: z.string().nullable(),
   audience: z.string().nullable(),
   objective: z.string().nullable(),
   product_positioning: z.string().nullable(),

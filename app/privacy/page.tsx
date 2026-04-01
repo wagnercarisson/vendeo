@@ -57,7 +57,7 @@ export default function PrivacyPage() {
                     <section>
                         <h2 className="text-xl font-bold text-vendeo-text mb-3">3. Segurança e Armazenamento</h2>
                         <p className="text-vendeo-muted leading-relaxed">
-                            Utilizamos infraestrutura de ponta (Supabase/Vercel) para garantir que suas informações estejam seguras e protegidas por criptografia. Como estamos em Beta, mantemos logs de atividade para identificar e corrigir falhas técnicas rapidamente.
+                            Utilizamos infraestrutura de ponta para garantir que suas informações estejam seguras e protegidas por criptografia. Como estamos em Beta, mantemos logs de atividade para identificar e corrigir falhas técnicas rapidamente.
                         </p>
                     </section>
 

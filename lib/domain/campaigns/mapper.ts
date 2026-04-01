@@ -43,6 +43,7 @@ export function mapAiCampaignToDomain(
     hashtags:
       (aiData.hashtags ?? "").trim() ||
       "#promo #oferta #instafood #loja #bairro",
+    price_label: (aiData.price_label ?? "").trim() || null,
   };
 }
 
@@ -57,6 +58,7 @@ export function mapDbCampaignToDomain(data: unknown): Campaign {
     store_id: String(raw.store_id),
     product_name: raw.product_name ?? null,
     price: raw.price != null ? Number(raw.price) : null,
+    price_label: raw.price_label ?? null,
     
     // Casting de segurança com fallbacks (Blindagem de Domínio)
     audience: (raw.audience as CampaignAudience) || null,
@@ -109,6 +111,7 @@ export function mapDbCampaignToAIContext(data: unknown, theme?: string | null): 
     store_id: String(raw.store_id),
     product_name: String(raw.product_name || "Produto"),
     price: raw.price != null ? String(raw.price) : null,
+    price_label: raw.price_label ?? null,
     audience: (raw.audience as CampaignAudience) || "geral",
     objective: (raw.objective as CampaignObjective) || "promocao",
     product_positioning: (raw.product_positioning as ProductPositioning) || null,
@@ -132,6 +135,7 @@ export function mapCampaignToPreviewData(
     caption: campaign.ai_caption || "",
     hashtags: campaign.ai_hashtags || "",
     price: campaign.price,
+    price_label: campaign.price_label,
     layout: "solid", // default
     reels_hook: campaign.reels_hook,
     reels_script: campaign.reels_script,
@@ -168,6 +172,9 @@ export function mapAiArtToPreview(
     cta: ai.cta || "",
     caption: ai.caption || "",
     hashtags: ai.hashtags || "",
+    price_label: (ai.price_label !== undefined && ai.price_label !== null) 
+      ? ai.price_label 
+      : (campaign.price && Number(campaign.price) > 0 ? "OFERTA" : null),
   };
 }
 

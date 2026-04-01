@@ -14,6 +14,7 @@ import * as selectors from "@/lib/domain/campaigns/selectors";
 export type CampaignSavePayload = {
     product_name: string;
     price: number | null;
+    price_label?: string | null;
     audience: string;
     objective: string;
     product_positioning: string;
@@ -60,6 +61,7 @@ export function CampaignEditForm({
         type: campaign.content_type || "product",
         product_name: campaign.product_name || "",
         price: campaign.price != null ? formatBRLMask(Math.round(campaign.price * 100).toString()) : "",
+        price_label: campaign.price_label || "",
         description: campaign.body_text || "",
         image_url: campaign.product_image_url || "",
     });
@@ -84,6 +86,7 @@ export function CampaignEditForm({
             price: campaign.price != null ? formatBRLMask(Math.round(campaign.price * 100).toString()) : "",
             description: campaign.body_text || "",
             image_url: campaign.product_image_url || "",
+            price_label: campaign.price_label || "",
         },
 
         strategy: {
@@ -97,6 +100,7 @@ export function CampaignEditForm({
         return (
             formData.product_name !== initialData.product.product_name ||
             formData.price !== initialData.product.price ||
+            formData.price_label !== initialData.product.price_label ||
             formData.description !== initialData.product.description ||
             formData.image_url !== initialData.product.image_url ||
             strategyData.audience !== initialData.strategy.audience ||
@@ -110,7 +114,7 @@ export function CampaignEditForm({
 
         return (
             formData.product_name.trim().length > 1 &&
-            (formData.type === "info" || formData.price.trim().length > 0) &&
+            hasRequiredImage &&
             hasRequiredImage &&
             strategyData.audience.trim().length > 0 &&
             strategyData.objective.trim().length > 0 &&
@@ -120,7 +124,8 @@ export function CampaignEditForm({
 
     const getSubmissionData = (): CampaignSavePayload => ({
         product_name: formData.product_name,
-        price: parseBRLToNumber(formData.price),
+        price: !formData.price ? null : parseBRLToNumber(formData.price),
+        price_label: formData.price_label || null,
         audience: strategyData.audience,
         objective: strategyData.objective,
         product_positioning: strategyData.product_positioning,

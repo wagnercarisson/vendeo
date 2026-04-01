@@ -227,7 +227,7 @@ export function ProductFormCard({
                 {value.type !== "info" && (
                     <div className="space-y-1.5">
                         <label htmlFor="price" className="text-sm font-medium text-zinc-700">
-                            Preço *
+                            Preço (opcional)
                         </label>
                         <input
                             id="price"

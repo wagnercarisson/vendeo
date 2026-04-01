@@ -11,15 +11,80 @@ export type GraphicStoreData = {
     primary_color?: string | null;
 };
 
-export type GraphicInput = {
-    layout: Layout;
+export interface GraphicInput {
+    layout: "solid" | "split" | "floating";
     image_url: string;
     headline: string;
     body_text: string;
     cta: string;
-    price?: number | string | null;
-    store?: GraphicStoreData;
-};
+    price: string | number | null;
+    price_label?: string | null;
+    store?: {
+        name: string;
+        whatsapp?: string | null;
+        address?: string | null;
+        primary_color?: string | null;
+        secondary_color?: string | null;
+        logo_url?: string | null;
+    };
+    // Camada de Paridade Absoluta (Extraída do Preview em Real-Time)
+    measuredWidth?: number;
+    measuredCardWidth?: number;
+    measuredCardHeight?: number;
+    
+    // Medidas do Badge de Preço
+    measuredBadgeX?: number;
+    measuredBadgeY?: number;
+    measuredBadgeW?: number;
+    measuredBadgeH?: number;
+    measuredPriceFontSize?: number;
+    measuredLabelFontSize?: number;
+
+    // Medidas do Pill da Loja (Nome da Loja dentro do Card)
+    measuredStorePillX?: number;
+    measuredStorePillY?: number;
+    measuredStorePillW?: number;
+    measuredStorePillH?: number;
+    measuredStorePillFontSize?: number;
+
+    // Medidas da Headline
+    measuredHeadlineX?: number;
+    measuredHeadlineY?: number;
+    measuredHeadlineW?: number;
+    measuredHeadlineH?: number;
+    measuredHeadlineFontSize?: number;
+    measuredHeadlineLineHeight?: number;
+
+    // Medidas do Subtítulo (Body Text)
+    measuredBodyX?: number;
+    measuredBodyY?: number;
+    measuredBodyW?: number;
+    measuredBodyH?: number;
+    measuredBodyFontSize?: number;
+    measuredBodyLineHeight?: number;
+
+    // Medidas do CTA (Botão de Chamada para Ação)
+    measuredCTAX?: number;
+    measuredCTAY?: number;
+    measuredCTAW?: number;
+    measuredCTAH?: number;
+    measuredCTAFontSize?: number;
+
+    // Medidas do WhatsApp (Ícone e Telefone)
+    measuredWhatsappX?: number;
+    measuredWhatsappY?: number;
+    measuredWhatsappTextX?: number;
+    measuredWhatsappTextY?: number;
+    measuredWhatsappFontSize?: number;
+    measuredWhatsappIconSize?: number;
+
+    // Medidas do Endereço
+    measuredAddressX?: number;
+    measuredAddressY?: number;
+    measuredAddressW?: number;
+    measuredAddressH?: number;
+    measuredAddressFontSize?: number;
+}
 
 const WIDTH = 1080;
 const HEIGHT = 1350;
@@ -58,9 +123,14 @@ const TOKENS = {
 };
 
 function formatPrice(price?: number | string | null) {
-    if (price == null || price === "") return "";
-    const num = typeof price === "string" ? Number(price.replace(",", ".")) : price;
-    if (Number.isNaN(num)) return String(price);
+    if (price == null || price === "" || price === "0,00") return "";
+    
+    // Se for 0 numérico puro, tratamos como vazio para ocultar o valor no badge (regra de negócio)
+    if (typeof price === "number" && price === 0) return "";
+    
+    const num = typeof price === "string" ? Number(price.replace(/[^\d.,]/g, "").replace(",", ".")) : price;
+    if (Number.isNaN(num) || (typeof num === "number" && num <= 0)) return "";
+    
     return num.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
@@ -171,53 +241,66 @@ async function drawStoreLogo(ctx: CanvasRenderingContext2D, url: string | null |
         console.error("Erro ao carregar logo para o Canvas", e);
     }
 }
+async function drawPriceBadge(
+    ctx: CanvasRenderingContext2D, 
+    price: string, 
+    label: string | null, 
+    color: string, 
+    input: GraphicInput,
+    U: number
+) {
+    if (!price && !label) return;
 
-function drawPriceBadge(ctx: CanvasRenderingContext2D, price: string, color: string, x: number, y: number, layout: Layout) {
-    if (!price) return;
-    const rotation = layout === "floating" ? (6 * Math.PI) / 180 : 0;
+    // Lógica de Paridade Absoluta para o Badge
+    // Se o cliente mediu, usamos a realidade da tela dele. Senão, mantemos fallbacks seguros.
+    const badgeX = input.measuredBadgeX !== undefined ? (input.measuredBadgeX * U) : (WIDTH - 260 * (U/2.7));
+    const badgeY = input.measuredBadgeY !== undefined ? (input.measuredBadgeY * U) : 48 * (U/2.7);
+    const badgeW = input.measuredBadgeW !== undefined ? (input.measuredBadgeW * U) : 230 * (U/2.7);
+    const badgeH = input.measuredBadgeH !== undefined ? (input.measuredBadgeH * U) : 100 * (U/2.7);
     
-    // @ts-ignore V14 
-    if ('letterSpacing' in ctx) ctx.letterSpacing = "-1.5px";
-
-    ctx.font = TOKENS.fonts.headlineNonItalic;
-    const priceWidth = ctx.measureText(price).width;
-    
-    ctx.font = TOKENS.fonts.label;
-    const labelWidth = ctx.measureText("OFERTA").width;
-    
-    // Aumento de +5% V16 (h: 135px, min-w: 231px, r: 25px)
-    const paddingX = 74; 
-    const w = Math.max(231, priceWidth + paddingX, labelWidth + paddingX);
-    const h = 135; 
-    const startX = x - (w - 220); // Mantemos a ancoragem pela direita
+    const priceFontSize = input.measuredPriceFontSize ? (input.measuredPriceFontSize * U) : (20 * U);
+    const labelFontSize = input.measuredLabelFontSize ? (input.measuredLabelFontSize * U) : (9 * U);
 
     ctx.save();
-    ctx.translate(startX + w / 2, y + h / 2);
-    ctx.rotate(rotation);
-    ctx.translate(-(startX + w / 2), -(y + h / 2));
-
-    ctx.shadowColor = TOKENS.shadows.premium.color;
-    ctx.shadowBlur = TOKENS.shadows.premium.blur;
-    ctx.shadowOffsetY = TOKENS.shadows.premium.offsetY;
-
-    drawRoundedRectFill(ctx, startX, y, w, h, 25, color); 
-    drawRoundedRectStroke(ctx, startX, y, w, h, 25, "#ffffff", 4);
-
-    ctx.shadowColor = "transparent";
-    ctx.textAlign = "center"; // Mantido V14 (OK Usuário)
+    // Centralizamos o contexto no meio do badge medido para rotacionar
+    ctx.translate(badgeX + badgeW / 2, badgeY + badgeH / 2);
     
-    ctx.fillStyle = "rgba(255,255,255,0.85)";
-    ctx.font = TOKENS.fonts.label;
-    ctx.fillText("OFERTA", startX + w / 2, y + 47); // Recalculado V16
+    // Rotação condicional por layout (Solid não tem rotação)
+    const rotationDeg = input.layout === "floating" ? 6 : 0;
+    if (rotationDeg !== 0) {
+        ctx.rotate((rotationDeg * Math.PI) / 180);
+    }
 
-    ctx.fillStyle = "#ffffff";
-    ctx.font = TOKENS.fonts.headlineNonItalic;
-    ctx.fillText(price, startX + w / 2, y + 106); // Recalculado V16
+    // Fundo do Badge
+    const radius = 12 * U;
+    drawRoundedRectFill(ctx, -badgeW / 2, -badgeH / 2, badgeW, badgeH, radius, color);
+
+    // Borda Branca Sincronizada
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 2 * U;
+    ctx.stroke();
+
+    ctx.textAlign = "center";
+
+    // Texto do Rótulo (OFERTA, etc)
+    if (label) {
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.font = `bold ${labelFontSize}px 'Inter', sans-serif`;
+        // Ajuste vertical relativo ao centro do badge
+        const labelY = price ? (-badgeH * 0.15) : (labelFontSize * 0.3);
+        ctx.fillText(label.toUpperCase(), 0, labelY);
+    }
+
+    // Texto do Preço
+    if (price) {
+        ctx.fillStyle = "#ffffff";
+        ctx.font = `900 ${priceFontSize}px 'Inter', sans-serif`;
+        // Ajuste vertical relativo ao centro do badge
+        const priceY = label ? (badgeH * 0.25) : (priceFontSize * 0.35);
+        ctx.fillText(price, 0, priceY);
+    }
+
     ctx.restore();
-    
-    // Reset
-    // @ts-ignore
-    if ('letterSpacing' in ctx) ctx.letterSpacing = "0px";
 }
 
 function drawWrappedText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number, maxLines: number) {
@@ -246,7 +329,7 @@ function drawWrappedText(ctx: CanvasRenderingContext2D, text: string, x: number,
 async function drawSolidLayout(ctx: CanvasRenderingContext2D, img: HTMLImageElement, input: GraphicInput, primaryColor: string) {
     const { headline, body_text, cta, store } = input;
     const price = formatPrice(input.price);
-    const whatsapp = formatWhatsapp(store?.whatsapp || store?.phone);
+    const whatsapp = formatWhatsapp(store?.whatsapp || (store as any)?.phone);
 
     drawImageCover(ctx, img, 0, 0, WIDTH, HEIGHT * 0.55);
     const grad = ctx.createLinearGradient(0, HEIGHT * 0.55 - 200, 0, HEIGHT * 0.55);
@@ -255,23 +338,50 @@ async function drawSolidLayout(ctx: CanvasRenderingContext2D, img: HTMLImageElem
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, WIDTH, HEIGHT * 0.55);
 
-    drawPriceBadge(ctx, price, primaryColor, WIDTH - 260, 48, "solid");
+    // 1. CALIBRAGEM DINÂMICA (Fator Dinâmico de Captura U)
+    const U = input.measuredWidth ? (WIDTH / input.measuredWidth) : 2.7;
+
+    drawPriceBadge(ctx, price, input.price_label || null, primaryColor, input, U);
 
     const bodyY = HEIGHT * 0.55;
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, bodyY, WIDTH, HEIGHT - bodyY);
 
+    const storePillSize = input.measuredStorePillFontSize ? (input.measuredStorePillFontSize * U) : 24; 
+    const storePillX = input.measuredStorePillX !== undefined ? (input.measuredStorePillX * U) : SAFE_MARGIN;
+    const storePillY = input.measuredStorePillY !== undefined ? (input.measuredStorePillY * U) : bodyY + 84;
+
     ctx.fillStyle = primaryColor;
-    ctx.font = TOKENS.fonts.label;
+    ctx.font = `bold ${storePillSize}px 'Inter', sans-serif`;
+    ctx.textAlign = "start";
     // @ts-ignore
     if ('letterSpacing' in ctx) ctx.letterSpacing = "1.5px"; // +0.5px V12
-    ctx.fillText((store?.name || "").toUpperCase(), SAFE_MARGIN, bodyY + 84);
+    if (input.measuredStorePillY !== undefined) {
+        ctx.textBaseline = "top";
+        ctx.fillText((store?.name || "").toUpperCase(), storePillX, storePillY);
+        ctx.textBaseline = "alphabetic";
+    } else {
+        ctx.fillText((store?.name || "").toUpperCase(), storePillX, storePillY);
+    }
+
+    const hlSize = input.measuredHeadlineFontSize ? (input.measuredHeadlineFontSize * U) : 76;
+    const hlLH = input.measuredHeadlineLineHeight ? (input.measuredHeadlineLineHeight * U) : 70;
+    const hlX = input.measuredHeadlineX !== undefined ? (input.measuredHeadlineX * U) : SAFE_MARGIN;
+    const hlY = input.measuredHeadlineY !== undefined ? (input.measuredHeadlineY * U) : bodyY + 154;
 
     ctx.fillStyle = TOKENS.colors.textDark;
-    ctx.font = TOKENS.fonts.headline; 
+    ctx.font = `900 italic ${hlSize}px 'Inter', 'Outfit', sans-serif`; 
     // @ts-ignore
     if ('letterSpacing' in ctx) ctx.letterSpacing = "-1px"; // Sync HTML V11
-    let cursorY = drawWrappedText(ctx, headline, SAFE_MARGIN, bodyY + 154, WIDTH - SAFE_MARGIN * 2, 70, 2);
+    
+    let cursorY = 0;
+    if (input.measuredHeadlineY !== undefined) {
+        ctx.textBaseline = "top";
+        cursorY = drawWrappedText(ctx, headline, hlX, hlY, input.measuredHeadlineW ? (input.measuredHeadlineW * U + 20) : (WIDTH - SAFE_MARGIN * 2), hlLH, 2);
+        ctx.textBaseline = "alphabetic";
+    } else {
+        cursorY = drawWrappedText(ctx, headline, hlX, hlY, WIDTH - SAFE_MARGIN * 2, hlLH, 2);
+    }
 
     ctx.fillStyle = TOKENS.colors.textMuted;
     ctx.font = TOKENS.fonts.body;
@@ -307,88 +417,222 @@ async function drawSolidLayout(ctx: CanvasRenderingContext2D, img: HTMLImageElem
 async function drawFloatingLayout(ctx: CanvasRenderingContext2D, img: HTMLImageElement, input: GraphicInput, primaryColor: string) {
     const { headline, body_text, cta, store } = input;
     const price = formatPrice(input.price);
-    const whatsapp = formatWhatsapp(store?.whatsapp || store?.phone);
+    const whatsapp = formatWhatsapp(store?.whatsapp || (store as any)?.phone);
 
     drawImageCover(ctx, img, 0, 0, WIDTH, HEIGHT);
+    
+    // 1. GRADIENTE DE FUNDO (PROFUNDIDADE)
     const overlay = ctx.createLinearGradient(0, HEIGHT, 0, 0);
-    overlay.addColorStop(0, "rgba(0,0,0,0.95)");
-    overlay.addColorStop(0.4, "rgba(0,0,0,0.25)");
+    overlay.addColorStop(0, "rgba(0,0,0,0.92)");
+    overlay.addColorStop(0.45, "rgba(0,0,0,0.25)");
     overlay.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = overlay; ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    ctx.fillStyle = overlay; 
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-    drawPriceBadge(ctx, price, primaryColor, WIDTH - 260, 48, "floating");
+    // 2. CALIBRAGEM DINÂMICA TOTAL (Fator Dinâmico de Captura)
+    const U = input.measuredWidth ? (WIDTH / input.measuredWidth) : 2.7;
+    
+    const P4 = 16 * U;    
+    const PT2 = 8 * U;    
+    const MT1_5 = 6 * U;  
+    const SPACE_Y_1 = 4 * U; 
+    const BORDER_W = 1 * U;  
 
+    const fallbackPillFontSize = 8 * U;
+    const pillActualH = fallbackPillFontSize + (4 * U * 2);
+
+    // LARGURA DINÂMICA REAL (Paridade Absoluta)
+    const CARD_WIDTH = input.measuredCardWidth 
+        ? (input.measuredCardWidth * U) 
+        : (WIDTH * 0.95); 
+    
+    const CARD_X = (WIDTH - CARD_WIDTH) / 2;
+    const CARD_RADIUS = 16 * U;
+    const CONTENT_W = CARD_WIDTH - (P4 * 2);
+
+    const fallbackHeadlineSize = 20 * U;
+    const fallbackHeadlineLH = fallbackHeadlineSize * 1.25;
+    const fallbackSubtitleSize = 11 * U;
+    const fallbackSubtitleLH = fallbackSubtitleSize * 1.25;
+
+    // ALTURA DINÂMICA REAL (A Mágica da Paridade)
+    const CARD_HEIGHT = input.measuredCardHeight 
+        ? (input.measuredCardHeight * U) 
+        : (P4 + pillActualH + SPACE_Y_1 + (headline.length > 30 ? 2 : 1) * fallbackHeadlineLH + MT1_5 + (body_text.length > 60 ? 2 : 1) * fallbackSubtitleLH + PT2 + 38 * U + P4);
+    
+    const CARD_Y = (HEIGHT - (16 * U)) - CARD_HEIGHT;
+
+    // DESENHO DO CARD COM SOMBRA PREMIUM
     ctx.save();
-    ctx.shadowColor = TOKENS.shadows.floating.color;
-    ctx.shadowBlur = TOKENS.shadows.floating.blur;
-    ctx.shadowOffsetY = TOKENS.shadows.floating.offsetY;
-    // Card Float V19: 35px de margem (L/B) | 940x437px (H+25px V18)
-    drawRoundedRectFill(ctx, 35, HEIGHT - 472, 940, 437, 40, TOKENS.colors.overlay);
-    drawRoundedRectStroke(ctx, 35, HEIGHT - 472, 940, 437, 40, "rgba(255,255,255,0.22)", 2);
+    ctx.shadowColor = "rgba(0,0,0,0.6)"; 
+    ctx.shadowBlur = 80 * (U / 2.7); 
+    ctx.shadowOffsetY = 40 * (U / 2.7); 
+    drawRoundedRectFill(ctx, CARD_X, CARD_Y, CARD_WIDTH, CARD_HEIGHT, CARD_RADIUS, "rgba(24,24,27,0.7)");
     ctx.restore();
 
-    // Pill do nome da loja recalculado V20 (Margem 50px | Altura 50px)
-    ctx.font = TOKENS.fonts.label;
+    // BORDA SUTIL
+    drawRoundedRectStroke(ctx, CARD_X, CARD_Y, CARD_WIDTH, CARD_HEIGHT, CARD_RADIUS, "rgba(255,255,255,0.22)", BORDER_W);
+
+    // 3. CONTEÚDO (Posicionamento Milimétrico)
+    ctx.textBaseline = "top";
+    let currentY = CARD_Y + P4;
+    const contentX = CARD_X + P4;
+
+    // Pill Nome da Loja (Paridade Absoluta)
+    const pillFontSize = input.measuredStorePillFontSize ? (input.measuredStorePillFontSize * U) : (8 * U);
+    const pillX = input.measuredStorePillX !== undefined ? (input.measuredStorePillX * U) : contentX;
+    const pillY = input.measuredStorePillY !== undefined ? (input.measuredStorePillY * U) : currentY;
+    const pillW = input.measuredStorePillW !== undefined ? (input.measuredStorePillW * U) : 100 * U; 
+    const pillH = input.measuredStorePillH !== undefined ? (input.measuredStorePillH * U) : pillActualH;
+    
+    const pillRadius = 6 * U;
+    ctx.font = `800 ${pillFontSize}px 'Inter', 'Outfit', sans-serif`;
     const nameText = (store?.name || "").toUpperCase();
-    const nameWidth = ctx.measureText(nameText).width;
-    const pillW = nameWidth + 60; // Mais respiro lateral V8
-    drawRoundedRectFill(ctx, 85, HEIGHT - 442, pillW, 50, 12, primaryColor); // h:50, x:35+50=85
+
+    drawRoundedRectFill(ctx, pillX, pillY, pillW, pillH, pillRadius, primaryColor);
     ctx.fillStyle = "#ffffff";
     ctx.textAlign = "center";
-    ctx.fillText(nameText, 85 + pillW / 2, HEIGHT - 408); // Centralizado verticalmente V20
+    
+    // Centralização vertical precisa no Pill (Baseline Top)
+    const pillTextY = pillY + (pillH - pillFontSize) / 2;
+    ctx.fillText(nameText, pillX + pillW / 2, pillTextY);
+
+    currentY = input.measuredStorePillY !== undefined ? pillY + pillH + SPACE_Y_1 : currentY + pillActualH + SPACE_Y_1;
+
+    // Headline (Paridade Absoluta)
+    const headlineFontSize = input.measuredHeadlineFontSize ? (input.measuredHeadlineFontSize * U) : fallbackHeadlineSize;
+    const headlineLH = input.measuredHeadlineLineHeight ? (input.measuredHeadlineLineHeight * U) : (headlineFontSize * 1.25);
+    const hX = input.measuredHeadlineX !== undefined ? (input.measuredHeadlineX * U) : contentX;
+    const hW = input.measuredHeadlineW !== undefined ? (input.measuredHeadlineW * U) : CONTENT_W;
+    const hY_base = input.measuredHeadlineY !== undefined ? (input.measuredHeadlineY * U) : currentY + (headlineFontSize * 0.8);
 
     ctx.fillStyle = "#ffffff";
-    ctx.font = TOKENS.fonts.headline;
-    ctx.textAlign = "start"; // Reset
-    // @ts-ignore
-    if ('letterSpacing' in ctx) ctx.letterSpacing = "-1.2px"; // +0.3px V18
-    let cursorY = drawWrappedText(ctx, headline, 85, HEIGHT - 330, WIDTH - 200, 70, 2); // x:85
+    ctx.font = `900 italic ${headlineFontSize}px 'Inter', 'Outfit', sans-serif`;
+    ctx.textAlign = "start";
+    if ('letterSpacing' in ctx) ctx.letterSpacing = `${0.5 * U}px`; 
 
-    ctx.fillStyle = TOKENS.colors.textMutedLight;
-    ctx.font = TOKENS.fonts.body; // 33.5px
-    // @ts-ignore
+    // Calibrador de Line-Height (Compensação de Top-Lead) para Paridade Absoluta
+    const hY_final = input.measuredHeadlineY !== undefined 
+        ? (input.measuredHeadlineY * U + (headlineLH - headlineFontSize) / 2) 
+        : hY_base;
+
+    // Desenhamos a Headline na posição exata medida
+    const hNextY = drawWrappedText(ctx, headline, hX, hY_final, hW, headlineLH, 2);
+
+    // Subtítulo / Body Text (Paridade Absoluta)
+    const bodyFontSize = input.measuredBodyFontSize ? (input.measuredBodyFontSize * U) : fallbackSubtitleSize;
+    const bodyLH = input.measuredBodyLineHeight ? (input.measuredBodyLineHeight * U) : (bodyFontSize * 1.25);
+    const bX = input.measuredBodyX !== undefined ? (input.measuredBodyX * U) : contentX;
+    const bY = input.measuredBodyY !== undefined ? (input.measuredBodyY * U) : hNextY + MT1_5;
+    const bW = input.measuredBodyW !== undefined ? (input.measuredBodyW * U) : CONTENT_W;
+
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.font = `500 ${bodyFontSize}px 'Inter', 'Outfit', sans-serif`;
     if ('letterSpacing' in ctx) ctx.letterSpacing = "0px";
-    cursorY = drawWrappedText(ctx, body_text, 85, cursorY + 15, WIDTH - 220, 42, 3); // x:85, Gap -5px V20
+    
+    // Calibrador de Line-Height (Compensação de Top-Lead) para Subtítulo
+    const bY_final = input.measuredBodyY !== undefined 
+        ? (input.measuredBodyY * U + (bodyLH - bodyFontSize) / 2) 
+        : bY;
 
-    // CTA V20: 50px do canto inferior direito do card
-    const ctaW = 385;
-    const ctaX = (35 + 940) - 50 - ctaW; 
-    const ctaY = (HEIGHT - 35) - 50 - 96;
+    // Desenhamos o Subtítulo na posição exata medida
+    const sNextY = drawWrappedText(ctx, body_text, bX, bY_final, bW, bodyLH, 2);
 
-    // Linha divisória interna V23 (Reforçada e Sincronizada 50px margins)
-    ctx.strokeStyle = "rgba(255,255,255,0.22)"; 
-    ctx.lineWidth = 1.5;
-    ctx.beginPath(); 
-    ctx.moveTo(85, ctaY - 25); 
-    ctx.lineTo(925, ctaY - 25); // (CardX:35 + CardW:940 - 50) = 925
+    // Rodapé (REVERTIDO PARA LÓGICA ORIGINAL)
+    ctx.textBaseline = "alphabetic";
+    currentY = sNextY + PT2;
+    
+    ctx.strokeStyle = "rgba(255,255,255,0.15)"; 
+    ctx.lineWidth = BORDER_W;
+    ctx.beginPath();
+    ctx.moveTo(contentX, currentY); 
+    ctx.lineTo(CARD_X + CARD_WIDTH - P4, currentY); 
     ctx.stroke();
 
-    drawRoundedRectFill(ctx, ctaX, ctaY, ctaW, 96, 20, "#ffffff");
+    // CTA
+    const ctaSize = 11 * U;
+    const ctaRadius = 8 * U;
+    const ctaPX = 20 * U;
+    const ctaPY = 8 * U;
+    
+    ctx.font = `900 ${ctaSize}px 'Inter', 'Outfit', sans-serif`;
+    const ctaText = cta.toUpperCase();
+    const fallbackCtaW = Math.max(130 * U, ctx.measureText(ctaText).width + (ctaPX * 2));
+    const fallbackCtaH = ctaSize + (ctaPY * 2);
+    // Variaveis originais de base (ainda usadas pelo WPP e Endereco como default/fallback)
+    const ctaX = CARD_X + CARD_WIDTH - P4 - fallbackCtaW;
+    const ctaBaseY = currentY + PT2;
+
+    // Medidas dinâmicas para a Paridade Absoluta do CTA
+    const dynamicCtaW = input.measuredCTAW ? input.measuredCTAW * U : fallbackCtaW;
+    const dynamicCtaH = input.measuredCTAH ? input.measuredCTAH * U : fallbackCtaH;
+    const dynamicCtaX = input.measuredCTAX !== undefined ? CARD_X + input.measuredCTAX * U : ctaX;
+    const dynamicCtaY = input.measuredCTAY !== undefined ? CARD_Y + input.measuredCTAY * U : ctaBaseY;
+    const dynamicCtaSize = input.measuredCTAFontSize ? input.measuredCTAFontSize * U : ctaSize;
+
+    drawRoundedRectFill(ctx, dynamicCtaX, dynamicCtaY, dynamicCtaW, dynamicCtaH, ctaRadius, "#ffffff");
     ctx.fillStyle = TOKENS.colors.textDark;
-    ctx.font = "900 29px 'Inter', 'Outfit', sans-serif"; // +1px V15
+    ctx.font = `900 ${dynamicCtaSize}px 'Inter', 'Outfit', sans-serif`;
     ctx.textAlign = "center";
-    ctx.fillText(cta.toUpperCase(), ctaX + ctaW/2, ctaY + 54);
+    ctx.textBaseline = "middle"; // Centralizacão perfeita baseada na box flex real
+    ctx.fillText(ctaText, dynamicCtaX + dynamicCtaW / 2, dynamicCtaY + dynamicCtaH / 2);
+    ctx.textBaseline = "alphabetic"; // Restaurar o padrao para não afetar os vizinhos
+
+    // WhatsApp & Endereço
+    const iconSize = 12 * U; 
+    const waSize = 10 * U;
+    const addrSize = 8 * U;
 
     if (whatsapp) {
-        // Alinhado com o badge do cta por cima V20 (+2px V21, +5px V22 -> +7px)
-        await drawWhatsappIcon(ctx, 85, ctaY + 7, 32); 
-        ctx.fillStyle = "rgba(255,255,255,0.9)";
-        ctx.font = TOKENS.fonts.footerBold;
+        const waX = input.measuredWhatsappX !== undefined ? (CARD_X + input.measuredWhatsappX * U) : contentX;
+        const waY = input.measuredWhatsappY !== undefined ? (CARD_Y + input.measuredWhatsappY * U) : (ctaBaseY + 4);
+        const dynamicIconSize = input.measuredWhatsappIconSize ? (input.measuredWhatsappIconSize * U) : iconSize;
+
+        await drawWhatsappIcon(ctx, waX, waY, dynamicIconSize); 
+
+        // Posição e tamanho dinâmico do texto do telefone
+        const dynamicTextSize = input.measuredWhatsappFontSize ? (input.measuredWhatsappFontSize * U) : waSize;
+        const textX = input.measuredWhatsappTextX !== undefined ? (CARD_X + input.measuredWhatsappTextX * U) : (waX + dynamicIconSize + 10);
+        
+        ctx.fillStyle = "#ffffff";
+        ctx.font = `bold ${dynamicTextSize}px 'Inter', 'Outfit', sans-serif`;
         ctx.textAlign = "start";
-        ctx.fillText(whatsapp, 125, ctaY + 32);
+
+        if (input.measuredWhatsappTextY !== undefined) {
+            ctx.textBaseline = "top";
+            const textY = CARD_Y + input.measuredWhatsappTextY * U;
+            ctx.fillText(whatsapp, textX, textY);
+            ctx.textBaseline = "alphabetic"; // Restaura o padrao
+        } else {
+            ctx.fillText(whatsapp, textX, waY + (waSize * 0.85));
+        }
     }
 
-    // Endereço trazido para dentro do card e alinhado por baixo V20 (-2px V21, -5px V22 -> -7px)
-    ctx.fillStyle = "rgba(255,255,255,0.7)";
-    ctx.font = TOKENS.fonts.footerRegular;
-    ctx.textAlign = "start";
-    drawWrappedText(ctx, store?.address || "", 85, ctaY + 85, 440, 28, 2);
+    if (store?.address) {
+        ctx.fillStyle = "rgba(255,255,255,0.7)";
+        const dynamicAddrSize = input.measuredAddressFontSize ? (input.measuredAddressFontSize * U) : addrSize;
+        ctx.font = `500 ${dynamicAddrSize}px 'Inter', 'Outfit', sans-serif`;
+        ctx.textAlign = "start";
+        
+        if (input.measuredAddressY !== undefined && input.measuredAddressX !== undefined) {
+            ctx.textBaseline = "top";
+            const addrX = CARD_X + input.measuredAddressX * U;
+            const addrY = CARD_Y + input.measuredAddressY * U;
+            drawWrappedText(ctx, store.address, addrX, addrY, (ctaX - contentX) - 20, dynamicAddrSize * 1.3, 1);
+            ctx.textBaseline = "alphabetic"; // Restaura o padrao
+        } else {
+            drawWrappedText(ctx, store.address, contentX, ctaBaseY + (iconSize * 1.6), (ctaX - contentX) - 20, addrSize * 1.3, 1);
+        }
+    }
+
+    // 5. PREÇO EXTERNO
+    drawPriceBadge(ctx, price, input.price_label || null, primaryColor, input, U);
 }
 
 async function drawSplitLayout(ctx: CanvasRenderingContext2D, img: HTMLImageElement, input: GraphicInput, primaryColor: string) {
     const { headline, body_text, cta, store } = input;
     const price = formatPrice(input.price);
-    const whatsapp = formatWhatsapp(store?.whatsapp || store?.phone);
+    const whatsapp = formatWhatsapp(store?.whatsapp || (store as any)?.phone);
 
     ctx.fillStyle = TOKENS.colors.textDark;
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
@@ -429,14 +673,22 @@ async function drawSplitLayout(ctx: CanvasRenderingContext2D, img: HTMLImageElem
     ctx.font = TOKENS.fonts.body;
     cursorY = drawWrappedText(ctx, body_text, contentX, cursorY + 76, contentW, 42, 4); // Alinhado ao contentX
 
-    if (price) {
-        ctx.fillStyle = "rgba(255,255,255,0.55)";
-        ctx.font = TOKENS.fonts.footerBold;
-        ctx.textAlign = "start";
-        ctx.fillText("VALOR", contentX, HEIGHT - 430); 
-        ctx.fillStyle = primaryColor;
-        ctx.font = "900 82px 'Inter', 'Outfit', sans-serif";
-        ctx.fillText(price, contentX, HEIGHT - 325); 
+    const hasEffectivePrice = price && price.trim() !== "";
+    const hasEffectiveLabel = input.price_label && input.price_label.trim() !== "";
+
+    if (hasEffectivePrice || hasEffectiveLabel) {
+        if (hasEffectiveLabel) {
+            ctx.fillStyle = "rgba(255,255,255,0.55)";
+            ctx.font = TOKENS.fonts.footerBold;
+            ctx.textAlign = "start";
+            ctx.fillText(input.price_label!.toUpperCase(), contentX, HEIGHT - 430); 
+        }
+        
+        if (hasEffectivePrice) {
+            ctx.fillStyle = primaryColor;
+            ctx.font = "900 82px 'Inter', 'Outfit', sans-serif";
+            ctx.fillText(price, contentX, HEIGHT - 325); 
+        }
     }
 
     drawRoundedRectFill(ctx, contentX, HEIGHT - 280, contentW, 92, 16, "#ffffff"); 

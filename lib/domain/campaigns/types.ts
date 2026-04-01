@@ -36,6 +36,7 @@ export interface Campaign {
   store_id: string;
   product_name: string | null;
   price: number | null;
+  price_label: string | null;
   audience: CampaignAudience | null;
   objective: CampaignObjective | null;
   product_positioning: ProductPositioning | null;
@@ -79,6 +80,7 @@ export interface CampaignContext {
   store_id: string;
   product_name: string;
   price: string | null;
+  price_label: string | null;
   audience: CampaignAudience | string; // Permitir string para flexibilidade na IA se necessário, mas tipado no Mapper
   objective: CampaignObjective | string;
   product_positioning: ProductPositioning | null;
@@ -91,6 +93,7 @@ export interface CampaignAIOutput {
   text: string;
   cta: string;
   hashtags: string;
+  price_label: string | null;
 }
 
 export type ContentState = "none" | "art_only" | "video_only" | "art_and_video";

@@ -69,6 +69,7 @@ CREATE TABLE IF NOT EXISTS public.campaigns (
     origin text DEFAULT 'manual' NOT NULL,
     product_name text,
     price numeric,
+    price_label text,
     content_type text DEFAULT 'product' NOT NULL,
     campaign_type text DEFAULT 'both' NOT NULL,
     audience text,

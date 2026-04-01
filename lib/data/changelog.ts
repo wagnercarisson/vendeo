@@ -16,6 +16,30 @@ export type ChangelogRelease = {
 
 export const changelogData: ChangelogRelease[] = [
     {
+        version: "v1.0.0-beta.4",
+        date: "2026-04-01",
+        title: "Calibração Engine: Master Solid e Biometria",
+        description: "Revolução na precisão do motor gráfico com a injeção do construtor de fatores dinâmicos (U), transicionando valores engessados do Solid para eixos escalonados em tempo real pelo DOM do cliente.",
+        changes: [
+            { type: "feat", scope: "canvas", description: "Implementação da calibração métrica, escala e top/left tracking para o Badge, Nome e Headline no Solid." },
+            { type: "fix", scope: "preview", description: "Fix crítico em CSSOM (offsetParent isolation) setando content block 'relative', contendo bug de teletransporte de badge." },
+            { type: "refactor", scope: "renderer", description: "Substituição completa de layout hardcoded no Solid para textBaseline dinâmico com Fator U." }
+        ]
+    },
+    {
+        version: "v1.0.0-beta.3",
+        date: "2026-03-31",
+        title: "Selos Dinâmicos e Preços Opcionais",
+        description: "Liberdade estratégica para campanhas de novidade, lançamento e combos, sem a obrigatoriedade de exibição de preço fixo.",
+        changes: [
+            { type: "feat", scope: "Renderer", description: "Implementação de badge dinâmico (OFERTA, NOVIDADE, etc) no Canvas." },
+            { type: "feat", scope: "Wizard", description: "Campo de preço tornado opcional para todos os tipos de conteúdo." },
+            { type: "feat", scope: "Database", description: "Adição da coluna 'price_label' (Migration 016)." },
+            { type: "feat", scope: "UI", description: "Estúdio de Ajuste Fino na Revisão para troca de selos em tempo real." },
+            { type: "docs", scope: "Architecture", description: "Atualização de ADR e Diagramas ERD." }
+        ]
+    },
+    {
         version: "v1.0.0-beta.2",
         date: "2026-03-31",
         title: "Expansão Institucional e Polimento de Interface",
@@ -23,7 +47,7 @@ export const changelogData: ChangelogRelease[] = [
         changes: [
             { type: "feat", scope: "system", description: "Implementação das páginas institucionais de Termos de Uso (/terms), Privacidade (/privacy) e Contato (/contact) com suporte@vendeo.tech." },
             { type: "fix", scope: "dashboard", description: "Correção técnica de overflow em tooltips da Sidebar utilizando React Portals (createPortal), garantindo visibilidade total na dashboard colapsada." },
-            { type: "feat", scope: "contact", description: "Configuração de roteamento de e-mail suporte@vendeo.tech via ImprovMX para atendimento centralizado." }
+            { type: "feat", scope: "contact", description: "Configuração de roteamento de e-mail suporte@vendeo.tech para atendimento centralizado." }
         ]
     },
     {

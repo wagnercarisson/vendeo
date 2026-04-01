@@ -5,6 +5,7 @@ export type CampaignFormData = {
     product_name: string;
     description?: string;
     price: string;
+    price_label?: string;
     image_url: string;
 };
 
@@ -26,6 +27,7 @@ export type CampaignPreviewData = {
     caption?: string;
     hashtags?: string;
     price?: number | string;
+    price_label?: string | null;
     store?: {
         id?: string;
         name: string;

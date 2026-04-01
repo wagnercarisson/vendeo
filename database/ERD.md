@@ -66,6 +66,9 @@ Unidade de conteúdo gerado.
 - `campaign_type` (text, Default: 'both')
 - `status` (text, Default: 'draft')
 - `post_status`, `reels_status` (text, Default: 'none')
+- `product_name` (text, Opcional)
+- `price` (numeric, Opcional)
+- `price_label` (text, Default: null)
 - `image_url` (Arte final), `product_image_url` (Foto base)
 - [Campos de Copy IA...]
 - [Campos de Roteiro Reels...]

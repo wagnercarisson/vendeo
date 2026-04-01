@@ -20,6 +20,15 @@ export async function getSignedImageUrl(path: string, expiresIn = 3600) {
   let bucket = "campaign-images";
   let relativePath = path;
 
+  // Cura Automática: Se o caminho contém "logos/USER_ID/logos/...", remove o "logos/" duplicado
+  if (relativePath.includes("logos/") && relativePath.split("logos/").length > 2) {
+      // Ex: logos/ID/logos/file.png -> logos/ID/file.png
+      const parts = relativePath.split("/");
+      if (parts[0] === "logos" && parts[2] === "logos") {
+          relativePath = [parts[0], parts[1], ...parts.slice(3)].join("/");
+      }
+  }
+
   // Padrão Supabase: /storage/v1/object/[public|sign]/[bucket]/[path]
   const storagePatterns = [
     "/storage/v1/object/public/",

@@ -16,6 +16,19 @@ type PreviewReadyStateProps = {
     onRegenerateReels?: () => void;
     isRegenerating?: boolean;
     onEditingChange?: (isEditing: boolean) => void;
+    containerRef?: React.RefObject<HTMLDivElement>;
+    cardRef?: React.RefObject<HTMLDivElement>;
+    badgeRef?: React.RefObject<HTMLDivElement>;
+    badgeLabelRef?: React.RefObject<HTMLParagraphElement>;
+    badgePriceRef?: React.RefObject<HTMLParagraphElement>;
+    storePillRef?: React.RefObject<HTMLSpanElement>;
+    headlineRef?: React.RefObject<HTMLHeadingElement>;
+    bodyTextRef?: React.RefObject<HTMLParagraphElement>;
+    ctaRef?: React.RefObject<HTMLButtonElement>;
+    whatsappRef?: React.RefObject<HTMLDivElement>;
+    waIconRef?: React.RefObject<HTMLImageElement>;
+    waTextRef?: React.RefObject<HTMLSpanElement>;
+    addressRef?: React.RefObject<HTMLParagraphElement>;
 };
 
 export function PreviewReadyState({
@@ -27,6 +40,19 @@ export function PreviewReadyState({
     onRegenerateReels,
     isRegenerating = false,
     onEditingChange,
+    containerRef,
+    cardRef,
+    badgeRef,
+    badgeLabelRef,
+    badgePriceRef,
+    storePillRef,
+    headlineRef,
+    bodyTextRef,
+    ctaRef,
+    whatsappRef,
+    waIconRef,
+    waTextRef,
+    addressRef,
 }: PreviewReadyStateProps) {
     const [isEditing, setIsEditing] = useState(false);
     const [isEditingReels, setIsEditingReels] = useState(false);
@@ -39,12 +65,16 @@ export function PreviewReadyState({
     }, [preview]);
 
     function handleSave() {
-        const normalizedPrice = typeof editData.price === "string" 
-            ? parseBRLToNumber(editData.price) 
-            : editData.price;
+        const normalizedPrice = !editData.price 
+            ? null 
+            : (typeof editData.price === "string" ? parseBRLToNumber(editData.price) : editData.price);
 
-            
-        onUpdatePreview({ ...editData, price: normalizedPrice, layout: activeLayout });
+        onUpdatePreview({ 
+            ...editData, 
+            price: normalizedPrice, 
+            price_label: editData.price_label || null,
+            layout: activeLayout 
+        });
         setIsEditing(false);
         onEditingChange?.(false);
     }
@@ -155,7 +185,21 @@ export function PreviewReadyState({
                                         body_text={isEditing ? editData.body_text : preview.body_text}
                                         cta={isEditing ? editData.cta : preview.cta}
                                         price={isEditing ? editData.price : preview.price}
+                                        price_label={isEditing ? editData.price_label : preview.price_label}
                                         store={preview.store}
+                                        containerRef={containerRef}
+                                        cardRef={cardRef}
+                                        badgeRef={badgeRef}
+                                        badgeLabelRef={badgeLabelRef}
+                                        badgePriceRef={badgePriceRef}
+                                        storePillRef={storePillRef}
+                                        headlineRef={headlineRef}
+                                        bodyTextRef={bodyTextRef}
+                                        ctaRef={ctaRef}
+                                        whatsappRef={whatsappRef}
+                                        waIconRef={waIconRef}
+                                        waTextRef={waTextRef}
+                                        addressRef={addressRef}
                                     />
                                 )}
                             </div>
@@ -182,16 +226,43 @@ export function PreviewReadyState({
                                             className="w-full rounded-lg border border-zinc-200 p-2 text-sm outline-none focus:border-emerald-500 resize-none"
                                         />
                                     </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-bold uppercase text-zinc-400">Preço</label>
-                                        <input
-                                            type="text"
-                                            value={editData.price || ""}
-                                            onChange={(e) => setEditData({ ...editData, price: formatBRLMask(e.target.value) })}
-                                            placeholder="Ex: 99,90"
-                                            className="w-full rounded-lg border border-zinc-200 p-2 text-sm outline-none focus:border-emerald-500"
-                                        />
-
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold uppercase text-zinc-400">Preço</label>
+                                            <input
+                                                type="text"
+                                                value={editData.price || ""}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    // Se apagar tudo ou deixar apenas caracteres não numéricos, limpa o campo
+                                                    if (!val || !val.replace(/\D/g, "")) {
+                                                        setEditData({ ...editData, price: "" });
+                                                    } else {
+                                                        setEditData({ ...editData, price: formatBRLMask(val) });
+                                                    }
+                                                }}
+                                                placeholder="Ex: 99,90"
+                                                className="w-full h-10 rounded-lg border border-zinc-200 p-2 text-sm outline-none focus:border-emerald-500"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold uppercase text-zinc-400">Selo (Rótulo)</label>
+                                            <select
+                                                value={editData.price_label || ""}
+                                                onChange={(e) => setEditData({ ...editData, price_label: e.target.value })}
+                                                className="w-full h-10 rounded-lg border border-zinc-200 p-2 text-sm outline-none focus:border-emerald-500 bg-white"
+                                            >
+                                                <option value="">Nenhum / Padrão</option>
+                                                <option value="OFERTA">Oferta</option>
+                                                <option value="NOVIDADE">Novidade</option>
+                                                <option value="LANÇAMENTO">Lançamento</option>
+                                                <option value="PROMOÇÃO">Promoção</option>
+                                                <option value="COMBO">Combo</option>
+                                                <option value="KIT">Kit</option>
+                                                <option value="SÓ HOJE">Só Hoje</option>
+                                                <option value="VOLTOU!">Voltou!</option>
+                                            </select>
+                                        </div>
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-bold uppercase text-zinc-400">CTA</label>
@@ -248,7 +319,9 @@ export function PreviewReadyState({
                         {!isEditing && onRegenerateArt && (
                             <CampaignQuickActions
                                 onEdit={() => {
-                                    const displayPrice = preview.price?.toString().replace(".", ",") || "";
+                                    // Se price for 0 ou nulo, garante a máscara "0,00"
+                                    const rawPrice = preview.price ?? 0;
+                                    const displayPrice = rawPrice === 0 ? "0,00" : formatBRLMask(rawPrice.toString().replace(".", ","));
                                     setEditData({ ...preview, price: displayPrice });
                                     setIsEditing(true);
                                     onEditingChange?.(true);
