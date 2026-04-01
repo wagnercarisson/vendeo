@@ -125,6 +125,7 @@ export function CampaignPreviewClient({
     const previewWaIconRef = React.useRef<HTMLImageElement>(null);
     const previewWaTextRef = React.useRef<HTMLSpanElement>(null);
     const previewAddressRef = React.useRef<HTMLParagraphElement>(null);
+    const previewLogoRef = React.useRef<HTMLImageElement>(null);
 
     const startEditing = (isGenTrigger: boolean = false) => {
         setIsGenerationTriggered(isGenTrigger);
@@ -451,17 +452,25 @@ export function CampaignPreviewClient({
                     ? getUnscaledRelativePos(previewHeadlineRef.current, previewContainerRef.current)
                     : { top: undefined, left: undefined };
 
-                const waIconRelative = (previewWaIconRef.current && previewCardRef.current) 
-                    ? getUnscaledRelativePos(previewWaIconRef.current, previewCardRef.current) 
-                    : { top: 0, left: 0 };
-                const ctaRelative = (previewCTARef.current && previewCardRef.current) 
-                    ? getUnscaledRelativePos(previewCTARef.current, previewCardRef.current) 
+
+                const isSplitLayout = previewData.layout === "split";
+                
+                const ctaParentRef = isSplitLayout ? previewContainerRef.current : previewCardRef.current;
+                const ctaRelative = (previewCTARef.current && ctaParentRef) 
+                    ? getUnscaledRelativePos(previewCTARef.current, ctaParentRef) 
                     : { top: undefined, left: undefined };
-                const waTextRelative = (previewWaTextRef.current && previewCardRef.current) 
-                    ? getUnscaledRelativePos(previewWaTextRef.current, previewCardRef.current) 
+                
+                const waIconRelative = (previewWaIconRef.current && ctaParentRef) 
+                    ? getUnscaledRelativePos(previewWaIconRef.current, ctaParentRef) 
                     : { top: 0, left: 0 };
-                const addressRelative = (previewAddressRef.current && previewCardRef.current) 
-                    ? getUnscaledRelativePos(previewAddressRef.current, previewCardRef.current) 
+                
+                const waTextRelative = (previewWaTextRef.current && ctaParentRef) 
+                    ? getUnscaledRelativePos(previewWaTextRef.current, ctaParentRef) 
+                    : { top: 0, left: 0 };
+                
+                const addrParentRef = isSplitLayout ? previewContainerRef.current : previewCardRef.current;
+                const addressRelative = (previewAddressRef.current && addrParentRef) 
+                    ? getUnscaledRelativePos(previewAddressRef.current, addrParentRef) 
                     : { top: undefined, left: undefined };
                 
                 // Medimos o tamanho real do ícone no layout (offsetWidth é unscaled se for o layout)
@@ -492,6 +501,16 @@ export function CampaignPreviewClient({
                     measuredBadgeH: previewBadgeRef.current?.offsetHeight,
                     measuredBadgeX: badgeOffset.left,
                     measuredBadgeY: badgeOffset.top,
+
+                    // Medição do Logotipo
+                    measuredLogoSize: previewLogoRef.current?.offsetWidth,
+                    measuredLogoX: previewLogoRef.current && previewContainerRef.current
+                        ? (previewLogoRef.current.getBoundingClientRect().left - previewContainerRef.current.getBoundingClientRect().left)
+                        : undefined,
+                    measuredLogoY: previewLogoRef.current && previewContainerRef.current
+                        ? (previewLogoRef.current.getBoundingClientRect().top - previewContainerRef.current.getBoundingClientRect().top)
+                        : undefined,
+
                     // Medição do WhatsApp (Ícone do WhatsApp Apenas)
                     measuredWhatsappX: waIconRelative.left,
                     measuredWhatsappY: waIconRelative.top,
@@ -1177,6 +1196,7 @@ export function CampaignPreviewClient({
                                       waIconRef={previewWaIconRef}
                                       waTextRef={previewWaTextRef}
                                       addressRef={previewAddressRef}
+                                      logoRef={previewLogoRef}
                                   />
                                   {!isChildEditing && isReviewDirty && (
                                     <div className="flex items-center justify-end animate-in fade-in slide-in-from-bottom-2">

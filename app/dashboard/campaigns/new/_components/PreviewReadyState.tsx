@@ -29,6 +29,7 @@ type PreviewReadyStateProps = {
     waIconRef?: React.RefObject<HTMLImageElement>;
     waTextRef?: React.RefObject<HTMLSpanElement>;
     addressRef?: React.RefObject<HTMLParagraphElement>;
+    logoRef?: React.RefObject<any>;
 };
 
 export function PreviewReadyState({
@@ -53,6 +54,7 @@ export function PreviewReadyState({
     waIconRef,
     waTextRef,
     addressRef,
+    logoRef,
 }: PreviewReadyStateProps) {
     const [isEditing, setIsEditing] = useState(false);
     const [isEditingReels, setIsEditingReels] = useState(false);
@@ -200,6 +202,7 @@ export function PreviewReadyState({
                                         waIconRef={waIconRef}
                                         waTextRef={waTextRef}
                                         addressRef={addressRef}
+                                        logoRef={logoRef}
                                     />
                                 )}
                             </div>

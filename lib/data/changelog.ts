@@ -25,7 +25,12 @@ export const changelogData: ChangelogRelease[] = [
             { type: "fix", scope: "canvas", description: "Sincronização dinâmica de tracking, line-height e largura da Headline e Subtítulo no layout Solid." },
             { type: "fix", scope: "canvas", description: "Calibração biométrica completa do rodapé (Linha, Endereço, WhatsApp e CTA) via Fator Dinâmico (U)." },
             { type: "fix", scope: "preview", description: "Ativação de refs híbridas e isolamento de biometria no ArtViewer para suporte universal a componentes Solid." },
-            { type: "refactor", scope: "renderer", description: "Substituição total de coordenadas fixas por eixos escalonados em tempo real pelo DOM do cliente." }
+            { type: "refactor", scope: "renderer", description: "Substituição total de coordenadas fixas por eixos escalonados em tempo real pelo DOM do cliente." },
+            { type: "fix", scope: "canvas", description: "Aplicação exclusiva de espelhamento com fator dinâmico (biometria) na renderização do CTA do layout Split." },
+            { type: "fix", scope: "canvas", description: "Correção biométrica do ícone e número de WhatsApp, assegurando medição isolada sem fusão de margens no layout Split." },
+            { type: "feat", scope: "canvas", description: "Implementação da aderência dinâmica e aumento da legibilidade (+1px) para o campo de Endereço no layout Split." },
+            { type: "fix", scope: "preview", description: "Refatoração híbrida do extrator biométrico, blindando as métricas absolutas do Split sem corromper as regras dos layouts Solid e Floating." },
+            { type: "feat", scope: "canvas", description: "Injeção construtiva de biometria inteligente para Selo e Preço no layout Split, com emulação paramétrica perfeita de eixos e letter-spacing." }
         ]
     },
     {

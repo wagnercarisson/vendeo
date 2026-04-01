@@ -32,6 +32,7 @@ export type CampaignArtViewerProps = {
     waIconRef?: React.RefObject<HTMLImageElement>;
     waTextRef?: React.RefObject<HTMLSpanElement>;
     addressRef?: React.RefObject<HTMLParagraphElement>;
+    logoRef?: React.RefObject<any>;
 };
 
 export function CampaignArtViewer({
@@ -57,6 +58,7 @@ export function CampaignArtViewer({
     waIconRef,
     waTextRef,
     addressRef,
+    logoRef,
 }: CampaignArtViewerProps) {
     const primary_color = store?.primary_color || "#10b981";
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -164,7 +166,7 @@ export function CampaignArtViewer({
                                         alt="" 
                                         className="h-3 w-3 inline-block" 
                                     />
-                                    <span ref={waTextRef} className="inline-block leading-none">{whatsappDisplay}</span>
+                                    <span ref={waTextRef} className="inline-block leading-none" style={{ fontSize: '8.5px' }}>{whatsappDisplay}</span>
                                 </p>
                                 <p ref={addressRef} className="truncate max-w-[120px] opacity-70 block leading-none">{store?.address}</p>
                             </div>
@@ -192,19 +194,19 @@ export function CampaignArtViewer({
                             {store?.logo_url && (
                                 <div className="h-9 w-9 rounded-full overflow-hidden border border-white/20 shrink-0 shadow-lg">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={store.logo_url} alt="" className="h-full w-full object-cover" />
+                                    <img ref={logoRef} src={store.logo_url} alt="" className="h-full w-full object-cover" />
                                 </div>
                             )}
-                            <span className="text-[10px] font-bold uppercase tracking-[0px]" style={{ color: primary_color }}>
+                            <span ref={storePillRef} className="text-[10px] font-bold uppercase tracking-[0px]" style={{ color: primary_color }}>
                                 {store?.name}
                             </span>
                         </div>
                         <div className="space-y-2">
-                            <h3 className="text-xl font-black leading-tight text-white italic tracking-[0.5px]">
+                            <h3 ref={headlineRef} className="text-xl font-black leading-tight text-white italic tracking-[0.5px]">
                                 {headline}
                             </h3>
                             <div className="h-1 w-10 rounded-full" style={{ backgroundColor: primary_color }} />
-                            <p className="text-[11px] font-medium text-zinc-400 leading-relaxed italic line-clamp-4">
+                            <p ref={bodyTextRef} className="text-[11px] font-medium text-zinc-400 leading-relaxed italic line-clamp-4">
                                  {body_text}
                             </p>
                         </div>
@@ -212,21 +214,21 @@ export function CampaignArtViewer({
 
                     <div className="space-y-4 pt-2">
                         {(hasEffectivePrice || hasEffectiveLabel) && (
-                            <div className="space-y-0.5">
+                            <div ref={badgeRef} className="space-y-0.5">
                                 {hasEffectiveLabel && (
-                                    <p className="text-[9px] font-bold uppercase text-zinc-500 tracking-widest">
+                                    <p ref={badgeLabelRef} className="text-[9px] font-bold uppercase text-zinc-500 tracking-widest">
                                         {price_label}
                                     </p>
                                 )}
                                 {hasEffectivePrice && (
-                                    <p className="text-3xl font-black text-white tracking-tighter" style={{ color: primary_color }}>
+                                    <p ref={badgePriceRef} className="text-3xl font-black text-white tracking-tighter" style={{ color: primary_color }}>
                                         {formattedPrice}
                                     </p>
                                 )}
                             </div>
                         )}
                         
-                        <div className="rounded-lg bg-white px-4 py-3 text-center text-[10px] font-black text-zinc-900 uppercase tracking-widest shadow-xl line-clamp-2">
+                        <div ref={ctaRef} className="rounded-lg bg-white px-4 py-3 text-center text-[10px] font-black text-zinc-900 uppercase tracking-widest shadow-xl line-clamp-2">
                             {cta}
                         </div>
 
@@ -234,13 +236,13 @@ export function CampaignArtViewer({
                             <p className="font-bold text-white/70 flex items-center gap-1">
                                  {/* eslint-disable-next-line @next/next/no-img-element */}
                                  <div ref={whatsappRef} className="flex items-center space-x-1.5 shrink-0">
-                                    <div ref={waIconRef} className="text-white">
-                                        <img src="/whatsapp.png" className="h-2.5 w-2.5 mr-0.5" alt="" />
+                                    <div className="text-white">
+                                        <img ref={waIconRef} src="/whatsapp.png" className="h-2.5 w-2.5 mr-0.5" alt="" />
                                     </div>
-                                    <span ref={waTextRef} className="inline-block leading-none">{whatsappDisplay}</span>
+                                    <span ref={waTextRef} className="inline-block leading-none" style={{ fontSize: '8.5px' }}>{whatsappDisplay}</span>
                                  </div>
                             </p>
-                            <p className="truncate">{store?.address}</p>
+                            <p ref={addressRef} className="truncate text-[9px]">{store?.address}</p>
                         </div>
                     </div>
                 </div>

@@ -84,6 +84,11 @@ export interface GraphicInput {
     measuredAddressW?: number;
     measuredAddressH?: number;
     measuredAddressFontSize?: number;
+    
+    // Medidas do Logotipo (Split e outros)
+    measuredLogoX?: number;
+    measuredLogoY?: number;
+    measuredLogoSize?: number;
 }
 
 const WIDTH = 1080;
@@ -251,8 +256,14 @@ async function drawPriceBadge(
 ) {
     if (!price && !label) return;
 
+    // Configurações específicas por layout
+    const isSplit = input.layout === "split";
+    const bgFill = isSplit ? "#ffffff" : color;
+    const strokeColor = isSplit ? color : "#ffffff";
+    const strokeWidth = (isSplit ? 4 : 2) * U;
+    const radius = (isSplit ? 16 : 12) * U; // 16px = rounded-2xl
+
     // Lógica de Paridade Absoluta para o Badge
-    // Se o cliente mediu, usamos a realidade da tela dele. Senão, mantemos fallbacks seguros.
     const badgeX = input.measuredBadgeX !== undefined ? (input.measuredBadgeX * U) : (WIDTH - 260 * (U/2.7));
     const badgeY = input.measuredBadgeY !== undefined ? (input.measuredBadgeY * U) : 48 * (U/2.7);
     const badgeW = input.measuredBadgeW !== undefined ? (input.measuredBadgeW * U) : 230 * (U/2.7);
@@ -265,35 +276,36 @@ async function drawPriceBadge(
     // Centralizamos o contexto no meio do badge medido para rotacionar
     ctx.translate(badgeX + badgeW / 2, badgeY + badgeH / 2);
     
-    // Rotação condicional por layout (Solid não tem rotação)
+    // Rotação condicional por layout (Solid e Split não tem rotação)
     const rotationDeg = input.layout === "floating" ? 6 : 0;
     if (rotationDeg !== 0) {
         ctx.rotate((rotationDeg * Math.PI) / 180);
     }
 
-    // Fundo do Badge
-    const radius = 12 * U;
-    drawRoundedRectFill(ctx, -badgeW / 2, -badgeH / 2, badgeW, badgeH, radius, color);
+    // 1. FUNDO DO BADGE
+    roundedRect(ctx, -badgeW / 2, -badgeH / 2, badgeW, badgeH, radius);
+    ctx.fillStyle = bgFill;
+    ctx.fill();
 
-    // Borda Branca Sincronizada
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 2 * U;
+    // 2. BORDA DINÂMICA (Sincronizada com o Preview)
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = strokeWidth;
     ctx.stroke();
 
     ctx.textAlign = "center";
 
-    // Texto do Rótulo (OFERTA, etc)
+    // 3. TEXTO DO RÓTULO (OFERTA, etc)
     if (label) {
-        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.fillStyle = isSplit ? "#71717a" : "rgba(255,255,255,0.85)";
         ctx.font = `bold ${labelFontSize}px 'Inter', sans-serif`;
         // Ajuste vertical relativo ao centro do badge
         const labelY = price ? (-badgeH * 0.15) : (labelFontSize * 0.3);
         ctx.fillText(label.toUpperCase(), 0, labelY);
     }
 
-    // Texto do Preço
+    // 4. TEXTO DO PREÇO
     if (price) {
-        ctx.fillStyle = "#ffffff";
+        ctx.fillStyle = isSplit ? color : "#ffffff";
         ctx.font = `900 ${priceFontSize}px 'Inter', sans-serif`;
         // Ajuste vertical relativo ao centro do badge
         const priceY = label ? (badgeH * 0.25) : (priceFontSize * 0.35);
@@ -692,6 +704,9 @@ async function drawSplitLayout(ctx: CanvasRenderingContext2D, img: HTMLImageElem
     const price = formatPrice(input.price);
     const whatsapp = formatWhatsapp(store?.whatsapp || (store as any)?.phone);
 
+    // Fator Dinâmico Universal (U)
+    const U = (input.measuredWidth ? WIDTH / input.measuredWidth : 2.7);
+
     ctx.fillStyle = TOKENS.colors.textDark;
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
     drawImageCover(ctx, img, 0, 0, WIDTH / 2, HEIGHT);
@@ -700,73 +715,190 @@ async function drawSplitLayout(ctx: CanvasRenderingContext2D, img: HTMLImageElem
     grad.addColorStop(0, "rgba(0,0,0,0)"); grad.addColorStop(1, "rgba(0,0,0,0.5)");
     ctx.fillStyle = grad; ctx.fillRect(0, 0, WIDTH / 2, HEIGHT);
 
-    // Constante Mestra de Alinhamento
-    const contentX = 580;
-    const contentW = 440;
+    // 1. CABEÇALHO DINÂMICO (Logo + Nome)
+    const cardX = WIDTH * 0.5; // Início do painel de conteúdo
+    const logoSize = input.measuredLogoSize ? (input.measuredLogoSize * U) : 97.2;
+    const logoX = input.measuredLogoX !== undefined ? (input.measuredLogoX * U) : (cardX + 40);
+    const logoY = input.measuredLogoY !== undefined ? (input.measuredLogoY * U) : 90;
 
-    // LOGO + NOME Unificados e Centralizados Linearmente
-    let headerX = contentX; 
+    const nameFontSize = input.measuredStorePillFontSize ? (input.measuredStorePillFontSize * U) : 27;
+    const nameX = input.measuredStorePillX !== undefined ? (input.measuredStorePillX * U) : (logoX + logoSize + 13.5);
+    const nameY = input.measuredStorePillY !== undefined ? (input.measuredStorePillY * U) : (logoY + logoSize / 2);
+    const nameW = input.measuredStorePillW ? (input.measuredStorePillW * U) : (WIDTH - nameX - SAFE_MARGIN);
+
     if (store?.logo_url) {
-        await drawStoreLogo(ctx, store.logo_url, headerX, 90, 84); // Elevado (Y: 120 -> 90)
-        headerX += 105; // Gap logo + texto
+        await drawStoreLogo(ctx, store.logo_url, logoX, logoY, logoSize);
     }
     
     if (store?.name) {
         ctx.fillStyle = primaryColor;
-        ctx.font = TOKENS.fonts.label;
+        ctx.font = `700 ${nameFontSize}px 'Inter', 'Outfit', sans-serif`;
         ctx.textAlign = "start";
-        const maxNameWidth = contentW - (headerX - contentX);
-        // Utilizando drawWrappedText para corrigir o truncamento:
-        drawWrappedText(ctx, store.name.toUpperCase(), headerX, 128, maxNameWidth, 32, 2); 
+        ctx.textBaseline = "top";
+        drawWrappedText(ctx, store.name.toUpperCase(), nameX, nameY, nameW, nameFontSize * 1.3, 2);
+        ctx.textBaseline = "alphabetic"; // Reset
     }
 
+    // 2. CONTEÚDO (Headline e Próximos)
+    const contentX = 580;
+    const contentW = 440;
+
+    // 2. HEADLINE E DIVISOR DINÂMICOS
+    const headlineFontSize = input.measuredHeadlineFontSize ? (input.measuredHeadlineFontSize * U) : 56;
+    const headlineX = input.measuredHeadlineX !== undefined ? (input.measuredHeadlineX * U) : contentX;
+    const headlineY = input.measuredHeadlineY !== undefined ? (input.measuredHeadlineY * U) : 250;
+    const headlineW = input.measuredHeadlineW ? (input.measuredHeadlineW * U) : contentW;
+    const headlineLH = input.measuredHeadlineLineHeight ? (input.measuredHeadlineLineHeight * U) : 64.8; // tight = ~1.2
+
     ctx.fillStyle = "#ffffff";
-    ctx.font = TOKENS.fonts.headline;
-    let cursorY = drawWrappedText(ctx, headline, contentX, 250, contentW, 70, 3); // Elevado e alinhado ao contentX
+    ctx.font = `900 italic ${headlineFontSize}px 'Inter', 'Outfit', sans-serif`;
+    ctx.textAlign = "start";
+    ctx.textBaseline = "top";
+    ctx.letterSpacing = (0.5 * U) + "px"; // Sincronia de tracking
     
-    // Divisor fino corrigido (height: 7px)
-    drawRoundedRectFill(ctx, contentX, cursorY + 16, 95, 7, 2, primaryColor); 
+    let cursorY = drawWrappedText(ctx, headline, headlineX, headlineY, headlineW, headlineLH, 3);
+    ctx.letterSpacing = "0px"; // Reset
+    
+    // Divisor Dinâmico (h-1 w-10)
+    const divW = 40 * U;
+    const divH = 4 * U;
+    const divY = cursorY + (16 * (U / 2.7));
+    drawRoundedRectFill(ctx, headlineX, divY, divW, divH, 2 * (U / 2.7), primaryColor);
+
+    // 3. SUBTÍTULO DINÂMICO
+    const bodyFontSize = input.measuredBodyFontSize ? (input.measuredBodyFontSize * U) : 33.5;
+    const bodyX = input.measuredBodyX !== undefined ? (input.measuredBodyX * U) : contentX;
+    const bodyY = input.measuredBodyY !== undefined ? (input.measuredBodyY * U) : (cursorY + 60);
+    const bodyW = input.measuredBodyW ? (input.measuredBodyW * U) : contentW;
+    const bodyLH = input.measuredBodyLineHeight ? (input.measuredBodyLineHeight * U) : (bodyFontSize * 1.5);
 
     ctx.fillStyle = TOKENS.colors.textMutedLight;
-    ctx.font = TOKENS.fonts.body;
-    cursorY = drawWrappedText(ctx, body_text, contentX, cursorY + 76, contentW, 42, 4); // Alinhado ao contentX
+    ctx.font = `500 italic ${bodyFontSize}px 'Inter', 'Outfit', sans-serif`;
+    ctx.textBaseline = "top";
+    cursorY = drawWrappedText(ctx, body_text, bodyX, bodyY, bodyW, bodyLH, 4);
+    ctx.textBaseline = "alphabetic"; // Reset
 
     const hasEffectivePrice = price && price.trim() !== "";
     const hasEffectiveLabel = input.price_label && input.price_label.trim() !== "";
 
     if (hasEffectivePrice || hasEffectiveLabel) {
+        const badgeX = input.measuredBadgeX !== undefined ? (input.measuredBadgeX * U) : contentX;
+        const badgeY = input.measuredBadgeY !== undefined ? (input.measuredBadgeY * U) : (HEIGHT - 430);
+        const badgeH = input.measuredBadgeH !== undefined ? (input.measuredBadgeH * U) : 105;
+        
+        const labelSize = input.measuredLabelFontSize ? (input.measuredLabelFontSize * U) : 26;
+        const priceSize = input.measuredPriceFontSize ? (input.measuredPriceFontSize * U) : 82;
+
         if (hasEffectiveLabel) {
             ctx.fillStyle = "rgba(255,255,255,0.55)";
-            ctx.font = TOKENS.fonts.footerBold;
-            ctx.textAlign = "start";
-            ctx.fillText(input.price_label!.toUpperCase(), contentX, HEIGHT - 430); 
+            
+            if (input.measuredBadgeY !== undefined) {
+                ctx.font = `bold ${labelSize}px 'Inter', 'Outfit', sans-serif`;
+                ctx.textAlign = "start";
+                ctx.textBaseline = "top";
+                // @ts-ignore
+                if ('letterSpacing' in ctx) ctx.letterSpacing = (0.1 * labelSize) + "px";
+                ctx.fillText(input.price_label!.toUpperCase(), badgeX, badgeY);
+                // @ts-ignore
+                if ('letterSpacing' in ctx) ctx.letterSpacing = "0px";
+            } else {
+                ctx.font = TOKENS.fonts.footerBold;
+                ctx.textAlign = "start";
+                ctx.textBaseline = "alphabetic";
+                ctx.fillText(input.price_label!.toUpperCase(), contentX, HEIGHT - 430); 
+            }
         }
         
         if (hasEffectivePrice) {
             ctx.fillStyle = primaryColor;
-            ctx.font = "900 82px 'Inter', 'Outfit', sans-serif";
-            ctx.fillText(price, contentX, HEIGHT - 325); 
+            
+            if (input.measuredBadgeY !== undefined) {
+                ctx.font = `900 ${priceSize}px 'Inter', 'Outfit', sans-serif`;
+                ctx.textAlign = "start";
+                ctx.textBaseline = "bottom";
+                // @ts-ignore
+                if ('letterSpacing' in ctx) ctx.letterSpacing = (-0.05 * priceSize) + "px"; 
+                ctx.fillText(price, badgeX, badgeY + badgeH); 
+                // @ts-ignore
+                if ('letterSpacing' in ctx) ctx.letterSpacing = "0px";
+            } else {
+                ctx.font = "900 82px 'Inter', 'Outfit', sans-serif";
+                ctx.textAlign = "start";
+                ctx.textBaseline = "alphabetic";
+                ctx.fillText(price, contentX, HEIGHT - 325); 
+            }
+        }
+        ctx.textBaseline = "alphabetic"; // Reset param
+    }
+
+    // 4. CTA (Botão de Chamada para Ação - Restauração de Paridade)
+    const ctaW = input.measuredCTAW ? (input.measuredCTAW * U) : contentW;
+    const ctaH = input.measuredCTAH ? (input.measuredCTAH * U) : 92;
+    const ctaX = input.measuredCTAX !== undefined ? (input.measuredCTAX * U) : contentX;
+    const ctaY = input.measuredCTAY !== undefined ? (input.measuredCTAY * U) : (HEIGHT - 280);
+    const ctaFontSize = input.measuredCTAFontSize ? (input.measuredCTAFontSize * U) : (10 * U);
+
+    // Sombra Projetada (Shadow XL Sincronizada)
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.22)";
+    ctx.shadowBlur = 35 * (U / 2.7);
+    ctx.shadowOffsetY = 12 * (U / 2.7);
+    drawRoundedRectFill(ctx, ctaX, ctaY, ctaW, ctaH, 8 * U, "#ffffff"); 
+    ctx.restore();
+    
+    ctx.fillStyle = "#18181b"; // text-zinc-900
+    ctx.font = `900 ${ctaFontSize}px 'Inter', 'Outfit', sans-serif`; 
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    // @ts-ignore
+    if ('letterSpacing' in ctx) ctx.letterSpacing = (0.8 * U) + "px"; // tracking-widest sincronizado
+    ctx.fillText(cta.toUpperCase(), ctaX + (ctaW / 2), ctaY + (ctaH / 2)); 
+    // @ts-ignore
+    if ('letterSpacing' in ctx) ctx.letterSpacing = "0px";
+    ctx.textBaseline = "alphabetic"; // Reset
+
+    if (whatsapp) {
+        const waIconX = input.measuredWhatsappX !== undefined ? (input.measuredWhatsappX * U) : contentX;
+        const waIconY = input.measuredWhatsappY !== undefined ? (input.measuredWhatsappY * U) : (HEIGHT - 134);
+        const waIconSize = input.measuredWhatsappIconSize ? (input.measuredWhatsappIconSize * U) : (10 * U);
+
+        const waTextX = input.measuredWhatsappTextX !== undefined ? (input.measuredWhatsappTextX * U) : (waIconX + waIconSize + 6 * U);
+        const waTextY = input.measuredWhatsappTextY !== undefined ? (input.measuredWhatsappTextY * U) : (waIconY + waIconSize / 2);
+        const waFontSize = input.measuredWhatsappFontSize ? (input.measuredWhatsappFontSize * U) : (8.5 * U);
+
+        ctx.textAlign = "start";
+        await drawWhatsappIcon(ctx, waIconX, waIconY, waIconSize); 
+        
+        ctx.fillStyle = "rgba(255,255,255,0.7)"; // text-white/70
+        ctx.font = `bold ${waFontSize}px 'Inter', 'Outfit', sans-serif`;
+        
+        if (input.measuredWhatsappTextY !== undefined) {
+            ctx.textBaseline = "top";
+            ctx.fillText(whatsapp, waTextX, waTextY); 
+            ctx.textBaseline = "alphabetic"; // Reset
+        } else {
+            ctx.textBaseline = "middle";
+            ctx.fillText(whatsapp, waTextX, waTextY); 
+            ctx.textBaseline = "alphabetic"; // Reset
         }
     }
 
-    drawRoundedRectFill(ctx, contentX, HEIGHT - 280, contentW, 92, 16, "#ffffff"); 
-    ctx.fillStyle = TOKENS.colors.textDark;
-    ctx.font = "900 26px 'Inter', 'Outfit', sans-serif"; 
-    ctx.textAlign = "center";
-    ctx.fillText(cta.toUpperCase(), contentX + (contentW / 2), HEIGHT - 222); 
-
-    if (whatsapp) {
-        ctx.textAlign = "start";
-        await drawWhatsappIcon(ctx, contentX, HEIGHT - 134, 28); 
-        ctx.fillStyle = "rgba(255,255,255,0.85)";
-        ctx.font = TOKENS.fonts.footerBold;
-        ctx.fillText(whatsapp, contentX + 38, HEIGHT - 111); 
-    }
+    const addrSize = input.measuredAddressFontSize ? (input.measuredAddressFontSize * U) : 22.5;
+    const addrX = input.measuredAddressX !== undefined ? (input.measuredAddressX * U) : contentX;
+    const addrY = input.measuredAddressY !== undefined ? (input.measuredAddressY * U) : (HEIGHT - 80);
+    const addrW = input.measuredAddressW ? (input.measuredAddressW * U) : contentW;
 
     ctx.fillStyle = "#a1a1aa";
-    ctx.font = TOKENS.fonts.footerRegular;
+    ctx.font = `500 ${addrSize}px 'Inter', 'Outfit', sans-serif`;
     ctx.textAlign = "start";
-    drawWrappedText(ctx, store?.address || "", contentX, HEIGHT - 80, contentW, 28, 2);
+
+    if (input.measuredAddressY !== undefined) {
+        ctx.textBaseline = "top";
+        drawWrappedText(ctx, store?.address || "", addrX, addrY, addrW, addrSize * 1.3, 1);
+        ctx.textBaseline = "alphabetic";
+    } else {
+        drawWrappedText(ctx, store?.address || "", addrX, addrY, addrW, 28, 2);
+    }
 }
 
 export async function renderGraphicToBlob(input: GraphicInput): Promise<Blob> {
