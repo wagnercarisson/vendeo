@@ -59,6 +59,10 @@ export function StoreLocationsForm({
     });
   }, [branches]);
 
+  const hasIncompleteBranch = useMemo(() => {
+    return branches.some((b) => !b.name || b.name.trim() === "");
+  }, [branches]);
+
   const addBranch = () => {
     const newId = crypto.randomUUID();
     const newBranch: StoreBranch = {
@@ -216,10 +220,15 @@ export function StoreLocationsForm({
           <button
             type="button"
             onClick={addBranch}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-[11px] font-bold text-emerald-700 transition-colors hover:bg-emerald-100 uppercase tracking-wider"
+            disabled={hasIncompleteBranch}
+            className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-[11px] font-bold transition-all uppercase tracking-wider ${
+              hasIncompleteBranch 
+                ? "border-zinc-200 bg-zinc-50 text-zinc-400 cursor-not-allowed opacity-60" 
+                : "border-emerald-100 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+            }`}
           >
             <Plus className="h-3.5 w-3.5" />
-            Adicionar Unidade
+            {hasIncompleteBranch ? "Preencha o nome" : "Adicionar Unidade"}
           </button>
         </div>
 

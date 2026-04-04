@@ -144,29 +144,27 @@ Evoluir a IA para suportar os objetivos de cada nicho (Venda vs. Autoridade).
 
 ---
 
-### 🟡 5. Comunicação Multi-Filial (Leve)
+### ✅ 5. Comunicação Multi-Filial (Infraestrutura Relacional)
 
-Permitir comunicação de múltiplas unidades sem complexidade estrutural.
+Permitir comunicação de múltiplas unidades com integridade de dados.
 
-Opção no cadastro:
+**Status:** Concluído. 
+- Migramos do modelo JSONB para a tabela relacional `store_branches` (Migration 018).
+- Implementamos RPC atômica com suporte a UPSERT.
+- Prepada para Fase 2 (Estratégias por Filial).
 
-* loja única
-* múltiplas unidades
-
-Possibilidades na arte:
-
-* “3 lojas em [cidade]”
-* “consulte a unidade mais próxima”
-
-📌 Não implementar sistema multi-store completo
+📌 Suporte completo a múltiplas unidades agora é nativo.
 
 ---
 
-### 🟡 6. Ajustes de Fricção (Quick Wins)
+### ✅ 6. Ajustes de Fricção (UX & Security Hardening)
 
-* aceitar WhatsApp com 10 ou 11 dígitos
-* remover bloqueios simples de uso
-* ajustes de validação
+**Status:** Concluído. 
+* [x] aceitar WhatsApp com 10 ou 11 dígitos
+* [x] **Navigation Guard Global**: Proteção total contra perda de dados em todo o Dashboard.
+* [x] **Onboarding Resiliente**: Resolução de conflitos de ID de usuário via RPC Upsert.
+* [x] **Segurança RLS**: Blindagem de privacidade entre lojistas em todas as tabelas (Multi-tenancy).
+* [x] Ajustes de validação e setters do formulário de loja.
 
 ---
 

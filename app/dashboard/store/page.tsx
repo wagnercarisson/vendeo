@@ -500,7 +500,7 @@ export default function StorePage() {
         phone: onlyDigits(phone) || null, whatsapp: onlyDigits(whatsapp) || null,
         instagram: normalizeInstagram(instagram) || null,
         primary_color: primaryColor || null, secondary_color: secondaryColor || null,
-        branches: branches,
+        branches: (branches || []).filter(b => b.name && b.name.trim() !== ""),
       };
 
       const { error: saveError } = await saveStoreAction(payload, activeStoreId);

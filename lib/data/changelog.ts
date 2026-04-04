@@ -16,6 +16,17 @@ export type ChangelogRelease = {
 
 export const changelogData: ChangelogRelease[] = [
     {
+        version: "v1.0.0-beta.6",
+        date: "2026-04-04",
+        title: "Reforço de Integridade e UX",
+        description: "Estabilização definitiva do formulário de unidades com travas de segurança na interface e limpeza automática de registros inconsistentes no servidor.",
+        changes: [
+            { type: "fix", scope: "Store", description: "Implementação de trava na UI impedindo a criação de múltiplas unidades em branco." },
+            { type: "fix", scope: "Store", description: "Filtro funcional no salvamento para descarte automático de unidades sem nome." },
+            { type: "fix", scope: "Database", description: "Ativação de constraint de CHECK no PostgreSQL para garantir nomes válidos (Migration 019)." }
+        ]
+    },
+    {
         version: "v1.0.0-beta.5",
         date: "2026-04-03",
         title: "Segurança Atômica e Navegação Inteligente",

@@ -95,8 +95,8 @@ Com base em feedback real de usuário, as prioridades mais urgentes passam a ser
 2. Expansão estratégica do conteúdo informativo
 3. Geração de arte sem imagem enviada
 4. Refinamento do copywriting por contexto
-5. Suporte leve para comunicação multi-filial
-6. Ajustes de entrada e validação que removam fricção básica
+5. [x] Suporte leve para comunicação multi-filial (Infraestrutura Relacional ✅)
+6. [x] Ajustes de entrada e validação (Navigation Guard & Onboarding Resiliente ✅)
 
 ---
 
