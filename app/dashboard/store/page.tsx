@@ -8,6 +8,10 @@ import { supabase } from "@/lib/supabase";
 import { MotionWrapper } from "../_components/MotionWrapper";
 import { getSignedUrlAction } from "@/lib/supabase/storage-actions";
 import { saveStoreAction } from "@/lib/domain/stores/actions";
+import { StoreIdentityForm } from "./_components/StoreIdentityForm";
+import { StoreLocationsForm } from "./_components/StoreLocationsForm";
+import { StoreBranch } from "@/lib/domain/stores/types";
+import { useNavigationGuard } from "@/lib/context/NavigationGuardContext";
 
 function Toast({
   message,
@@ -37,7 +41,6 @@ function isValidHexColor(v: string) {
 function isValidUrlOrEmpty(v: string) {
   const s = v.trim();
   if (!s) return true;
-  // ✅ Permite caminhos internos do storage (Etapa 2)
   if (s.startsWith("stores/") || s.startsWith("logos/")) return true;
   try {
     const u = new URL(s);
@@ -60,7 +63,6 @@ function isValidInstagramOrEmpty(v: string) {
   return /^[a-zA-Z0-9._]{1,30}$/.test(handle);
 }
 
-// Telefone: aceita 10 (fixo) ou 11 (celular)
 function formatBRPhone(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 11);
   if (digits.length === 0) return "";
@@ -81,19 +83,8 @@ function formatBRPhone(value: string) {
   return `(${ddd}) ${part1}${part2 ? `-${part2}` : ""}`;
 }
 
-// WhatsApp: sempre celular (11)
 function formatBRCell(value: string) {
-  const digits = value.replace(/\D/g, "").slice(0, 11);
-  if (digits.length === 0) return "";
-
-  const ddd = digits.slice(0, 2);
-  const rest = digits.slice(2);
-
-  if (digits.length < 3) return `(${ddd}`;
-
-  const part1 = rest.slice(0, Math.min(5, rest.length));
-  const part2 = rest.length > 5 ? rest.slice(5, 9) : "";
-  return `(${ddd}) ${part1}${part2 ? `-${part2}` : ""}`;
+  return formatBRPhone(value);
 }
 
 function validateUF(uf: string) {
@@ -101,59 +92,19 @@ function validateUF(uf: string) {
 }
 
 const UF_OPTIONS = [
-  "AC",
-  "AL",
-  "AP",
-  "AM",
-  "BA",
-  "CE",
-  "DF",
-  "ES",
-  "GO",
-  "MA",
-  "MT",
-  "MS",
-  "MG",
-  "PA",
-  "PB",
-  "PR",
-  "PE",
-  "PI",
-  "RJ",
-  "RN",
-  "RS",
-  "RO",
-  "RR",
-  "SC",
-  "SP",
-  "SE",
-  "TO",
+  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", 
+  "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
 ];
 
 const SEGMENT_OPTIONS = [
-  "Mercado / Mercearia",
-  "Loja de bebidas",
-  "Moda / Boutique",
-  "Farmácia",
-  "Restaurante / Lanchonete",
-  "Pet shop",
-  "Materiais de construção",
-  "Salão / Estética",
-  "Eletrônicos",
-  "Casa & Decoração",
-  "Academia",
-  "Outro…",
+  "Mercado / Mercearia", "Loja de bebidas", "Moda / Boutique", "Farmácia", 
+  "Restaurante / Lanchonete", "Pet shop", "Materiais de construção", 
+  "Salão / Estética", "Eletrônicos", "Casa & Decoração", "Academia", "Outro…",
 ];
 
 const TONE_OPTIONS = [
-  "Amigável",
-  "Direto",
-  "Promocional",
-  "Premium",
-  "Divertido",
-  "Técnico",
-  "Próximo / “de bairro”",
-  "Outro…",
+  "Amigável", "Direto", "Promocional", "Premium", "Divertido", "Técnico", 
+  "Próximo / “de bairro”", "Outro…",
 ];
 
 type StoreListItem = {
@@ -171,19 +122,18 @@ type StoreRow = {
   city: string | null;
   state: string | null;
   logo_url: string | null;
-
   main_segment: string | null;
   brand_positioning: string | null;
   tone_of_voice: string | null;
-
   address: string | null;
   neighborhood: string | null;
   phone: string | null;
   whatsapp: string | null;
   instagram: string | null;
-
   primary_color: string | null;
   secondary_color: string | null;
+  branches?: any[] | null;
+  store_branches?: any[] | null;
 };
 
 export default function StorePage() {
@@ -192,28 +142,21 @@ export default function StorePage() {
   const [saving, setSaving] = useState(false);
   const [bootLoading, setBootLoading] = useState(true);
 
-  const [toast, setToast] = useState<{
-    message: string;
-    type: "success" | "error";
-  } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
-  // seleção (preparado para multi-lojas)
   const [stores, setStores] = useState<StoreListItem[]>([]);
   const [activeStoreId, setActiveStoreId] = useState<string>("");
 
-  // básicos
   const [name, setName] = useState("");
   const [city, setCity] = useState("");
   const [stateUf, setStateUf] = useState("");
 
-  // posicionamento
   const [segmentChoice, setSegmentChoice] = useState("");
   const [mainSegmentCustom, setMainSegmentCustom] = useState("");
   const [toneChoice, setToneChoice] = useState("");
   const [toneCustom, setToneCustom] = useState("");
   const [brandPositioning, setBrandPositioning] = useState("");
 
-  // contato/endereço
   const [address, setAddress] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
   const [phone, setPhone] = useState("");
@@ -222,33 +165,72 @@ export default function StorePage() {
   const [logoUrl, setLogoUrl] = useState("");
   const [logoPreviewUrl, setLogoPreviewUrl] = useState("");
 
-  // Upload states
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [logoErrorMsg, setLogoErrorMsg] = useState<string | null>(null);
 
-  // Next steps states
   const [hasCampaigns, setHasCampaigns] = useState(false);
   const [hasPlans, setHasPlans] = useState(false);
 
-  // cores
   const [primaryColor, setPrimaryColor] = useState("#16a34a");
   const [secondaryColor, setSecondaryColor] = useState("#0f172a");
+
+  const [activeTab, setActiveTab] = useState<"identity" | "locations">("identity");
+  const [branches, setBranches] = useState<StoreBranch[]>([]);
+
+  // Dirty state & Navigation protection
+  const [savedValues, setSavedValues] = useState<any>(null);
+  const { setBlocked, requestNavigation } = useNavigationGuard();
 
   const isEditMode = !!activeStoreId;
 
   const mainSegment = useMemo(() => {
-    const v =
-      segmentChoice === "Outro…" ? mainSegmentCustom.trim() : segmentChoice.trim();
-    return v;
+    return segmentChoice === "Outro…" ? mainSegmentCustom.trim() : segmentChoice.trim();
   }, [segmentChoice, mainSegmentCustom]);
 
   const toneOfVoice = useMemo(() => {
-    const v = toneChoice === "Outro…" ? toneCustom.trim() : toneChoice.trim();
-    return v;
+    return toneChoice === "Outro…" ? toneCustom.trim() : toneChoice.trim();
   }, [toneChoice, toneCustom]);
+
+  const isDirty = useMemo(() => {
+    if (!savedValues) return false;
+
+    const currentValues = {
+      name: name.trim(),
+      city: city.trim(),
+      stateUf: stateUf.trim().toUpperCase(),
+      main_segment: mainSegment,
+      tone_of_voice: toneOfVoice,
+      brand_positioning: brandPositioning.trim(),
+      address: address.trim(),
+      neighborhood: neighborhood.trim(),
+      phone: onlyDigits(phone),
+      whatsapp: onlyDigits(whatsapp),
+      instagram: instagram.trim(),
+      logo_url: logoUrl,
+      primaryColor,
+      secondaryColor,
+      branches_count: branches.length,
+      branches_json: JSON.stringify(branches)
+    };
+
+    return JSON.stringify(currentValues) !== JSON.stringify(savedValues);
+  }, [
+    savedValues, name, city, stateUf, mainSegment, toneOfVoice, brandPositioning,
+    address, neighborhood, phone, whatsapp, instagram, logoUrl,
+    primaryColor, secondaryColor, branches
+  ]);
+
+  useEffect(() => {
+    setBlocked(isDirty);
+    return () => setBlocked(false);
+  }, [isDirty, setBlocked]);
+
+  const confirmNavigationAction = (url: string) => {
+    requestNavigation(url);
+  };
 
   const logoPreviewOk = useMemo(() => {
     if (!logoUrl.trim()) return false;
@@ -262,7 +244,6 @@ export default function StorePage() {
 
   async function onLogoFileSelected(file: File | null) {
     if (!file) return;
-
     const maxMb = 8;
     if (file.size > maxMb * 1024 * 1024) {
       setLogoErrorMsg(`Imagem muito grande. Máximo: ${maxMb}MB.`);
@@ -279,7 +260,6 @@ export default function StorePage() {
 
       const safeName = file.name.replace(/[^\w.\-]+/g, "_");
       const timestamp = Date.now();
-      // ✅ Simplifica o caminho para evitar duplicação logos/logos/ (Etapa 2)
       const folder = activeStoreId ? `stores/${activeStoreId}` : `logos/${auth.user.id}`;
       const path = `${folder}/${timestamp}_${safeName}`;
 
@@ -287,11 +267,7 @@ export default function StorePage() {
 
       const { error: upErr } = await supabase.storage
         .from("campaign-images")
-        .upload(path, file, {
-          cacheControl: "3600",
-          upsert: true,
-          contentType: file.type,
-        });
+        .upload(path, file, { cacheControl: "3600", upsert: true, contentType: file.type });
 
       if (upErr) throw new Error(upErr.message);
 
@@ -299,13 +275,10 @@ export default function StorePage() {
 
       const { data: pub } = supabase.storage.from("campaign-images").getPublicUrl(path);
       const publicUrl = pub?.publicUrl;
-
       if (!publicUrl) throw new Error("Falha ao obter URL pública da imagem.");
 
       setUploadProgress(100);
-      
       const signedUrl = await getSignedUrlAction(path);
-      // ✅ IMPORTANTE: Salvar o PATH no banco, não a URL assinada (Etapa 2)
       setLogoUrl(path);
       setLogoPreviewUrl(signedUrl || publicUrl);
 
@@ -349,25 +322,13 @@ export default function StorePage() {
   }
 
   function resetForm() {
-    setName("");
-    setCity("");
-    setStateUf("");
-
-    setSegmentChoice("");
-    setMainSegmentCustom("");
-    setToneChoice("");
-    setToneCustom("");
+    setName(""); setCity(""); setStateUf("");
+    setSegmentChoice(""); setMainSegmentCustom("");
+    setToneChoice(""); setToneCustom("");
     setBrandPositioning("");
-
-    setAddress("");
-    setNeighborhood("");
-    setPhone("");
-    setWhatsapp("");
-    setInstagram("");
-    setLogoUrl("");
-
-    setPrimaryColor("#16a34a");
-    setSecondaryColor("#0f172a");
+    setAddress(""); setNeighborhood(""); setPhone(""); setWhatsapp(""); setInstagram(""); setLogoUrl("");
+    setPrimaryColor("#16a34a"); setSecondaryColor("#0f172a");
+    setBranches([]);
   }
 
   function fillFromStore(s: StoreRow) {
@@ -375,7 +336,6 @@ export default function StorePage() {
     setCity(s.city ?? "");
     setStateUf((s.state ?? "").toUpperCase());
 
-    // segmento / tom: tenta casar com opções; se não bater, cai em "Outro…"
     const seg = (s.main_segment ?? "").trim();
     if (seg && SEGMENT_OPTIONS.includes(seg as any)) {
       setSegmentChoice(seg);
@@ -401,7 +361,6 @@ export default function StorePage() {
     }
 
     setBrandPositioning(s.brand_positioning ?? "");
-
     setAddress(s.address ?? "");
     setNeighborhood(s.neighborhood ?? "");
     setPhone(s.phone ? formatBRPhone(s.phone) : "");
@@ -410,205 +369,169 @@ export default function StorePage() {
     setLogoUrl(s.logo_url ?? "");
 
     setPrimaryColor(s.primary_color && isValidHexColor(s.primary_color) ? s.primary_color : "#16a34a");
-    setSecondaryColor(
-      s.secondary_color && isValidHexColor(s.secondary_color) ? s.secondary_color : "#0f172a"
-    );
+    setSecondaryColor(s.secondary_color && isValidHexColor(s.secondary_color) ? s.secondary_color : "#0f172a");
+
+    setBranches(s.store_branches || s.branches || []);
+
+    setSavedValues({
+      name: (s.name ?? "").trim(),
+      city: (s.city ?? "").trim(),
+      stateUf: (s.state ?? "").trim().toUpperCase(),
+      main_segment: (s.main_segment ?? "").trim(),
+      tone_of_voice: (s.tone_of_voice ?? "").trim(),
+      brand_positioning: (s.brand_positioning ?? "").trim(),
+      address: (s.address ?? "").trim(),
+      neighborhood: (s.neighborhood ?? "").trim(),
+      phone: onlyDigits(s.phone ?? ""),
+      whatsapp: onlyDigits(s.whatsapp ?? ""),
+      instagram: (s.instagram ?? "").trim(),
+      logo_url: s.logo_url ?? "",
+      primaryColor: (s.primary_color && isValidHexColor(s.primary_color)) ? s.primary_color : "#16a34a",
+      secondaryColor: (s.secondary_color && isValidHexColor(s.secondary_color)) ? s.secondary_color : "#0f172a",
+      branches_count: Array.isArray(s.branches) ? s.branches.length : 0,
+      branches_json: JSON.stringify(Array.isArray(s.branches) ? s.branches : [])
+    });
   }
 
-  function validateForm(): string | null {
+  function validateForm(isMatrizOnly = false): string | null {
     const n = name.trim();
     if (n.length < 2) return "Informe o nome da loja (mínimo 2 caracteres).";
+    if (!mainSegment) return "Selecione ou descreva o ramo de atividade.";
+    if (!toneOfVoice) return "Selecione ou descreva o tom de voz da marca.";
+    if (brandPositioning.trim().length < 10) return "Descreva o posicionamento/diferencial da loja (mínimo 10 caracteres).";
 
-    if (stateUf && !validateUF(stateUf)) return "Selecione um estado (UF) válido.";
-
-    if (!isValidUrlOrEmpty(logoUrl))
-      return "Logo URL inválida. Use http(s)://... ou deixe em branco.";
-
-    if (!isValidInstagramOrEmpty(instagram))
-      return "Instagram inválido. Use apenas letras, números, ponto e underline (ex.: @minhaloja).";
+    if (segmentChoice === "Outro…" && !mainSegmentCustom.trim()) return "Digite o ramo de atividade (opção “Outro…”).";
+    if (toneChoice === "Outro…" && !toneCustom.trim()) return "Digite o tom de voz (opção “Outro…”).";
 
     if (primaryColor && !isValidHexColor(primaryColor)) return "Cor primária inválida.";
     if (secondaryColor && !isValidHexColor(secondaryColor)) return "Cor secundária inválida.";
+    if (!isValidUrlOrEmpty(logoUrl)) return "Logo URL inválida. Use http(s)://... ou deixe em branco.";
 
-    if (segmentChoice === "Outro…" && !mainSegmentCustom.trim())
-      return "Digite o segmento principal (opção “Outro…”).";
+    if (!isMatrizOnly || activeTab === "locations") {
+      if (!address.trim()) return "O endereço da Matriz é obrigatório.";
+      if (!city.trim()) return "A cidade da Matriz é obrigatória.";
+      if (!neighborhood.trim()) return "O bairro da Matriz é obrigatório.";
+      if (!stateUf || !validateUF(stateUf)) return "Selecione o estado (UF) da Matriz.";
+      if (!whatsapp.trim()) return "O WhatsApp da Matriz é obrigatório.";
 
-    if (toneChoice === "Outro…" && !toneCustom.trim())
-      return "Digite o tom de voz (opção “Outro…”).";
-
-    const p = onlyDigits(phone);
-    if (p && !(p.length === 10 || p.length === 11))
-      return "Telefone deve ter 10 (fixo) ou 11 (celular) dígitos.";
-
-    const w = onlyDigits(whatsapp);
-    if (w && w.length !== 11) return "WhatsApp deve ter 11 dígitos (celular com DDD).";
-
+      const w = onlyDigits(whatsapp);
+      if (w && !(w.length === 10 || w.length === 11)) return "WhatsApp da Matriz deve ter 10 ou 11 dígitos.";
+      if (!isValidInstagramOrEmpty(instagram)) return "Instagram inválido.";
+      const p = onlyDigits(phone);
+      if (p && !(p.length === 10 || p.length === 11)) return "Telefone deve ter 10 ou 11 dígitos.";
+    }
     return null;
   }
 
   async function loadStoresAndMaybeSelectDefault() {
     setBootLoading(true);
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      showToast("Você precisa estar logado para acessar sua loja.", "error");
-      router.push("/login?redirect=%2Fdashboard%2Fstore");
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      router.push("/login");
       return;
     }
 
-    const { data: list, error: listError } = await supabase
+    const { data: list } = await supabase
       .from("stores")
       .select("id,name,city,state,created_at")
       .eq("owner_user_id", user.id)
       .order("created_at", { ascending: false });
 
-    if (listError) {
-      showToast(listError.message, "error");
-      setBootLoading(false);
-      return;
-    }
-
     const safeList = (list ?? []) as StoreListItem[];
     setStores(safeList);
 
-    // padrão: se tem loja, seleciona a mais recente
     if (safeList.length > 0) {
-      const defaultId = safeList[0].id;
-      setActiveStoreId(defaultId);
+      setActiveStoreId(safeList[0].id);
     } else {
       setActiveStoreId("");
       resetForm();
     }
-
     setBootLoading(false);
   }
 
   async function loadActiveStoreDetails(storeId: string) {
-    if (!storeId) {
-      setHasCampaigns(false);
-      setHasPlans(false);
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from("stores")
-      .select("*")
-      .eq("id", storeId)
-      .single();
-
-    if (error) {
-      showToast(error.message, "error");
-      return;
-    }
+    if (!storeId) return;
+    const { data, error } = await supabase.from("stores").select("*, branches:store_branches(*)").eq("id", storeId).single();
+    if (error) return;
 
     const storeData = data as StoreRow;
     const signedLogo = await getSignedUrlAction(storeData.logo_url);
-    
-    fillFromStore({
-      ...storeData,
-      logo_url: storeData.logo_url ?? "",
-    });
+    fillFromStore({ ...storeData, logo_url: storeData.logo_url ?? "" });
     setLogoPreviewUrl(signedLogo || "");
 
-    const { count: campaignsCount } = await supabase
-      .from("campaigns")
-      .select("*", { count: "exact", head: true })
-      .eq("store_id", storeId);
-
+    const { count: campaignsCount } = await supabase.from("campaigns").select("*", { count: "exact", head: true }).eq("store_id", storeId);
     setHasCampaigns((campaignsCount ?? 0) > 0);
 
-    const { count: plansCount } = await supabase
-      .from("weekly_plans")
-      .select("*", { count: "exact", head: true })
-      .eq("store_id", storeId);
-
+    const { count: plansCount } = await supabase.from("weekly_plans").select("*", { count: "exact", head: true }).eq("store_id", storeId);
     setHasPlans((plansCount ?? 0) > 0);
   }
 
   useEffect(() => {
     loadStoresAndMaybeSelectDefault();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (!activeStoreId) return;
     loadActiveStoreDetails(activeStoreId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeStoreId]);
 
   async function handleSave(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setSaving(true);
 
     try {
-      const validationError = validateForm();
+      const isIdentityOnly = activeTab === "identity";
+      const validationError = validateForm(isIdentityOnly);
       if (validationError) {
         showToast(validationError, "error");
         setSaving(false);
         return;
       }
 
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (userError || !user) {
-        showToast("Você precisa estar logado para salvar a loja.", "error");
-        setSaving(false);
-        return;
-      }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não logado.");
 
       const payload = {
         owner_user_id: user.id,
-
-        name: name.trim(),
-        city: city.trim() || null,
-        state: stateUf.trim().toUpperCase() || null,
+        name: name.trim(), city: city.trim() || null, state: stateUf.trim().toUpperCase() || null,
         logo_url: logoUrl.trim() || null,
-
-        main_segment: mainSegment || null,
-        brand_positioning: brandPositioning.trim() || null,
-        tone_of_voice: toneOfVoice || null,
-
-        address: address.trim() || null,
-        neighborhood: neighborhood.trim() || null,
-
-        phone: onlyDigits(phone) || null,
-        whatsapp: onlyDigits(whatsapp) || null,
+        main_segment: mainSegment || null, brand_positioning: brandPositioning.trim() || null, tone_of_voice: toneOfVoice || null,
+        address: address.trim() || null, neighborhood: neighborhood.trim() || null,
+        phone: onlyDigits(phone) || null, whatsapp: onlyDigits(whatsapp) || null,
         instagram: normalizeInstagram(instagram) || null,
-
-        primary_color: primaryColor || null,
-        secondary_color: secondaryColor || null,
+        primary_color: primaryColor || null, secondary_color: secondaryColor || null,
+        branches: branches,
       };
 
-      // ✅ Usa Server Action para salvar e invalidar cache (Etapa 1.2)
       const { error: saveError } = await saveStoreAction(payload, activeStoreId);
-
       if (saveError) {
         showToast(saveError, "error");
         setSaving(false);
         return;
       }
 
-      showToast(activeStoreId ? "Alterações salvas!" : "Loja cadastrada!", "success");
-
-      if (!activeStoreId) {
-        // recarrega lista se for nova loja
-        await loadStoresAndMaybeSelectDefault();
+      if (isIdentityOnly) {
+        showToast("Identidade salva!", "success");
+        setSavedValues((prev: any) => ({
+          ...prev, name: name.trim(), main_segment: mainSegment, 
+          tone_of_voice: toneOfVoice, brand_positioning: brandPositioning.trim(),
+          primaryColor, secondaryColor, logo_url: logoUrl
+        }));
+        setActiveTab("locations");
+        setSaving(false);
+        return;
       }
 
-      // volta para o dashboard
+      showToast("Salvo com sucesso!", "success");
+      setSavedValues(null); // Permite sair
+      if (!activeStoreId) await loadStoresAndMaybeSelectDefault();
+
       window.setTimeout(() => {
         router.refresh();
         router.push("/dashboard");
       }, 650);
     } catch (err: any) {
-      showToast(err?.message ?? "Erro inesperado ao salvar a loja.", "error");
+      showToast(err?.message ?? "Erro ao salvar.", "error");
     } finally {
       setSaving(false);
     }
@@ -620,586 +543,92 @@ export default function StorePage() {
 
       <main className="min-h-screen bg-zinc-50 text-zinc-900">
         <div className="mx-auto max-w-5xl px-6 py-10">
-          {/* Header */}
           <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-600">
-                <span
-                  className="h-2 w-2 rounded-full"
-                  style={{ backgroundColor: primaryColor }}
-                />
-                Loja
-                <span className="text-zinc-400">•</span>
-                <span className="text-zinc-500">
-                  {isEditMode ? "Configurações" : "Onboarding"}
-                </span>
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: primaryColor }} />
+                Loja <span className="text-zinc-400">•</span>
+                <span className="text-zinc-500">{isEditMode ? "Configurações" : "Onboarding"}</span>
               </div>
-
-              <h1 className="mt-3 text-3xl font-semibold tracking-tight">
-                {isEditMode ? "Sua loja" : "Cadastrar sua loja"}
-              </h1>
-              <p className="mt-1 max-w-2xl text-zinc-600">
-                Isso define como o Vendeo vai falar e como suas campanhas vão “parecer”.
-                Quanto mais fiel à realidade, melhor o resultado da IA.
-              </p>
+              <h1 className="mt-3 text-3xl font-semibold tracking-tight">{isEditMode ? "Sua loja" : "Cadastrar sua loja"}</h1>
+              <p className="mt-1 max-w-2xl text-zinc-600">Defina a identidade e posicionamento da sua marca.</p>
             </div>
-
             <div className="flex items-center gap-2 lg:pt-12">
-              <button
-                type="button"
-                onClick={() => router.push("/dashboard")}
-                className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
-                disabled={saving}
-              >
-                Voltar
-              </button>
+              <button type="button" onClick={() => confirmNavigationAction("/dashboard")} className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50" disabled={saving}>Voltar</button>
             </div>
           </div>
 
           <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-            {/* Form Card */}
             <div className="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm">
-              <div className="border-b border-zinc-100 bg-zinc-50/70 px-6 py-5">
-                <div className="flex items-center justify-between gap-4">
+              <div className="border-b border-zinc-100 bg-zinc-50/70">
+                <div className="flex items-center justify-between gap-4 px-6 py-5">
                   <div>
-                    <div className="text-sm font-semibold text-zinc-900">
-                      Configuração da loja
-                    </div>
-                    <div className="mt-1 text-sm text-zinc-600">
-                      Preencha o básico e refine quando quiser.
-                    </div>
+                    <div className="text-sm font-semibold text-zinc-900">Configuração da loja</div>
                   </div>
-
                   {stores.length > 1 && (
                     <div className="min-w-[220px]">
-                      <label className="text-xs font-medium text-zinc-600">
-                        Loja ativa
-                      </label>
-                      <select
-                        className="mt-1 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-emerald-200"
-                        value={activeStoreId}
-                        onChange={(e) => setActiveStoreId(e.target.value)}
-                      >
-                        {stores.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.name}
-                            {s.city ? ` — ${s.city}` : ""}
-                            {s.state ? `/${s.state}` : ""}
-                          </option>
-                        ))}
+                      <select className="mt-1 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none" value={activeStoreId} onChange={(e) => setActiveStoreId(e.target.value)}>
+                        {stores.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                       </select>
                     </div>
                   )}
                 </div>
+                <div className="flex border-t border-zinc-100 px-6">
+                  <button type="button" onClick={() => setActiveTab("identity")} className={`border-b-2 px-4 py-3 text-sm font-medium transition-colors ${activeTab === "identity" ? "border-emerald-500 text-emerald-600" : "border-transparent text-zinc-500 hover:text-zinc-700"}`}>Identidade e Marca</button>
+                  <button type="button" onClick={() => setActiveTab("locations")} className={`border-b-2 px-4 py-3 text-sm font-medium transition-colors ${activeTab === "locations" ? "border-emerald-500 text-emerald-600" : "border-transparent text-zinc-500 hover:text-zinc-700"}`}>Unidades e Contato</button>
+                </div>
               </div>
 
-              <div className="px-6 py-6">
+              <div className="px-6 py-8">
                 {bootLoading ? (
-                  <MotionWrapper delay={0.2} className="grid gap-6">
-                    {/* Skeleton mimicking the form structure */}
-                    <div className="space-y-4">
-                      <div className="h-5 w-40 animate-pulse rounded bg-slate-200" />
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="h-11 w-full animate-pulse rounded-xl bg-slate-100 sm:col-span-2" />
-                        <div className="h-11 w-full animate-pulse rounded-xl bg-slate-100" />
-                        <div className="h-11 w-full animate-pulse rounded-xl bg-slate-100" />
-                      </div>
-                    </div>
-
-                    <div className="space-y-4 pt-4 border-t border-slate-100">
-                      <div className="h-5 w-32 animate-pulse rounded bg-slate-200" />
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="h-11 w-full animate-pulse rounded-xl bg-slate-100" />
-                        <div className="h-11 w-full animate-pulse rounded-xl bg-slate-100" />
-                      </div>
-                    </div>
-                  </MotionWrapper>
+                  <div className="h-40 animate-pulse bg-slate-100 rounded-xl" />
                 ) : (
-                  <form onSubmit={handleSave} className="grid gap-6">
-                    {/* Informações básicas */}
-                    <MotionWrapper delay={0.1} className="grid gap-3">
-                      <div className="text-sm font-semibold">Informações básicas</div>
+                  <form onSubmit={handleSave} className="grid gap-8">
+                    {activeTab === "identity" ? (
+                      <StoreIdentityForm
+                        name={name} setName={setName}
+                        segmentChoice={segmentChoice} setSegmentChoice={setSegmentChoice}
+                        mainSegmentCustom={mainSegmentCustom} setMainSegmentCustom={setMainSegmentCustom}
+                        toneChoice={toneChoice} setToneChoice={setToneChoice}
+                        toneCustom={toneCustom} setToneCustom={setToneCustom}
+                        brandPositioning={brandPositioning} setBrandPositioning={setBrandPositioning}
+                        primaryColor={primaryColor} setPrimaryColor={setPrimaryColor}
+                        secondaryColor={secondaryColor} setSecondaryColor={setSecondaryColor}
+                        logoPreviewUrl={logoPreviewUrl} uploadingLogo={uploadingLogo} 
+                        uploadProgress={uploadProgress} logoErrorMsg={logoErrorMsg} setLogoErrorMsg={setLogoErrorMsg}
+                        onLogoFileSelected={onLogoFileSelected} onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}
+                        fileInputRef={fileInputRef} dragOver={dragOver}
+                        SEGMENT_OPTIONS={SEGMENT_OPTIONS} TONE_OPTIONS={TONE_OPTIONS}
+                      />
+                    ) : (
+                      <StoreLocationsForm
+                        address={address} setAddress={setAddress}
+                        neighborhood={neighborhood} setNeighborhood={setNeighborhood}
+                        city={city} setCity={setCity}
+                        stateUf={stateUf} setStateUf={setStateUf}
+                        phone={phone} setPhone={setPhone}
+                        whatsapp={whatsapp} setWhatsapp={setWhatsapp}
+                        instagram={instagram} setInstagram={setInstagram}
+                        branches={branches} setBranches={setBranches}
+                        UF_OPTIONS={UF_OPTIONS} formatBRPhone={formatBRPhone} formatBRCell={formatBRCell}
+                      />
+                    )}
 
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <div className="grid gap-1 sm:col-span-2">
-                          <label className="text-sm font-medium">Nome da loja *</label>
-                          <input
-                            className="h-11 rounded-xl border border-zinc-200 px-3 outline-none focus:ring-2 focus:ring-emerald-200"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="Ex.: Mercado Central"
-                            required
-                          />
-                        </div>
-
-                        <div className="grid gap-1">
-                          <label className="text-sm font-medium">Cidade</label>
-                          <input
-                            className="h-11 rounded-xl border border-zinc-200 px-3 outline-none focus:ring-2 focus:ring-emerald-200"
-                            value={city}
-                            onChange={(e) => setCity(e.target.value)}
-                            placeholder="Ex.: São Paulo"
-                          />
-                        </div>
-
-                        <div className="grid gap-1">
-                          <label className="text-sm font-medium">Estado (UF)</label>
-                          <select
-                            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 outline-none focus:ring-2 focus:ring-emerald-200"
-                            value={stateUf}
-                            onChange={(e) => setStateUf(e.target.value)}
-                          >
-                            <option value="">Selecione</option>
-                            {UF_OPTIONS.map((uf) => (
-                              <option key={uf} value={uf}>
-                                {uf}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        <div className="grid gap-1 sm:col-span-2">
-                          <label className="text-sm font-medium">Logo da loja (opcional)</label>
-
-                          {logoErrorMsg && (
-                            <div className="mb-2 rounded-lg bg-red-50 p-2 text-xs text-red-600 flex items-center justify-between">
-                              <span>{logoErrorMsg}</span>
-                              <button type="button" onClick={() => setLogoErrorMsg(null)}>
-                                <X className="h-3 w-3" />
-                              </button>
-                            </div>
-                          )}
-
-                          <div
-                            onClick={() => !uploadingLogo && fileInputRef.current?.click()}
-                            onDragOver={onDragOver}
-                            onDragLeave={onDragLeave}
-                            onDrop={onDrop}
-                            className={`relative group cursor-pointer overflow-hidden rounded-xl border-2 border-dashed transition-all duration-200 min-h-[140px] flex flex-col items-center justify-center p-4 
-                                  ${dragOver ? "border-emerald-500 bg-emerald-50" : "border-zinc-200 bg-zinc-50 hover:border-zinc-300 hover:bg-zinc-100/50"}
-                                  ${uploadingLogo ? "pointer-events-none opacity-80" : ""}`}
-                          >
-                            <input
-                              ref={fileInputRef}
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => onLogoFileSelected(e.target.files?.[0] ?? null)}
-                              className="hidden"
-                            />
-
-                            {uploadingLogo ? (
-                              <div className="flex flex-col items-center gap-2">
-                                <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
-                                <span className="text-xs font-medium text-zinc-600">Enviando... {uploadProgress}%</span>
-                                <div className="w-32 h-1.5 bg-zinc-200 rounded-full overflow-hidden mt-1">
-                                  <div
-                                    className="h-full bg-emerald-600 transition-all duration-300"
-                                    style={{ width: `${uploadProgress}%` }}
-                                  />
-                                </div>
-                              </div>
-                            ) : logoPreviewOk ? (
-                              <div className="relative h-24 w-24 rounded-2xl overflow-hidden border border-zinc-200 bg-white shadow-sm transition-transform group-hover:scale-105">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                  src={logoPreviewUrl || (logoUrl.startsWith("http") ? logoUrl : "")}
-                                  alt="Preview do Logo"
-                                  className="w-full h-full object-contain p-2"
-                                />
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white p-2 text-center gap-1">
-                                  <Upload className="h-4 w-4" />
-                                  <span className="text-[10px] font-medium leading-tight">Trocar</span>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="flex flex-col items-center gap-2 text-zinc-500 group-hover:text-zinc-600">
-                                <div className="p-2.5 rounded-full bg-white border border-zinc-200 shadow-sm group-hover:shadow transition-all group-hover:-translate-y-0.5">
-                                  <ImageIcon className="h-5 w-5 text-zinc-400 group-hover:text-emerald-500 transition-colors" />
-                                </div>
-                                <div className="text-center">
-                                  <p className="text-sm font-medium">Arraste a logo ou clique aqui</p>
-                                  <p className="text-xs text-zinc-400 mt-1">JPG, PNG ou WEBP até 8MB</p>
-                                </div>
-                              </div>
-                            )}
-
-                            {logoPreviewOk && !uploadingLogo && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setLogoUrl("");
-                                }}
-                                className="absolute top-2 right-2 p-1.5 rounded-full bg-white text-zinc-500 hover:text-red-500 hover:bg-red-50 shadow-sm border border-zinc-100 transition-all"
-                              >
-                                <X className="h-3.5 w-3.5" />
-                              </button>
-                            )}
-                          </div>
-
-                          <div className="relative mt-3">
-                            <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                              <div className="w-full border-t border-zinc-100"></div>
-                            </div>
-                            <div className="relative flex justify-center text-[10px] uppercase tracking-wider font-semibold">
-                              <span className="bg-white px-2 text-zinc-400 font-medium">Ou cole a URL direto</span>
-                            </div>
-                          </div>
-
-                          <input
-                            className="mt-2 h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 placeholder:text-zinc-400"
-                            value={logoUrl}
-                            onChange={(e) => setLogoUrl(e.target.value)}
-                            placeholder="https://..."
-                          />
-                        </div>
-                      </div>
-                    </MotionWrapper>
-
-                    {/* Posicionamento */}
-                    <MotionWrapper delay={0.2} className="grid gap-3">
-                      <div className="text-sm font-semibold">Posicionamento</div>
-
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <div className="grid gap-1">
-                          <label className="text-sm font-medium">Segmento principal</label>
-                          <select
-                            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 outline-none focus:ring-2 focus:ring-emerald-200"
-                            value={segmentChoice}
-                            onChange={(e) => setSegmentChoice(e.target.value)}
-                          >
-                            <option value="">Selecione</option>
-                            {SEGMENT_OPTIONS.map((opt) => (
-                              <option key={opt} value={opt}>
-                                {opt}
-                              </option>
-                            ))}
-                          </select>
-
-                          {segmentChoice === "Outro…" && (
-                            <input
-                              className="h-11 rounded-xl border border-zinc-200 px-3 outline-none focus:ring-2 focus:ring-emerald-200"
-                              value={mainSegmentCustom}
-                              onChange={(e) => setMainSegmentCustom(e.target.value)}
-                              placeholder="Digite o segmento"
-                            />
-                          )}
-                        </div>
-
-                        <div className="grid gap-1">
-                          <label className="text-sm font-medium">Tom de voz</label>
-                          <select
-                            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 outline-none focus:ring-2 focus:ring-emerald-200"
-                            value={toneChoice}
-                            onChange={(e) => setToneChoice(e.target.value)}
-                          >
-                            <option value="">Selecione</option>
-                            {TONE_OPTIONS.map((opt) => (
-                              <option key={opt} value={opt}>
-                                {opt}
-                              </option>
-                            ))}
-                          </select>
-
-                          {toneChoice === "Outro…" && (
-                            <input
-                              className="h-11 rounded-xl border border-zinc-200 px-3 outline-none focus:ring-2 focus:ring-emerald-200"
-                              value={toneCustom}
-                              onChange={(e) => setToneCustom(e.target.value)}
-                              placeholder="Digite o tom de voz"
-                            />
-                          )}
-                        </div>
-
-                        <div className="grid gap-1 sm:col-span-2">
-                          <label className="text-sm font-medium">Diferencial da loja</label>
-                          <input
-                            className="h-11 rounded-xl border border-zinc-200 px-3 outline-none focus:ring-2 focus:ring-emerald-200"
-                            value={brandPositioning}
-                            onChange={(e) => setBrandPositioning(e.target.value)}
-                            placeholder="Ex.: entrega rápida / mais barato do bairro / seleção premium"
-                          />
-                          <div className="text-xs text-zinc-500">
-                            Dica: isso ajuda a IA a criar argumentos “do seu jeito”.
-                          </div>
-                        </div>
-                      </div>
-                    </MotionWrapper>
-
-                    {/* Contato */}
-                    <MotionWrapper delay={0.3} className="grid gap-3">
-                      <div className="text-sm font-semibold">Contato e endereço (opcional)</div>
-
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <div className="grid gap-1 sm:col-span-2">
-                          <label className="text-sm font-medium">Endereço</label>
-                          <input
-                            className="h-11 rounded-xl border border-zinc-200 px-3 outline-none focus:ring-2 focus:ring-emerald-200"
-                            value={address}
-                            onChange={(e) => setAddress(e.target.value)}
-                            placeholder="Rua, número"
-                          />
-                        </div>
-
-                        <div className="grid gap-1">
-                          <label className="text-sm font-medium">Bairro</label>
-                          <input
-                            className="h-11 rounded-xl border border-zinc-200 px-3 outline-none focus:ring-2 focus:ring-emerald-200"
-                            value={neighborhood}
-                            onChange={(e) => setNeighborhood(e.target.value)}
-                            placeholder="Ex.: Centro"
-                          />
-                        </div>
-
-                        <div className="grid gap-1">
-                          <label className="text-sm font-medium">Instagram</label>
-                          <input
-                            className="h-11 rounded-xl border border-zinc-200 px-3 outline-none focus:ring-2 focus:ring-emerald-200"
-                            value={instagram}
-                            onChange={(e) => setInstagram(e.target.value)}
-                            placeholder="@sualoja"
-                          />
-                        </div>
-
-                        <div className="grid gap-1">
-                          <label className="text-sm font-medium">Telefone</label>
-                          <input
-                            className="h-11 rounded-xl border border-zinc-200 px-3 outline-none focus:ring-2 focus:ring-emerald-200"
-                            value={phone}
-                            onChange={(e) => setPhone(formatBRPhone(e.target.value))}
-                            placeholder="(11) 3333-4444 ou (11) 99999-9999"
-                            inputMode="numeric"
-                          />
-                          <div className="text-xs text-zinc-500">
-                            Aceita fixo (10 dígitos) ou celular (11).
-                          </div>
-                        </div>
-
-                        <div className="grid gap-1">
-                          <label className="text-sm font-medium">WhatsApp</label>
-                          <input
-                            className="h-11 rounded-xl border border-zinc-200 px-3 outline-none focus:ring-2 focus:ring-emerald-200"
-                            value={whatsapp}
-                            onChange={(e) => setWhatsapp(formatBRCell(e.target.value))}
-                            placeholder="(11) 99999-9999"
-                            inputMode="numeric"
-                          />
-                          <div className="text-xs text-zinc-500">
-                            Somente celular (11 dígitos com DDD).
-                          </div>
-                        </div>
-                      </div>
-                    </MotionWrapper>
-
-                    {/* Identidade visual */}
-                    <MotionWrapper delay={0.4} className="grid gap-3">
-                      <div className="text-sm font-semibold">Identidade visual</div>
-
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <div className="grid content-start gap-1">
-                          <label className="text-sm font-medium">Cor primária</label>
-                          <div className="flex items-center gap-3">
-                            <input
-                              type="color"
-                              value={primaryColor}
-                              onChange={(e) => setPrimaryColor(e.target.value)}
-                              className="h-11 w-16 cursor-pointer rounded-xl border border-zinc-200 bg-white p-1"
-                            />
-
-                            <input
-                              type="text"
-                              value={primaryColor.toUpperCase()}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                if (/^#?[0-9A-Fa-f]{0,6}$/.test(v)) {
-                                  const hex = v.startsWith("#") ? v : `#${v}`;
-                                  setPrimaryColor(hex);
-                                }
-                              }}
-                              className="h-11 w-28 rounded-xl border border-zinc-200 bg-white px-3 text-sm font-mono uppercase"
-                              placeholder="#000000"
-                            />
-                          </div>
-                          <div className="min-h-[40px] text-xs leading-5 text-zinc-500">
-                            Usada em botões, selos, destaque e “energia” da marca.
-                          </div>
-                        </div>
-
-                        <div className="grid content-start gap-1">
-                          <label className="text-sm font-medium">Cor secundária</label>
-                          <div className="flex items-center gap-3">
-                            <input
-                              type="color"
-                              value={secondaryColor}
-                              onChange={(e) => setSecondaryColor(e.target.value)}
-                              className="h-11 w-16 cursor-pointer rounded-xl border border-zinc-200 bg-white p-1"
-                            />
-
-                            <input
-                              type="text"
-                              value={secondaryColor.toUpperCase()}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                if (/^#?[0-9A-Fa-f]{0,6}$/.test(v)) {
-                                  const hex = v.startsWith("#") ? v : `#${v}`;
-                                  setSecondaryColor(hex);
-                                }
-                              }}
-                              className="h-11 w-28 rounded-xl border border-zinc-200 bg-white px-3 text-sm font-mono uppercase"
-                              placeholder="#000000"
-                            />
-                          </div>
-                          <div className="min-h-[40px] text-xs leading-5 text-zinc-500">
-                            Usada em textos fortes, contornos e contraste.
-                          </div>
-                        </div>
-
-                        <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-700 sm:col-span-2">
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="font-medium text-zinc-900">Prévia rápida</div>
-                            <div className="text-xs text-zinc-500">
-                              {/*Hoje: 2 cores • Futuro: paleta expandida*/}
-                            </div>
-                          </div>
-
-                          <div className="mt-4 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-                            <div
-                              className="px-4 py-3 text-sm font-semibold text-white"
-                              style={{ backgroundColor: secondaryColor }}
-                            >
-                              Campanha da sua loja
-                            </div>
-
-                            <div className="space-y-3 p-4">
-                              <div className="space-y-1">
-                                <div className="text-sm font-semibold text-zinc-900">
-                                  Oferta especial da semana
-                                </div>
-                                <div className="text-xs text-zinc-500">
-                                  Exemplo visual simples de como suas cores aparecem no Vendeo.
-                                </div>
-                              </div>
-
-                              <div className="flex flex-wrap items-center gap-3">
-                                <span
-                                  className="inline-flex rounded-full px-3 py-1 text-xs font-semibold text-white"
-                                  style={{ backgroundColor: primaryColor }}
-                                >
-                                  Promoção
-                                </span>
-
-                                <span
-                                  className="inline-flex rounded-full border px-3 py-1 text-xs font-semibold"
-                                  style={{
-                                    borderColor: secondaryColor,
-                                    color: secondaryColor,
-                                    backgroundColor: "white",
-                                  }}
-                                >
-                                  Destaque
-                                </span>
-                              </div>
-
-                              <div className="flex flex-wrap items-center gap-3">
-                                <button
-                                  type="button"
-                                  className="rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-sm"
-                                  style={{ backgroundColor: primaryColor }}
-                                >
-                                  Botão primário
-                                </button>
-
-                                <button
-                                  type="button"
-                                  className="rounded-xl px-4 py-2 text-sm font-semibold"
-                                  style={{
-                                    border: `1px solid ${secondaryColor}`,
-                                    color: secondaryColor,
-                                    backgroundColor: "white",
-                                  }}
-                                >
-                                  Título / Contraste
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="mt-3 text-xs text-zinc-500">
-                            {/*Recomendação: 2 cores bem escolhidas deixam as artes consistentes e “premium”.
-                            Quando você quiser 4 cores, a gente faz via migration (sem gambiarra).*/}
-                          </div>
-                        </div>
-                      </div>
-                    </MotionWrapper>
-
-                    <MotionWrapper delay={0.5} className="flex items-center justify-between gap-4 border-t border-slate-100 pt-6">
-                      <button
-                        type="button"
-                        onClick={() => router.push("/dashboard")}
-                        className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
-                        disabled={saving}
-                      >
-                        Cancelar
+                    <div className="flex items-center justify-end gap-3 pt-6 border-t border-zinc-100">
+                      <button type="button" onClick={() => confirmNavigationAction("/dashboard")} className="rounded-xl border border-zinc-200 bg-white px-6 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50" disabled={saving}>Cancelar</button>
+                      <button type="submit" className="inline-flex min-w-[140px] items-center justify-center gap-2 rounded-xl bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-zinc-800 disabled:opacity-50" disabled={saving}>
+                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : activeTab === "identity" ? "Salvar e Continuar" : "Finalizar e Salvar"}
                       </button>
-
-                      <button
-                        type="submit"
-                        disabled={saving}
-                        className="rounded-xl bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white shadow-premium transition hover:bg-emerald-500 disabled:opacity-60"
-                      >
-                        {saving
-                          ? "Salvando..."
-                          : isEditMode
-                            ? "Salvar alterações"
-                            : "Salvar e continuar"}
-                      </button>
-                    </MotionWrapper>
+                    </div>
                   </form>
                 )}
               </div>
             </div>
 
-            {/* Side help card */}
             <MotionWrapper delay={0.3} className="grid content-start gap-6">
               <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="text-sm font-semibold text-zinc-900">
-                  O que isso melhora na prática
-                </div>
-                <ul className="mt-3 grid gap-2 text-sm text-zinc-600">
-                  <li>• Campanhas com linguagem “do seu bairro” e do seu público.</li>
-                  <li>• Melhor uso de urgência, preço e posicionamento.</li>
-                  <li>• Identidade consistente: menos “cara de template”.</li>
-                  <li>• Use o logo com fundo transparente (PNG) ou formato quadrado para encaixar perfeito nas campanhas.</li>
-                </ul>
-
-                <div className="mt-5 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-                  <div className="text-sm font-semibold text-zinc-900">Sugestão Vendeo</div>
-                  <div className="mt-1 text-sm text-zinc-600">
-                    Se você tiver dúvida no “Diferencial da loja”, descreva como um cliente
-                    falaria: <span className="font-medium text-zinc-800">“aqui é rápido e barato”</span>,{" "}
-                    <span className="font-medium text-zinc-800">“tem as melhores bebidas geladas”</span>, etc.
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-                <div className="text-sm font-semibold text-zinc-900">
-                  Próximos passos (automático)
-                </div>
-                <div className="mt-3 grid gap-2 text-sm text-zinc-600">
-                  <div className="flex items-start gap-2">
-                    <span className={`mt-1 inline-block h-2 w-2 rounded-full ${isEditMode ? "bg-emerald-500" : "bg-zinc-300"}`} />
-                    <span className={isEditMode ? "text-zinc-900 font-medium" : ""}>Salvar a loja</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className={`mt-1 inline-block h-2 w-2 rounded-full ${hasCampaigns ? "bg-emerald-500" : "bg-zinc-300"}`} />
-                    <span className={hasCampaigns ? "text-zinc-900 font-medium" : ""}>Criar campanhas com a identidade aplicada</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className={`mt-1 inline-block h-2 w-2 rounded-full ${hasPlans ? "bg-emerald-500" : "bg-zinc-300"}`} />
-                    <span className={hasPlans ? "text-zinc-900 font-medium" : ""}>Gerar plano semanal com consistência</span>
-                  </div>
-                </div>
+                <div className="text-sm font-semibold text-zinc-900">Vantagens da IA</div>
+                <p className="mt-2 text-sm text-zinc-600">Com dados reais, a IA gera campanhas muito mais eficientes.</p>
               </div>
             </MotionWrapper>
           </div>

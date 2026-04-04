@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, AlertCircle } from "lucide-react";
 import { MotionWrapper } from "@/app/dashboard/_components/MotionWrapper";
 import { getSignedUrlAction } from "@/lib/supabase/storage-actions";
+import { mapDbStoreToDomain } from "@/lib/domain/stores/mapper";
 
 // Functions reused from page
 function getWeekStartMondayISO(today = new Date()) {
@@ -115,14 +116,12 @@ export function WizardShell({
 
     const { data, error } = await supabase
       .from("stores")
-      .select(
-        "id, name, city, state, main_segment, brand_positioning, tone_of_voice, whatsapp, instagram, phone, primary_color, secondary_color, owner_user_id, logo_url"
-      )
+      .select("*, branches:store_branches(*)")
       .eq("owner_user_id", user.id)
       .order("created_at", { ascending: false });
 
     if (!error) {
-      const rows = (data as Store[]) ?? [];
+      const rows = (data || []).map(mapDbStoreToDomain);
       
       // Assinar logotipos em lote (V2)
       const signedRows = await Promise.all(rows.map(async s => ({

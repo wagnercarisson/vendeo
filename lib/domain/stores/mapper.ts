@@ -21,5 +21,31 @@ export function mapDbStoreToDomain(raw: any): Store {
     primary_color: raw.primary_color ?? null,
     secondary_color: raw.secondary_color ?? null,
     logo_url: raw.logo_url ?? null,
+    owner_user_id: raw.owner_user_id ?? null,
+    branches: Array.isArray(raw.branches) 
+      ? raw.branches.map((b: any) => ({
+          id: String(b.id),
+          name: String(b.name),
+          address: b.address ?? null,
+          neighborhood: b.neighborhood ?? null,
+          city: b.city ?? null,
+          state: b.state ?? null,
+          whatsapp: b.whatsapp ?? null,
+          is_main: !!b.is_main,
+          is_active: !!b.is_active,
+        }))
+      : Array.isArray(raw.store_branches)
+        ? raw.store_branches.map((b: any) => ({
+            id: String(b.id),
+            name: String(b.name),
+            address: b.address ?? null,
+            neighborhood: b.neighborhood ?? null,
+            city: b.city ?? null,
+            state: b.state ?? null,
+            whatsapp: b.whatsapp ?? null,
+            is_main: !!b.is_main,
+            is_active: !!b.is_active,
+          }))
+        : [],
   };
 }

@@ -13,7 +13,7 @@ export const getStoreByOwner = cache(async (userId: string): Promise<Store | nul
 
   const { data, error } = await supabase
     .from("stores")
-    .select("*")
+    .select("*, branches:store_branches(*)")
     .eq("owner_user_id", userId)
     .order("created_at", { ascending: true })
     .limit(1)
@@ -38,7 +38,8 @@ export async function fetchStoreContext(
       `id, name, city, state,
        brand_positioning, main_segment, tone_of_voice,
        whatsapp, phone, instagram,
-       primary_color, secondary_color, logo_url`
+       primary_color, secondary_color, logo_url,
+       branches:store_branches(*)`
     )
     .eq("id", storeId)
     .single();

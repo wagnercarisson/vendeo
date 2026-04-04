@@ -40,6 +40,8 @@ export const DbCampaignSchema = z.object({
   status: z.string().nullable(),
   campaign_type: z.enum(["post", "reels", "both"]).nullable(),
   content_type: z.enum(["product", "service", "info"]).nullable(),
+  info_subtype: z.enum(["educativo", "autoridade", "aviso", "bastidores"]).nullable(),
+  branch_scope: z.enum(["store_wide", "single_branch", "multi_branch"]).default("store_wide"),
   post_status: z.enum(["none", "draft", "ready", "approved"]).nullable(),
   reels_status: z.enum(["none", "draft", "ready", "approved"]).nullable(),
   origin: z.enum(["manual", "plan"]).default("manual"),

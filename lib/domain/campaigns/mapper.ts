@@ -68,6 +68,8 @@ export function mapDbCampaignToDomain(data: unknown): Campaign {
     status: raw.status ?? null,
     campaign_type: raw.campaign_type ?? "both",
     content_type: raw.content_type ?? "product",
+    info_subtype: (raw.info_subtype as any) ?? null,
+    branch_scope: (raw.branch_scope as any) ?? "store_wide",
     post_status: raw.post_status ?? "none",
     reels_status: raw.reels_status ?? "none",
 

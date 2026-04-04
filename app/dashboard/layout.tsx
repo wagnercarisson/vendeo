@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getStoreByOwner } from "@/lib/domain/stores/queries";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
+import { NavigationGuardProvider } from "@/lib/context/NavigationGuardContext";
 
 export default async function DashboardLayout({
   children,
@@ -22,14 +23,16 @@ export default async function DashboardLayout({
   const store = await getStoreByOwner(user.id);
 
   return (
-    <DashboardShell
-      user={user}
-      storeId={store?.id ?? null}
-      storeName={store?.name ?? null}
-      storeCity={store?.city ?? null}
-      storeState={store?.state ?? null}
-    >
-      {children}
-    </DashboardShell>
+    <NavigationGuardProvider>
+      <DashboardShell
+        user={user}
+        storeId={store?.id ?? null}
+        storeName={store?.name ?? null}
+        storeCity={store?.city ?? null}
+        storeState={store?.state ?? null}
+      >
+        {children}
+      </DashboardShell>
+    </NavigationGuardProvider>
   );
 }

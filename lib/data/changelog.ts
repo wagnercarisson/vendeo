@@ -16,6 +16,19 @@ export type ChangelogRelease = {
 
 export const changelogData: ChangelogRelease[] = [
     {
+        version: "v1.0.0-beta.5",
+        date: "2026-04-03",
+        title: "Segurança Atômica e Navegação Inteligente",
+        description: "Salto na robustez da infraestrutura relacional de lojas e blindagem total de Row Level Security (RLS), integrando proteção contra perda de dados em todo o dashboard.",
+        changes: [
+            { type: "feat", scope: "UX", description: "Implementação da Proteção de Navegação Global com interceptação inteligente de Sidebar, Header e Changelog." },
+            { type: "refactor", scope: "Database", description: "Migração completa do modelo JSONB para Relacional nas unidades da loja (Migration 018)." },
+            { type: "fix", scope: "Architecture", description: "Evolução da RPC 'save_store_with_branches' com suporte a UPSERT resiliente para Onboarding e validação interna de posse (auth.uid)." },
+            { type: "feat", scope: "Security", description: "Ativação de RLS e políticas de isolamento multitenant, garantindo 100% de privacidade entre lojistas." },
+            { type: "fix", scope: "Store", description: "Estabilização do formulário de cadastro com correção de typos em setters e carregamento fluido de unidades via JOIN." }
+        ]
+    },
+    {
         version: "v1.0.0-beta.4",
         date: "2026-04-01",
         title: "Calibração Engine: Master Solid e Biometria",

@@ -12,18 +12,18 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 export async function saveStoreAction(payload: any, storeId?: string) {
   const supabase = createSupabaseServerClient();
   
-  let error;
-  if (storeId) {
-    const { error: err } = await supabase.from("stores").update(payload).eq("id", storeId);
-    error = err;
-  } else {
-    const { error: err } = await supabase.from("stores").insert(payload);
-    error = err;
-  }
+  // ✅ Extrai filiais para tratar separadamente na RPC
+  const { branches, ...storeData } = payload;
+  
+  // ✅ Chama a RPC atômica que cuida de Loja + Filiais em uma transação
+  const { error } = await supabase.rpc('save_store_with_branches', {
+    p_store_id: storeId || null,
+    p_store_data: storeData,
+    p_branches: branches || []
+  });
 
   if (!error) {
     // Força o Next.js a descartar o cache (servidor e navegador) de toda a dashboard
-    // O tipo "layout" garante que o layout pai também seja revalidado
     revalidatePath("/dashboard", "layout");
   }
 

@@ -31,6 +31,9 @@ export type ProductPositioning =
   | "jovem" 
   | "familia";
 
+export type InfoSubtype = "educativo" | "autoridade" | "aviso" | "bastidores";
+export type BranchScope = "store_wide" | "single_branch" | "multi_branch";
+
 export interface Campaign {
   id: string;
   store_id: string;
@@ -43,6 +46,8 @@ export interface Campaign {
   status: string | null;
   campaign_type: "post" | "reels" | "both" | null;
   content_type: "product" | "service" | "info" | null;
+  info_subtype: InfoSubtype | null;
+  branch_scope: BranchScope;
   post_status: "none" | "draft" | "ready" | "approved" | null;
   reels_status: "none" | "draft" | "ready" | "approved" | null;
 
@@ -137,4 +142,10 @@ export interface CampaignListItem {
 
 export interface CampaignDetail extends Campaign {
   // Atualmente igual à Campaign, mas preparada para extensões de UI
+}
+
+export interface CampaignBranch {
+  campaign_id: string;
+  branch_id: string;
+  created_at: string;
 }
