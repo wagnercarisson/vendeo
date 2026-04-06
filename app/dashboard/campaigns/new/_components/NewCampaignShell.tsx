@@ -10,6 +10,8 @@ import { StrategyFormCard } from "./StrategyFormCard";
 import { GenerateCampaignCard } from "./GenerateCampaignCard";
 import { CampaignPreviewPanel } from "./CampaignPreviewPanel";
 import { renderGraphicToBlob } from "@/lib/graphics/renderer";
+import { resolveBrandDNA } from "@/lib/domain/stores/mapper";
+import { BrandDNA } from "@/lib/domain/stores/brand-dna";
 import { MotionWrapper } from "@/app/dashboard/_components/MotionWrapper";
 import type {
     CampaignGenerationState,
@@ -262,7 +264,7 @@ export function NewCampaignShell() {
         const { data: fullStore } = await supabase
             .from("stores")
             .select(
-                "name, address, neighborhood, city, state, whatsapp, phone, primary_color, secondary_color, logo_url"
+                "id, name, address, neighborhood, city, state, whatsapp, phone, primary_color, secondary_color, logo_url, brand_dna"
             )
             .eq("id", storeId)
             .single();
@@ -327,6 +329,7 @@ export function NewCampaignShell() {
                     primary_color: fullStore.primary_color,
                     secondary_color: fullStore.secondary_color,
                     logo_url: fullStore.logo_url,
+                    brand_dna: fullStore.brand_dna,
                 }
                 : undefined,
             reels_hook: reelsRow?.reels_hook || artPreview?.reels_hook || "",
@@ -628,8 +631,16 @@ export function NewCampaignShell() {
             if (strategy.generate_post) {
                 // UNIFICAÇÃO: Usando renderização via Canvas no navegador (idêntico à Edição)
                 // Evita problemas de segurança/fetch no Edge Runtime do servidor.
+                const finalStoreId = artPreview.store?.id || storeId || "unknown";
+                const dna = resolveBrandDNA({
+                    brand_dna: artPreview.store?.brand_dna,
+                    primary_color: artPreview.store?.primary_color,
+                    secondary_color: artPreview.store?.secondary_color
+                }, finalStoreId);
+
                 const imageBlob = await renderGraphicToBlob({
                     layout: artPreview.layout || "solid",
+                    dna,
                     image_url: artPreview.image_url || "",
                     headline: artPreview.headline,
                     body_text: artPreview.body_text,
@@ -639,7 +650,6 @@ export function NewCampaignShell() {
                     store: artPreview.store
                 });
 
-                const finalStoreId = artPreview.store?.id || storeId;
                 const fileName = `stores/${finalStoreId}/campaigns/${campaignId}/art-${Date.now()}.png`;
 
                 const { error: uploadErr } = await supabase.storage

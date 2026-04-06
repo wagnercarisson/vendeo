@@ -1,3 +1,5 @@
+import { BrandDNA } from "./brand-dna";
+
 export interface StoreBranch {
   id: string;
   name: string;
@@ -29,6 +31,11 @@ export interface Store {
   logo_url: string | null;
   owner_user_id?: string | null;
   branches: StoreBranch[];
+  /** 
+   * Identidade visual e verbal oficial da marca. 
+   * Se ausente do DB, o mapper deve gerar um fallback em memória.
+   */
+  brand_dna: BrandDNA;
 }
 
 export type StoreContext = Store;

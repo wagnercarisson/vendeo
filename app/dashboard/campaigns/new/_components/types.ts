@@ -36,6 +36,7 @@ export type CampaignPreviewData = {
         primary_color?: string;
         secondary_color?: string;
         logo_url?: string;
+        brand_dna?: any;
     };
     layout?: "solid" | "floating" | "split";
     reels_hook?: string;

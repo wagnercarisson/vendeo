@@ -16,6 +16,18 @@ export type ChangelogRelease = {
 
 export const changelogData: ChangelogRelease[] = [
     {
+        version: "v1.0.0-beta.7",
+        date: "2026-04-06",
+        title: "Motor de Identidade Visual V2 (Auto DNA)",
+        description: "Salto na inteligência de branding com a arquitetura Brand DNA V2, trazendo autonomia visual absoluta e consistência estratégica para todas as lojas.",
+        changes: [
+            { type: "feat", scope: "Brand", description: "Expansão do contrato BrandDNA para V2 (Temperatura, Filtros e Background Treatment)." },
+            { type: "feat", scope: "Engine", description: "Novo Auto DNA Engine com geração determinística e anti-colisão via Seed Visual." },
+            { type: "feat", scope: "Branding", description: "Catálogo de 9 arquétipos visuais configurados por segmento de mercado (Luxury, Clean, Impact, etc)." },
+            { type: "refactor", scope: "Domain", description: "Novo Mapper com lógica de hidratação automática de DNAs legados do Beta fechado." }
+        ]
+    },
+    {
         version: "v1.0.0-beta.6",
         date: "2026-04-04",
         title: "Reforço de Integridade e UX",

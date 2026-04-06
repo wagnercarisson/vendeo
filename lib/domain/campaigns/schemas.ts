@@ -66,6 +66,8 @@ export const DbCampaignSchema = z.object({
   reels_cta: z.string().nullable(),
   reels_hashtags: z.string().nullable(),
   reels_generated_at: z.string().nullable(),
+  brand_dna_snapshot: z.any().nullable().optional(),
+  layout_snapshot: z.any().nullable().optional(),
   created_at: z.string().optional(),
 });
 

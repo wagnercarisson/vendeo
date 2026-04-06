@@ -1,4 +1,7 @@
-import { Phone } from "lucide-react";
+import { BrandDNA } from "../domain/stores/brand-dna";
+import { SafeZones, Rect } from "../domain/campaigns/types";
+import { getLayoutDefinition } from "./catalog";
+import { SeedEngine } from "./seed-engine";
 
 export type Layout = "solid" | "floating" | "split";
 
@@ -89,6 +92,9 @@ export interface GraphicInput {
     measuredLogoX?: number;
     measuredLogoY?: number;
     measuredLogoSize?: number;
+    
+    // Identidade V4
+    dna: BrandDNA;
 }
 
 const WIDTH = 1080;
@@ -339,9 +345,14 @@ function drawWrappedText(ctx: CanvasRenderingContext2D, text: string, x: number,
 }
 
 async function drawSolidLayout(ctx: CanvasRenderingContext2D, img: HTMLImageElement, input: GraphicInput, primaryColor: string) {
-    const { headline, body_text, cta, store } = input;
+    const { headline, body_text, cta, store, dna } = input;
     const price = formatPrice(input.price);
     const whatsapp = formatWhatsapp(store?.whatsapp || (store as any)?.phone);
+
+    // 0. CAMADA DE VARIAÇÃO (SEED - FUNDO)
+    const layoutDef = getLayoutDefinition("solid");
+    const seedEngine = new SeedEngine(dna.visual_seed);
+    seedEngine.applyBackground(ctx, dna);
 
     drawImageCover(ctx, img, 0, 0, WIDTH, HEIGHT * 0.55);
     const grad = ctx.createLinearGradient(0, HEIGHT * 0.55 - 200, 0, HEIGHT * 0.55);
@@ -356,7 +367,7 @@ async function drawSolidLayout(ctx: CanvasRenderingContext2D, img: HTMLImageElem
     drawPriceBadge(ctx, price, input.price_label || null, primaryColor, input, U);
 
     const bodyY = HEIGHT * 0.55;
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = "rgba(255, 255, 255, 0.94)"; // 94% opacidade para deixar a semente "respirar"
     ctx.fillRect(0, bodyY, WIDTH, HEIGHT - bodyY);
 
     const storePillSize = input.measuredStorePillFontSize ? (input.measuredStorePillFontSize * U) : 24; 
@@ -482,12 +493,20 @@ async function drawSolidLayout(ctx: CanvasRenderingContext2D, img: HTMLImageElem
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(cta.toUpperCase(), ctaX + ctaW / 2, ctaY + ctaH / 2);
+
+    // FASE FINAL: TEXTURA SOBREPOSTA (OVER-TEXTURE)
+    seedEngine.applyOverTexture(ctx, dna, layoutDef.zones);
 }
 
 async function drawFloatingLayout(ctx: CanvasRenderingContext2D, img: HTMLImageElement, input: GraphicInput, primaryColor: string) {
-    const { headline, body_text, cta, store } = input;
+    const { headline, body_text, cta, store, dna } = input;
     const price = formatPrice(input.price);
     const whatsapp = formatWhatsapp(store?.whatsapp || (store as any)?.phone);
+
+    // 0. CAMADA DE VARIAÇÃO (SEED - FUNDO)
+    const layoutDef = getLayoutDefinition("floating");
+    const seedEngine = new SeedEngine(dna.visual_seed);
+    seedEngine.applyBackground(ctx, dna);
 
     drawImageCover(ctx, img, 0, 0, WIDTH, HEIGHT);
     
@@ -697,12 +716,20 @@ async function drawFloatingLayout(ctx: CanvasRenderingContext2D, img: HTMLImageE
 
     // 5. PREÇO EXTERNO
     drawPriceBadge(ctx, price, input.price_label || null, primaryColor, input, U);
+
+    // FASE FINAL: TEXTURA SOBREPOSTA (OVER-TEXTURE)
+    seedEngine.applyOverTexture(ctx, dna, layoutDef.zones);
 }
 
 async function drawSplitLayout(ctx: CanvasRenderingContext2D, img: HTMLImageElement, input: GraphicInput, primaryColor: string) {
-    const { headline, body_text, cta, store } = input;
+    const { headline, body_text, cta, store, dna } = input;
     const price = formatPrice(input.price);
     const whatsapp = formatWhatsapp(store?.whatsapp || (store as any)?.phone);
+
+    // 0. CAMADA DE VARIAÇÃO (SEED - FUNDO)
+    const layoutDef = getLayoutDefinition("split");
+    const seedEngine = new SeedEngine(dna.visual_seed);
+    seedEngine.applyBackground(ctx, dna);
 
     // Fator Dinâmico Universal (U)
     const U = (input.measuredWidth ? WIDTH / input.measuredWidth : 2.7);
@@ -899,6 +926,9 @@ async function drawSplitLayout(ctx: CanvasRenderingContext2D, img: HTMLImageElem
     } else {
         drawWrappedText(ctx, store?.address || "", addrX, addrY, addrW, 28, 2);
     }
+
+    // FASE FINAL: TEXTURA SOBREPOSTA (OVER-TEXTURE)
+    seedEngine.applyOverTexture(ctx, dna, layoutDef.zones);
 }
 
 export async function renderGraphicToBlob(input: GraphicInput): Promise<Blob> {

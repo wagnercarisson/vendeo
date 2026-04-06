@@ -39,6 +39,7 @@ export async function fetchStoreContext(
        brand_positioning, main_segment, tone_of_voice,
        whatsapp, phone, instagram,
        primary_color, secondary_color, logo_url,
+       brand_dna,
        branches:store_branches(*)`
     )
     .eq("id", storeId)

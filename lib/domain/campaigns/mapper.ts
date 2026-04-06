@@ -99,6 +99,9 @@ export function mapDbCampaignToDomain(data: unknown): Campaign {
     reels_hashtags: raw.reels_hashtags ?? null,
     reels_generated_at: raw.reels_generated_at ?? null,
 
+    brand_dna_snapshot: raw.brand_dna_snapshot ?? null,
+    layout_snapshot: raw.layout_snapshot ?? null,
+
     created_at: raw.created_at ? new Date(raw.created_at).toISOString() : new Date().toISOString(),
   };
 }

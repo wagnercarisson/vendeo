@@ -1,4 +1,26 @@
+import { BrandDNA } from "../stores/brand-dna";
 import { ShortVideoShotScene } from "../short-videos/types";
+
+export interface Rect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+export interface SafeZones {
+  content_image: Rect;
+  text_area: Rect;
+  cta_area: Rect;
+  branding_area: Rect;
+  price_area?: Rect;
+}
+
+export interface LayoutSnapshot {
+  id: string;
+  version: number;
+  zones: SafeZones;
+}
 
 export type CampaignAudience = 
   | "geral" 
@@ -76,6 +98,11 @@ export interface Campaign {
   reels_cta: string | null;
   reels_hashtags: string | null;
   reels_generated_at: string | null;
+
+  /** Identidade imutável capturada na geração (Degrau 3) */
+  brand_dna_snapshot: BrandDNA | null;
+  /** Geometria imutável capturada na geração (Degrau 3) */
+  layout_snapshot: LayoutSnapshot | null;
 
   created_at: string;
 }

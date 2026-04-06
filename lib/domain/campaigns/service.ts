@@ -1,6 +1,7 @@
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { callAIWithRetry } from "@/lib/ai/parse";
 import { fetchStoreContext } from "@/lib/domain/stores/queries";
+import { getLayoutDefinition } from "@/lib/graphics/catalog";
 import { CampaignAISchema } from "./schemas";
 import { buildCampaignPrompt } from "./prompts";
 import { mapAiCampaignToDomain, mapDbCampaignToAIContext } from "./mapper";
@@ -102,6 +103,12 @@ export async function generateCampaignContent(
         ai_cta: normalized.cta,
         ai_hashtags: normalized.hashtags,
         ai_generated_at: new Date().toISOString(),
+        brand_dna_snapshot: store.brand_dna,
+        layout_snapshot: { 
+          id: "split", 
+          version: 1,
+          zones: getLayoutDefinition("split").zones 
+        },
         status: 'ready',
         post_status: 'ready',
       })

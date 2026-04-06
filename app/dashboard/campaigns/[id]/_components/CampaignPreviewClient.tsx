@@ -478,6 +478,7 @@ export function CampaignPreviewClient({
 
                 const blob = await renderGraphicToBlob({
                     layout: previewData.layout || "solid",
+                    dna: campaign.brand_dna_snapshot || campaign.stores?.brand_dna!, 
                     image_url: previewData.image_url?.split("#")[0] || "",
                     headline: previewData.headline || "",
                     body_text: previewData.body_text || "",
