@@ -99,6 +99,44 @@ O backlog deve ser revisado conforme o produto evolui.
 * cache inteligente de assets gerados
 * melhorias no motor de renderização
 
+### 🎨 Contraste adaptativo de cores nos layouts
+
+**Origem:** observado durante a validação do Passo 6 — Fase 2 (Brand Render Engine)
+
+**Problema:** algumas cores primárias escolhidas pelo lojista (ex: azul escuro) "gritam" visualmente em layouts com fundo escuro (Split, Floating). O `primary_color` é aplicado diretamente sem ajuste de luminosidade/contraste.
+
+**Comportamento esperado:**
+- Antes de aplicar `primary_color` em elementos sobre fundo escuro, verificar contraste WCAG
+- Se insuficiente, ajustar luminosidade da cor da marca (clarear ou escurecer) para garantir leitura sem perder a identidade
+- Validar os 3 layouts (Solid, Floating, Split) e os 5 estilos de fundo do `background_treatment`
+
+**Função candidata:** `ensureContrast()` — já existe em `auto-dna.ts`, expandir para os pontos de aplicação do `renderer.ts` e do `CampaignArtViewer.tsx`
+
+---
+
+### 🔄 Propagação de alteração de dados básicos da loja para o BrandDNA
+
+**Origem:** observado durante o beta — lojista altera `primary_color` no perfil mas novas artes continuam usando o DNA armazenado (com a cor anterior)
+
+**Comportamento atual:** `resolveBrandDNA` dá prioridade absoluta ao `brand_dna` salvo no banco. Mudanças em `primary_color` não invalidam o DNA armazenado.
+
+**Comportamento esperado:**
+1. Quando o lojista salvar alterações em campos de identidade de marca, o `brand_dna` deve ser zerado (`null`) no banco
+2. Na próxima geração de arte, `resolveBrandDNA` não encontra DNA → executa `buildAutoDNA` com os novos dados → salva o novo DNA
+3. Artes já geradas e publicadas **não são afetadas** — elas têm snapshot próprio
+4. Um **alert de confirmação** deve ser exibido ao salvar, informando: *"Ao alterar a cor primária, as próximas artes seguirão o novo padrão. Artes já geradas precisarão ser regeradas para refletir a mudança."*
+
+**Campos que devem disparar o alert e invalidar o DNA:**
+
+| Campo | Impacto |
+|---|---|
+| `primary_color` | Alto — reconstrói toda a paleta |
+| `secondary_color` | Médio — afeta secondary, accent |
+| `main_segment` | Altíssimo — troca o arquétipo completo |
+| `brand_positioning` | Médio — altera tone e positioning |
+
+**Campos que NÃO disparam o alert:** `name`, `address`, `whatsapp`, `phone`, `logo_url`
+
 ---
 
 # 🧭 Observação final

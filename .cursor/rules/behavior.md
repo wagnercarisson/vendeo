@@ -14,6 +14,18 @@ Este arquivo define as "Regras de Ouro" para interação da IA com o projeto Ven
 9. **Roadmap**: Sempre que iniciar uma nova aba de trabalho, consulte a pasta `docs/roadmap` para verificar se há alguma feature em andamento ou pendente. Se houver, priorize a conclusão da feature em andamento antes de iniciar uma nova. 
 10. **Docs**: Sempre que iniciar uma nova aba de trabalho, consulte a pasta `docs/` para inteirar-se do contexto e das regras aplicáveis ao escopo e compreender o propósito e a evolução do projeto.
 
+# SECURITY & PRIVACY CONSTRAINTS (CRITICAL)
+- NUNCA acesse, leia ou mencione arquivos que contenham segredos, mesmo que estejam no diretório.
+- PROIBIDO ler arquivos com extensões: .env, .pem, .key, .crt, .p12, .json (se forem credentials).
+- Se precisar de uma variável de ambiente, peça para o USUÁRIO fornecer o nome da chave, mas NUNCA tente ler o valor no arquivo .env.
+- NUNCA sugira colocar tokens, senhas ou chaves de API diretamente no código (Hardcoding). Use sempre process.env.
+
+# WORKSPACE INTEGRITY
+- Você está restrito ao diretório raiz do projeto. 
+- NÃO altere arquivos dentro de .vscode/, .idea/ ou configurações globais do sistema.
+- Antes de executar qualquer comando no terminal (npm install, etc), descreva o que será feito e aguarde confirmação.
+
+
 ## 🗣 Comunicação
 - **Idioma**: Sempre em Português (PT-BR).
 - **Tom**: Profissional, técnico e direto ao ponto.

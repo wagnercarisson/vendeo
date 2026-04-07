@@ -4,8 +4,8 @@ import type { CampaignPreviewData } from "./types";
 import { ReelsPreviewCard } from "./ReelsPreviewCard";
 import { formatBRLMask, parseBRLToNumber } from "@/lib/formatters/priceMask";
 import { CampaignQuickActions } from "./CampaignQuickActions";
-
 import { CampaignArtViewer } from "@/app/dashboard/campaigns/_components/CampaignArtViewer";
+import { resolveBrandDNA } from "@/lib/domain/stores/mapper";
 
 type PreviewReadyStateProps = {
     preview: CampaignPreviewData;
@@ -60,6 +60,20 @@ export function PreviewReadyState({
     const [isEditingReels, setIsEditingReels] = useState(false);
     const [editData, setEditData] = useState(preview);
     const [activeLayout, setActiveLayout] = useState<"solid" | "floating" | "split">(preview.layout || "solid");
+
+    // Resolve o DNA bruto do store em um BrandDNA tipado para a preview
+    const resolvedDna = (() => {
+        const storeId = preview.store?.id || "preview";
+        try {
+            return resolveBrandDNA({
+                brand_dna: preview.store?.brand_dna,
+                primary_color: preview.store?.primary_color,
+                secondary_color: preview.store?.secondary_color,
+            }, storeId);
+        } catch {
+            return null;
+        }
+    })();
 
     useEffect(() => {
         setEditData(preview);
@@ -189,6 +203,7 @@ export function PreviewReadyState({
                                         price={isEditing ? editData.price : preview.price}
                                         price_label={isEditing ? editData.price_label : preview.price_label}
                                         store={preview.store}
+                                        dna={resolvedDna}
                                         containerRef={containerRef}
                                         cardRef={cardRef}
                                         badgeRef={badgeRef}

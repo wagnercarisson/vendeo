@@ -1,5 +1,6 @@
 import React from "react";
 import { Phone } from "lucide-react";
+import type { BrandDNA } from "@/lib/domain/stores/brand-dna";
 
 export type CampaignArtViewerProps = {
     layout: "solid" | "floating" | "split";
@@ -33,7 +34,63 @@ export type CampaignArtViewerProps = {
     waTextRef?: React.RefObject<HTMLSpanElement>;
     addressRef?: React.RefObject<HTMLParagraphElement>;
     logoRef?: React.RefObject<any>;
+    dna?: BrandDNA | null;
 };
+
+/**
+ * Deriva as cores de fundo da preview a partir do BrandDNA resolvido.
+ * Usa interpolação com branco (mesmo algoritmo do canvas) para garantir
+ * que o resultado seja sempre um rgb() opaco — independente do fundo do pai.
+ */
+function getPanelStyle(dna?: BrandDNA | null): { panelBg: string; photoOverlay: string } {
+    if (!dna) return { panelBg: "#ffffff", photoOverlay: "rgba(0,0,0,0.20)" };
+
+    const { background_treatment, brand_temperature, palette } = dna;
+    const { style, intensity } = background_treatment;
+
+    const tintAlpha = { subtle: 0.04, balanced: 0.08, expressive: 0.13 };
+    const tint = tintAlpha[intensity];
+
+    const hexToRgb = (hex: string) => {
+        const clean = hex.replace("#", "");
+        if (clean.length !== 6) return { r: 255, g: 255, b: 255 };
+        return {
+            r: parseInt(clean.slice(0, 2), 16),
+            g: parseInt(clean.slice(2, 4), 16),
+            b: parseInt(clean.slice(4, 6), 16),
+        };
+    };
+
+    // Interpola a cor da marca com branco — resultado é sempre opaco
+    const blendWithWhite = (hexColor: string, t: number): string => {
+        const { r, g, b } = hexToRgb(hexColor);
+        const rr = Math.round(r * t + 255 * (1 - t));
+        const gg = Math.round(g * t + 255 * (1 - t));
+        const bb = Math.round(b * t + 255 * (1 - t));
+        return `rgb(${rr},${gg},${bb})`;
+    };
+
+    let panelBg = "#ffffff";
+    if (style === "gradient_brand_soft" || style === "geometric_bold" || style === "editorial_shadow") {
+        panelBg = blendWithWhite(palette.primary, tint);
+    } else if (style === "solid_clean") {
+        panelBg = blendWithWhite(palette.neutral, tint * 0.5); // extra sutil para clean
+    } else if (style === "editorial_light") {
+        panelBg = blendWithWhite(palette.neutral, 0.04); // sempre muito sutil
+    }
+
+    // Overlay da foto derivado da temperatura
+    let photoOverlay = "rgba(0,0,0,0.20)";
+    if (brand_temperature === "warm") {
+        const { r, g, b } = hexToRgb(palette.primary);
+        photoOverlay = `rgba(${r},${g},${b},0.18)`;
+    } else if (brand_temperature === "cool") {
+        const { r, g, b } = hexToRgb(palette.neutral);
+        photoOverlay = `rgba(${r},${g},${b},0.15)`;
+    }
+
+    return { panelBg, photoOverlay };
+}
 
 export function CampaignArtViewer({
     layout,
@@ -59,10 +116,14 @@ export function CampaignArtViewer({
     waTextRef,
     addressRef,
     logoRef,
+    dna,
 }: CampaignArtViewerProps) {
     const primary_color = store?.primary_color || "#10b981";
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const secondary_color = store?.secondary_color || "#064e3b";
+
+    // Deriva cores visuais a partir do BrandDNA resolvido
+    const { panelBg, photoOverlay } = getPanelStyle(dna);
 
     const formatPrice = (p?: number | string | null) => {
         if (!p) return "";
@@ -105,7 +166,12 @@ export function CampaignArtViewer({
             <div ref={containerRef} className="w-full max-w-md mx-auto aspect-[4/5] relative group overflow-hidden bg-zinc-900 shadow-2xl rounded-lg">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={image_url || ""} alt="" className="h-full w-full object-cover transition-transform duration-1000 group-hover:scale-110" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+                <div
+                    className="absolute inset-0"
+                    style={{
+                        background: `linear-gradient(to top, rgba(0,0,0,0.88), ${photoOverlay} 45%, transparent)`
+                    }}
+                />
                 
                 {(hasEffectivePrice || hasEffectiveLabel) && (
                     <div className="absolute right-4 top-4 rotate-6 transform transition-transform hover:scale-110 z-10">
@@ -252,11 +318,18 @@ export function CampaignArtViewer({
 
     // Default "solid" layout
     return (
-        <div ref={containerRef} className="w-full max-w-md mx-auto aspect-[4/5] relative flex flex-col bg-white shadow-2xl rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500 transition-all">
+        <div
+            ref={containerRef}
+            className="w-full max-w-md mx-auto aspect-[4/5] relative flex flex-col bg-white shadow-2xl rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500 transition-all"
+            style={panelBg !== "#ffffff" ? { backgroundColor: panelBg } : undefined}
+        >
             <div className="relative h-[55%] w-full overflow-hidden shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={image_url || ""} alt="" className="h-full w-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                <div
+                    className="absolute inset-0 bg-gradient-to-t to-transparent"
+                    style={{ backgroundImage: `linear-gradient(to top, ${photoOverlay}, transparent)` }}
+                />
                 
                 {(hasEffectivePrice || hasEffectiveLabel) && (
                     <div className="absolute top-4 right-4 z-10 transition-transform hover:scale-110">

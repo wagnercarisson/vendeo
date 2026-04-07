@@ -1,7 +1,7 @@
 import { BrandDNA } from "../domain/stores/brand-dna";
 import { SafeZones, Rect } from "../domain/campaigns/types";
 import { getLayoutDefinition } from "./catalog";
-import { SeedEngine } from "./seed-engine";
+import { BrandRenderEngine } from "./brand-render-engine";
 
 export type Layout = "solid" | "floating" | "split";
 
@@ -344,6 +344,67 @@ function drawWrappedText(ctx: CanvasRenderingContext2D, text: string, x: number,
     return y + lines.length * lineHeight;
 }
 
+/**
+ * Deriva a cor de fundo do painel inferior a partir do DNA.
+ * Mantém legibilidade: opacidade base sempre >= 0.92.
+ */
+function derivePanelColor(dna: BrandDNA): string {
+    const { background_treatment, palette } = dna;
+    const { style, intensity } = background_treatment;
+    const tintAlpha = { subtle: 0.04, balanced: 0.08, expressive: 0.13 };
+    const tint = tintAlpha[intensity];
+
+    let r = 255, g = 255, b = 255;
+
+    const hexToRgb = (hex: string) => {
+        const clean = hex.replace("#", "");
+        if (clean.length !== 6) return { r: 255, g: 255, b: 255 };
+        return {
+            r: parseInt(clean.slice(0, 2), 16),
+            g: parseInt(clean.slice(2, 4), 16),
+            b: parseInt(clean.slice(4, 6), 16),
+        };
+    };
+
+    if (style === "gradient_brand_soft" || style === "geometric_bold" || style === "editorial_shadow") {
+        const rgb = hexToRgb(palette.primary);
+        r = Math.round(rgb.r * tint + 255 * (1 - tint));
+        g = Math.round(rgb.g * tint + 255 * (1 - tint));
+        b = Math.round(rgb.b * tint + 255 * (1 - tint));
+    } else if (style === "solid_clean") {
+        const rgb = hexToRgb(palette.neutral);
+        const t = tint * 0.5;
+        r = Math.round(rgb.r * t + 255 * (1 - t));
+        g = Math.round(rgb.g * t + 255 * (1 - t));
+        b = Math.round(rgb.b * t + 255 * (1 - t));
+    }
+    // editorial_light: branco puro, sem tint
+
+    return `rgba(${r},${g},${b},0.94)`;
+}
+
+/**
+ * Deriva a cor do overlay de transição foto→painel com base na temperatura da marca.
+ */
+function derivePhotoOverlay(dna: BrandDNA): string {
+    const { brand_temperature, palette } = dna;
+    const clean = (hex: string) => hex.replace("#", "");
+    const toRgb = (hex: string) => {
+        const c = clean(hex);
+        if (c.length !== 6) return null;
+        return { r: parseInt(c.slice(0, 2), 16), g: parseInt(c.slice(2, 4), 16), b: parseInt(c.slice(4, 6), 16) };
+    };
+    if (brand_temperature === "warm") {
+        const rgb = toRgb(palette.primary);
+        if (rgb) return `rgba(${rgb.r},${rgb.g},${rgb.b},0.22)`;
+    }
+    if (brand_temperature === "cool") {
+        const rgb = toRgb(palette.neutral);
+        if (rgb) return `rgba(${rgb.r},${rgb.g},${rgb.b},0.20)`;
+    }
+    return "rgba(0,0,0,0.28)";
+}
+
 async function drawSolidLayout(ctx: CanvasRenderingContext2D, img: HTMLImageElement, input: GraphicInput, primaryColor: string) {
     const { headline, body_text, cta, store, dna } = input;
     const price = formatPrice(input.price);
@@ -351,13 +412,14 @@ async function drawSolidLayout(ctx: CanvasRenderingContext2D, img: HTMLImageElem
 
     // 0. CAMADA DE VARIAÇÃO (SEED - FUNDO)
     const layoutDef = getLayoutDefinition("solid");
-    const seedEngine = new SeedEngine(dna.visual_seed);
-    seedEngine.applyBackground(ctx, dna);
+    const brandEngine = new BrandRenderEngine(dna.visual_seed);
+    brandEngine.applyBackground(ctx, dna);
 
     drawImageCover(ctx, img, 0, 0, WIDTH, HEIGHT * 0.55);
+    const overlayEnd = derivePhotoOverlay(dna);
     const grad = ctx.createLinearGradient(0, HEIGHT * 0.55 - 200, 0, HEIGHT * 0.55);
     grad.addColorStop(0, "rgba(0,0,0,0)");
-    grad.addColorStop(1, "rgba(0,0,0,0.28)");
+    grad.addColorStop(1, overlayEnd);
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, WIDTH, HEIGHT * 0.55);
 
@@ -367,7 +429,8 @@ async function drawSolidLayout(ctx: CanvasRenderingContext2D, img: HTMLImageElem
     drawPriceBadge(ctx, price, input.price_label || null, primaryColor, input, U);
 
     const bodyY = HEIGHT * 0.55;
-    ctx.fillStyle = "rgba(255, 255, 255, 0.94)"; // 94% opacidade para deixar a semente "respirar"
+    const panelColor = derivePanelColor(dna);
+    ctx.fillStyle = panelColor;
     ctx.fillRect(0, bodyY, WIDTH, HEIGHT - bodyY);
 
     const storePillSize = input.measuredStorePillFontSize ? (input.measuredStorePillFontSize * U) : 24; 
@@ -495,7 +558,7 @@ async function drawSolidLayout(ctx: CanvasRenderingContext2D, img: HTMLImageElem
     ctx.fillText(cta.toUpperCase(), ctaX + ctaW / 2, ctaY + ctaH / 2);
 
     // FASE FINAL: TEXTURA SOBREPOSTA (OVER-TEXTURE)
-    seedEngine.applyOverTexture(ctx, dna, layoutDef.zones);
+    brandEngine.applyOverTexture(ctx, dna, layoutDef.zones);
 }
 
 async function drawFloatingLayout(ctx: CanvasRenderingContext2D, img: HTMLImageElement, input: GraphicInput, primaryColor: string) {
@@ -505,8 +568,8 @@ async function drawFloatingLayout(ctx: CanvasRenderingContext2D, img: HTMLImageE
 
     // 0. CAMADA DE VARIAÇÃO (SEED - FUNDO)
     const layoutDef = getLayoutDefinition("floating");
-    const seedEngine = new SeedEngine(dna.visual_seed);
-    seedEngine.applyBackground(ctx, dna);
+    const brandEngine = new BrandRenderEngine(dna.visual_seed);
+    brandEngine.applyBackground(ctx, dna);
 
     drawImageCover(ctx, img, 0, 0, WIDTH, HEIGHT);
     
@@ -718,7 +781,7 @@ async function drawFloatingLayout(ctx: CanvasRenderingContext2D, img: HTMLImageE
     drawPriceBadge(ctx, price, input.price_label || null, primaryColor, input, U);
 
     // FASE FINAL: TEXTURA SOBREPOSTA (OVER-TEXTURE)
-    seedEngine.applyOverTexture(ctx, dna, layoutDef.zones);
+    brandEngine.applyOverTexture(ctx, dna, layoutDef.zones);
 }
 
 async function drawSplitLayout(ctx: CanvasRenderingContext2D, img: HTMLImageElement, input: GraphicInput, primaryColor: string) {
@@ -728,8 +791,8 @@ async function drawSplitLayout(ctx: CanvasRenderingContext2D, img: HTMLImageElem
 
     // 0. CAMADA DE VARIAÇÃO (SEED - FUNDO)
     const layoutDef = getLayoutDefinition("split");
-    const seedEngine = new SeedEngine(dna.visual_seed);
-    seedEngine.applyBackground(ctx, dna);
+    const brandEngine = new BrandRenderEngine(dna.visual_seed);
+    brandEngine.applyBackground(ctx, dna);
 
     // Fator Dinâmico Universal (U)
     const U = (input.measuredWidth ? WIDTH / input.measuredWidth : 2.7);
@@ -928,7 +991,7 @@ async function drawSplitLayout(ctx: CanvasRenderingContext2D, img: HTMLImageElem
     }
 
     // FASE FINAL: TEXTURA SOBREPOSTA (OVER-TEXTURE)
-    seedEngine.applyOverTexture(ctx, dna, layoutDef.zones);
+    brandEngine.applyOverTexture(ctx, dna, layoutDef.zones);
 }
 
 export async function renderGraphicToBlob(input: GraphicInput): Promise<Blob> {

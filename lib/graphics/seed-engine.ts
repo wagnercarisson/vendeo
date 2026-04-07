@@ -1,9 +1,11 @@
+/** @deprecated Substituído por brand-render-engine.ts (Fase 2 - Passo 5) */
 import { BrandDNA, BrandVisualStyle } from "../domain/stores/brand-dna";
 import { SafeZones, Rect } from "../domain/campaigns/types";
 
 /**
  * SeedEngine - V4 Calibration (Degrau 5.1).
  * Gerador de variações estéticas controladas em duas fases.
+ * @deprecated Use o BrandRenderEngine para maior conformidade com o BrandDNA.
  */
 export class SeedEngine {
   private seed: string;

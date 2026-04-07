@@ -13,3 +13,22 @@ yarn-error.log*
 
 .DS_Store
 *.pem
+
+# Segurança extra para chaves e certificados
+*.key
+*.pem
+*.crt
+credentials.json
+*.p12
+
+# Configurações de IDE e ferramentas (evita que a IA mude suas configs de editor)
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs e diagnósticos de ferramentas de IA/Agentes
+*.log
+.antigravity/
+.agent/
+

@@ -16,6 +16,19 @@ export type ChangelogRelease = {
 
 export const changelogData: ChangelogRelease[] = [
     {
+        version: "v1.0.0-beta.8",
+        date: "2026-04-06",
+        title: "Brand Render Engine: DNA Visível nas Artes",
+        description: "O DNA de marca gerado na Fase 1 agora materializa visualmente em todas as artes. Cada segmento tem fundo, paleta e temperatura únicos — refletidos tanto na preview quanto na arte final gerada.",
+        changes: [
+            { type: "feat", scope: "Engine", description: "Criação do BrandRenderEngine substituindo o SeedEngine: 5 estilos de fundo determinísticos (solid_clean, gradient_brand_soft, geometric_bold, editorial_light, editorial_shadow)." },
+            { type: "feat", scope: "Renderer", description: "Painel inferior e overlay da foto derivados do BrandDNA: temperatura warm/cool/neutral define a nuance de cor na transição photo→texto." },
+            { type: "feat", scope: "Preview", description: "CampaignArtViewer passa a consumir o BrandDNA resolvido: preview HTML reflete o mesmo padrão visual do canvas gerado." },
+            { type: "refactor", scope: "Domain", description: "resolveBrandDNA integrado ao fluxo de preview, eliminando a dependência de primary_color raw para derivar identidade visual." },
+            { type: "docs", scope: "Backlog", description: "Registro de dois itens futuros: contraste adaptativo por layout e propagação de alterações de dados da loja para o DNA." }
+        ]
+    },
+    {
         version: "v1.0.0-beta.7",
         date: "2026-04-06",
         title: "Motor de Identidade Visual V2 (Auto DNA)",

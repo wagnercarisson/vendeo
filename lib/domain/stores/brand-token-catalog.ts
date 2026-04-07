@@ -21,26 +21,26 @@ export type BrandArchetype =
   | "modern";
 
 export const SEGMENT_TO_ARCHETYPE: Record<string, BrandArchetype> = {
-  // Luxury / Sofisticação
+  // Luxury / Sofistiação
   adega: "luxury",
-  bebidas: "luxury",
+  bebida: "luxury",
   vinho: "luxury",
   joalheria: "luxury",
-  relógios: "luxury",
+  relogio: "luxury",
 
   // Editorial / Moda
   boutique: "editorial",
   moda: "editorial",
-  vestuário: "editorial",
-  calçados: "editorial",
-  acessórios: "editorial",
+  vestuario: "editorial",
+  calcado: "editorial",
+  acessorio: "editorial",
   fashion: "editorial",
 
   // Sensorial / Gastronomia
   restaurante: "sensorial",
-  alimentação: "sensorial",
+  alimentacao: "sensorial",
   food: "sensorial",
-  café: "sensorial",
+  cafe: "sensorial",
   doceria: "sensorial",
   padaria: "sensorial",
   hamburgueria: "sensorial",
@@ -49,17 +49,17 @@ export const SEGMENT_TO_ARCHETYPE: Record<string, BrandArchetype> = {
   pet: "friendly",
   "pet shop": "friendly",
   animal: "friendly",
-  veterinária: "friendly",
-  brinquedos: "friendly",
+  veterinaria: "friendly",
+  brinquedo: "friendly",
   infantil: "friendly",
 
   // Clean / Saúde e Bem-estar
-  farmácia: "clean",
+  farmacia: "clean",
   drogaria: "clean",
-  saúde: "clean",
-  clínica: "clean",
-  estética: "clean",
-  cosméticos: "clean",
+  saude: "clean",
+  clinica: "clean",
+  estetica: "clean",
+  cosmetico: "clean",
   perfumaria: "clean",
 
   // Impact / Varejo Popular
@@ -67,22 +67,22 @@ export const SEGMENT_TO_ARCHETYPE: Record<string, BrandArchetype> = {
   supermercado: "impact",
   varejo: "impact",
   hortifruti: "impact",
-  açougue: "impact",
-  promoção: "impact",
+  acougue: "impact",
+  promocao: "impact",
 
   // Precision / Tecnologia
   tech: "precision",
-  eletrônicos: "precision",
+  eletronico: "precision",
   tecnologia: "precision",
-  informática: "precision",
+  informatica: "precision",
   celular: "precision",
 
   // Trust / Serviços Profissionais
-  serviços: "trust",
+  servico: "trust",
   contabilidade: "trust",
   advocacia: "trust",
-  imobiliária: "trust",
-  seguros: "trust",
+  imobiliaria: "trust",
+  seguro: "trust",
   oficina: "trust",
 
   // Padrão
@@ -218,7 +218,9 @@ export const ARCHETYPE_CATALOG: Record<BrandArchetype, ArchetypeTokens> = {
     background_style: "gradient_brand_soft",
     background_intensity: "balanced",
     image_filter: "natural",
-    default_primary: "#111827",
+    // Cor com luminosidade suficiente para que a variação de hue por seed seja visível.
+    // #111827 (quase preto) não permitia variação perceptível de hue.
+    default_primary: "#3B5998",
     positioning_template: "Comércio local com atendimento personalizado",
   },
 };
