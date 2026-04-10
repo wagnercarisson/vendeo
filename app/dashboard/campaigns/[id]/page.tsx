@@ -11,7 +11,7 @@ export default async function CampaignPreviewPage({
 }: {
     params: { id: string };
 }) {
-    const supabase = createSupabaseServerClient();
+    const supabase = await createSupabaseServerClient();
     const { storeId } = await getUserStoreIdOrThrow();
 
     const { data: campaign, error } = await supabase
@@ -58,7 +58,7 @@ export default async function CampaignPreviewPage({
                         Gerenciar campanha
                     </h1>
                     <p className="text-sm text-zinc-600">
-                        {normalizedCampaign.origin === "plan" 
+                        {normalizedCampaign.origin === "plan"
                             ? "Estratégia herdada do seu Plano Semanal."
                             : "Edite, gere e organize o conteúdo da sua campanha."}
                     </p>

@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { Zap, CalendarClock, AlertCircle } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { 
-  formatAudience, 
-  formatObjective, 
-  normalizeAudience, 
-  normalizeObjective, 
-  normalizePositioning 
+import {
+  formatAudience,
+  formatObjective,
+  normalizeAudience,
+  normalizeObjective,
+  normalizePositioning
 } from "@/lib/formatters/strategyLabels";
 
 export async function PendingPlanItems({
@@ -14,7 +14,7 @@ export async function PendingPlanItems({
 }: {
   storeId: string;
 }) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   // Buscar o primeiro plano (qualquer data) que tenha itens pendentes
   const { data: firstPlanWithPending } = await supabase
@@ -86,7 +86,7 @@ export async function PendingPlanItems({
       <div className="space-y-3">
         {pendingItems.map((item) => {
           const isDraft = planStatus === "draft";
-          
+
           return (
             <div
               key={item.id}

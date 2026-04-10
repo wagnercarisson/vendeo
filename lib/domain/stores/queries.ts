@@ -9,7 +9,7 @@ import { mapDbStoreToDomain } from "./mapper";
  * Memoizado via React cache() para evitar múltiplas queries por requisição.
  */
 export const getStoreByOwner = cache(async (userId: string): Promise<Store | null> => {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   const { data, error } = await supabase
     .from("stores")

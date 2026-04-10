@@ -83,7 +83,7 @@ function getStartOfWeekBrazilISO() {
 }
 
 export default async function DashboardPage() {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   const {
     data: { user },
@@ -122,9 +122,9 @@ export default async function DashboardPage() {
     .in("week_start", [currentMonday, nextMonday])
     .order("week_start", { ascending: true }); // Atual antes da próxima
 
-  const planForCard = dashboardPlans?.find(p => p.week_start === currentMonday) 
-                   || dashboardPlans?.find(p => p.week_start === nextMonday)
-                   || null;
+  const planForCard = dashboardPlans?.find(p => p.week_start === currentMonday)
+    || dashboardPlans?.find(p => p.week_start === nextMonday)
+    || null;
 
   // Buscar progresso do plano ativo (Refatorado - Etapa 16)
   let planStats = { total: 0, approved: 0 };
@@ -146,7 +146,7 @@ export default async function DashboardPage() {
           .select("id")
           .in("id", campaignIds)
           .eq("status", "approved");
-        
+
         approvedCount = approvedCampaigns?.length || 0;
       }
 
@@ -294,7 +294,7 @@ export default async function DashboardPage() {
                 viewAllLabel="Visualizar todas"
                 campaigns={campaigns ?? []}
               />
-              
+
               <Suspense fallback={<AISuggestionCardSkeleton />}>
                 <AISuggestionCard storeName={store.name} city={store.city} />
               </Suspense>
@@ -307,7 +307,7 @@ export default async function DashboardPage() {
                 plan={planForCard ?? null}
                 stats={planStats}
               />
-              
+
               <Suspense fallback={<ActivityFeedSkeleton />}>
                 <ActivityFeed storeId={store.id} />
               </Suspense>

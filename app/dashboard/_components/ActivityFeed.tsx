@@ -17,7 +17,7 @@ function getRelativeTime(dateStr: string) {
     const d = new Date(dateStr);
     const now = new Date();
     const diffMs = now.getTime() - d.getTime();
-    
+
     // Convert to units
     const diffSecs = Math.floor(diffMs / 1000);
     const diffMins = Math.floor(diffSecs / 60);
@@ -31,8 +31,8 @@ function getRelativeTime(dateStr: string) {
 }
 
 export async function ActivityFeed({ storeId }: { storeId: string }) {
-    const supabase = createSupabaseServerClient();
-    
+    const supabase = await createSupabaseServerClient();
+
     // Fetch last 5 campaigns
     const { data: recentCampaigns } = await supabase
         .from("campaigns")
@@ -115,7 +115,7 @@ export async function ActivityFeed({ storeId }: { storeId: string }) {
     return (
         <div className="rounded-2xl border bg-white p-5 shadow-soft">
             <h3 className="text-lg font-semibold text-vendeo-text">Atividade Recente</h3>
-            
+
             {topActivities.length === 0 ? (
                 <div className="mt-6 text-center text-sm text-vendeo-muted pb-4">
                     Nenhuma atividade recente. Comece criando sua primeira campanha!

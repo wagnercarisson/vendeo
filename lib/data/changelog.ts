@@ -16,6 +16,19 @@ export type ChangelogRelease = {
 
 export const changelogData: ChangelogRelease[] = [
     {
+        version: "v1.0.0-beta.5",
+        date: "2026-04-09",
+        title: "Motor de Leitura Visual — Sandbox v1",
+        description: "Implementação isolada do motor de leitura visual de imagens de produto, com suporte multimodal, detecção de correspondência semântica e localização espacial via bounding box normalizada.",
+        changes: [
+            { type: "feat", scope: "visual-reader", description: "Contratos Zod com matchType (exact, category_only, none) e validação superRefine de consistência." },
+            { type: "feat", scope: "visual-reader", description: "Prompt multimodal com calibração de cena, regras de bounding box, sistema de coordenadas e matching por marca/formato/volume." },
+            { type: "feat", scope: "visual-reader", description: "Pipeline de validação pós-modelo: normalização de box, posição, occupancy, sceneType e matchedTarget." },
+            { type: "feat", scope: "sandbox", description: "Rota API POST /api/sandbox/visual-reader/crop e página de preview com overlay e crop simulado." },
+            { type: "chore", scope: "visual-reader", description: "Troca de gpt-4o-mini para gpt-4.1 no motor de leitura visual para maior precisão espacial." }
+        ]
+    },
+    {
         version: "v1.0.0-beta.4",
         date: "2026-04-01",
         title: "Calibração Engine: Master Solid e Biometria",

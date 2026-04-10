@@ -62,7 +62,7 @@ function getWeekStartMondayISO(today = new Date()) {
 }
 
 export async function ContentCalendar({ storeId }: { storeId: string }) {
-    const supabase = createSupabaseServerClient();
+    const supabase = await createSupabaseServerClient();
     const currentWeekStart = getWeekStartMondayISO();
 
     // Fetch active plan for this week
@@ -212,13 +212,13 @@ export async function ContentCalendar({ storeId }: { storeId: string }) {
                 const qObjective = encodeURIComponent(matchingItem.brief?.objective || "");
                 const qPositioning = encodeURIComponent(matchingItem.brief?.product_positioning || "");
                 const qContentType = encodeURIComponent(matchingItem.content_type || "post");
-                
+
                 ctaLink = `/dashboard/campaigns/new?plan_item_id=${matchingItem.id}&theme=${qTheme}&audience=${qAudience}&objective=${qObjective}&positioning=${qPositioning}&content_type=${qContentType}`;
             } else {
                 const statusInfo = formatCampaignStatus(cStatus);
                 badgeColor = getStatusBadgeClass(statusInfo.tone).split(" ")[1]; // bg-X-Y
                 textColor = getStatusBadgeClass(statusInfo.tone).split(" ")[2]; // text-X-Y
-                
+
                 // Specific coloring for special days in active status
                 if (cStatus === "active" || cStatus === "ready" || cStatus === "approved") {
                     if (dStr === todayStr) {
