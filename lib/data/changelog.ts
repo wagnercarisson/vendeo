@@ -16,6 +16,21 @@ export type ChangelogRelease = {
 
 export const changelogData: ChangelogRelease[] = [
     {
+        version: "v1.0.0-beta.6",
+        date: "2026-04-10",
+        title: "Motor Visual — Qualidade de Imagem e Refinamento Semântico",
+        description: "Expansão do contrato de leitura visual com métricas de qualidade de imagem, suporte a productName composto e correção da semântica de category_only com targetBox obrigatória.",
+        changes: [
+            { type: "feat", scope: "visual-reader", description: "Adição de campos de qualidade ao contrato: imageQuality, visibility, framing e backgroundNoise." },
+            { type: "fix", scope: "visual-reader", description: "Correção da semântica de category_only: detected=false com targetBox e matchedTarget obrigatórios." },
+            { type: "fix", scope: "visual-reader", description: "Rejeição de boxes 1:1 para qualquer sceneType que não seja full_scene." },
+            { type: "fix", scope: "visual-reader", description: "sceneType forçado para multiple_products quando ignoredElements.length > 0." },
+            { type: "feat", scope: "visual-reader", description: "Suporte a productName composto no prompt (ex: 'Coca + Pão de Hambúrguer')." },
+            { type: "fix", scope: "sandbox", description: "Remoção do painel de crop preview da página /sandbox." },
+            { type: "fix", scope: "supabase", description: "Adaptação de createSupabaseServerClient para Next.js 15 (cookies async) em 13 chamadores." }
+        ]
+    },
+    {
         version: "v1.0.0-beta.5",
         date: "2026-04-09",
         title: "Motor de Leitura Visual — Sandbox v1",

@@ -36,6 +36,10 @@ export const VisualReaderOutputSchema = z.object({
   relevantCount: z.number().int().min(0),
   ignoredElements: z.array(z.string()),
   confidence: z.enum(["low", "medium", "high"]),
+  imageQuality: z.enum(["good", "acceptable", "poor", "unknown"]),
+  visibility: z.enum(["clear", "partial", "obstructed", "unknown"]),
+  framing: z.enum(["good", "tight", "distant", "unknown"]),
+  backgroundNoise: z.enum(["low", "medium", "high", "unknown"]),
   reasoningSummary: z.string().min(1),
 }).superRefine((output, ctx) => {
   if (output.matchType === "exact") {
@@ -113,5 +117,9 @@ export const DEFAULT_VISUAL_READER_OUTPUT: VisualReaderOutput = {
   relevantCount: 0,
   ignoredElements: [],
   confidence: "low",
+  imageQuality: "unknown",
+  visibility: "unknown",
+  framing: "unknown",
+  backgroundNoise: "unknown",
   reasoningSummary: "Leitura visual inválida.",
 };

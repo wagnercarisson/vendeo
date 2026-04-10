@@ -129,18 +129,6 @@ export default function VisualReaderSandboxPage() {
                             </div>
                             {!box && <div className="text-xs text-yellow-500">Sem bounding box retornada</div>}
                         </div>
-
-                        {boxPx ? (
-                            <div className="flex flex-col gap-2">
-                                <span className="text-xs text-gray-400 uppercase tracking-wide">Crop Preview</span>
-                                <div style={{ width: boxPx.w, height: boxPx.h, overflow: "hidden" }} className="rounded border border-gray-700 bg-gray-900">
-                                    <img src={imageUrl} alt="crop" style={{ width: DISPLAY_W, height: displayH, display: "block", marginLeft: -boxPx.x, marginTop: -boxPx.y }} />
-                                </div>
-                                <div className="text-xs text-gray-500 font-mono">{Math.round(boxPx.w)}×{Math.round(boxPx.h)}px</div>
-                            </div>
-                        ) : (
-                            <div className="text-yellow-400 text-sm self-center">Produto não encontrado — sem crop disponível</div>
-                        )}
                     </div>
 
                     <div className="max-w-3xl">

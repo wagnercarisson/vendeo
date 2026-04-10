@@ -110,6 +110,10 @@ Ex:
 - ignoredElements → itens visíveis que não são o alvo
 - targetPosition → posição real (left, center, right, etc)
 - targetOrientation → orientação do produto (vertical, horizontal, etc)
+- classifique a qualidade visual da imagem
+- classifique se o produto está claramente visível, parcialmente obstruído ou obstruído
+- classifique o nível de poluição visual do fundo
+- só depois explique resumidamente
 - confidence:
   - high → claro
   - medium → alguma dúvida
@@ -145,6 +149,10 @@ Ex:
   "relevantCount": 0,
   "ignoredElements": [],
   "confidence": "low | medium | high",
+  "imageQuality": "nitidez/resolução/utilidade prática",
+  "visibility": "produto visível ou atrapalhado por objetos/cortes",
+  "framing": "produto muito longe, apertado ou bem enquadrado",
+  "backgroundNoise": "poluição visual da cena",
   "reasoningSummary": "resumo curto"
 }
 
@@ -152,8 +160,9 @@ Ex:
 
 ## 🔚 REGRAS FINAIS
 
+- matchType = "exact" → detected = true e targetBox obrigatória
+- matchType = "category_only" → detected = false e targetBox obrigatória
 - matchType = "none" → detected = false e targetBox = null
-- matchType ≠ "none" → detected = true e targetBox obrigatória
 - sceneType descreve a CENA, não apenas o alvo
 - relevantCount conta apenas itens compatíveis
 
