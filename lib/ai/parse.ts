@@ -69,26 +69,65 @@ export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 // Chamada OpenAI
 // ─────────────────────────────────────────────
 
+type ChatMessageContent =
+  | string
+  | Array<
+    | { type: "text"; text: string }
+    | { type: "image_url"; image_url: { url: string; detail?: "auto" | "low" | "high" } }
+  >;
+
+interface ChatMessage {
+  role: "system" | "user";
+  content: ChatMessageContent;
+}
+
 interface CallAIOpts {
   model?: string;
   temperature?: number;
   timeoutMs?: number;
+  imageUrl?: string;
 }
 
 /** Faz uma chamada simples ao OpenAI e retorna o texto bruto. */
 export async function callAI(
-  messages: { role: "system" | "user"; content: string }[],
+  messages: ChatMessage[],
   opts: CallAIOpts = {}
 ): Promise<string> {
-  const { model = "gpt-4o-mini", temperature = 0.7, timeoutMs = 20000 } = opts;
+  const { model = "gpt-4o-mini", temperature = 0.7, timeoutMs = 20000, imageUrl } = opts;
   const openai = getOpenAI();
+
+  const transformedMessages = messages.map((message) => {
+    if (imageUrl && message.role === "user") {
+      const content = message.content;
+      if (typeof content === "string") {
+        return {
+          ...message,
+          content: [
+            { type: "text", text: content },
+            { type: "image_url", image_url: { url: imageUrl, detail: "high" } },
+          ] as ChatMessageContent,
+        };
+      }
+      if (Array.isArray(content)) {
+        return {
+          ...message,
+          content: [
+            ...content,
+            { type: "image_url", image_url: { url: imageUrl, detail: "high" } },
+          ] as ChatMessageContent,
+        };
+      }
+    }
+
+    return message;
+  });
 
   const completion = await withTimeout(
     openai.chat.completions.create({
       model,
       temperature,
       response_format: { type: "json_object" } as any,
-      messages,
+      messages: transformedMessages as any,
     }),
     timeoutMs
   );

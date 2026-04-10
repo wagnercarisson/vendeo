@@ -6,7 +6,7 @@ function isProtectedPath(pathname: string) {
   return pathname.startsWith("/dashboard") || pathname.startsWith("/api/generate");
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
   if (!isProtectedPath(pathname)) {
@@ -46,15 +46,15 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith("/api/generate")) {
     try {
       const { success, limit, reset, remaining } = await ratelimit.limit(data.user.id);
-      
+
       if (!success) {
         return NextResponse.json(
-          { 
-            error: "TOO_MANY_REQUESTS", 
+          {
+            error: "TOO_MANY_REQUESTS",
             message: "Você atingiu o limite de gerações. Tente novamente em alguns segundos.",
             resetAt: new Date(reset).toISOString()
           },
-          { 
+          {
             status: 429,
             headers: {
               "X-RateLimit-Limit": limit.toString(),
