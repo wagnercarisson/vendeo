@@ -13,3 +13,11 @@ yarn-error.log*
 
 .DS_Store
 *.pem
+
+# AI tool directories
+.aiox-core
+.claude
+.codex
+.cursor
+.antigravity
+.gemini
