@@ -35,3 +35,11 @@ Thumbs.db
 .aiox-core/local/
 .claude/settings.local.json
 .aiox/install-log.txt
+
+# Infraestrutura e histórico local (AIOX, Claude, Codex, Cursor, Gemini)
+.aiox-core/
+.claude/
+.codex/
+.cursor/
+.antigravity/
+.gemini/
