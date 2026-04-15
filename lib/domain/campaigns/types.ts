@@ -1,34 +1,28 @@
 import { ShortVideoShotScene } from "../short-videos/types";
+import type { CampaignObjective } from "@/lib/constants/strategy";
 
-export type CampaignAudience = 
-  | "geral" 
-  | "jovens_festa" 
-  | "familia" 
-  | "infantil" 
-  | "maes_pais" 
-  | "mulheres" 
-  | "homens" 
-  | "fitness" 
-  | "terceira_idade" 
-  | "premium_exigente" 
-  | "economico" 
+export type CampaignCanonicalContentType = "product" | "service" | "message";
+export type CampaignReadableContentType = CampaignCanonicalContentType | "info";
+
+export type CampaignAudience =
+  | "geral"
+  | "jovens_festa"
+  | "familia"
+  | "infantil"
+  | "maes_pais"
+  | "mulheres"
+  | "homens"
+  | "fitness"
+  | "terceira_idade"
+  | "premium_exigente"
+  | "economico"
   | "b2b";
 
-export type CampaignObjective = 
-  | "promocao" 
-  | "novidade" 
-  | "queima" 
-  | "sazonal" 
-  | "reposicao" 
-  | "combo" 
-  | "engajamento" 
-  | "visitas";
-
-export type ProductPositioning = 
-  | "popular" 
-  | "medio" 
-  | "premium" 
-  | "jovem" 
+export type ProductPositioning =
+  | "popular"
+  | "medio"
+  | "premium"
+  | "jovem"
   | "familia";
 
 export interface Campaign {
@@ -42,7 +36,10 @@ export interface Campaign {
   product_positioning: ProductPositioning | null;
   status: string | null;
   campaign_type: "post" | "reels" | "both" | null;
-  content_type: "product" | "service" | "info" | null;
+  content_type: CampaignCanonicalContentType | null;
+  legacy_content_type: string | null;
+  domain_input: Record<string, unknown>;
+  domain_input_version: number;
   post_status: "none" | "draft" | "ready" | "approved" | null;
   reels_status: "none" | "draft" | "ready" | "approved" | null;
 
@@ -81,8 +78,8 @@ export interface CampaignContext {
   product_name: string;
   price: string | null;
   price_label: string | null;
-  audience: CampaignAudience | string; // Permitir string para flexibilidade na IA se necessário, mas tipado no Mapper
-  objective: CampaignObjective | string;
+  audience: CampaignAudience | string;
+  objective: CampaignObjective;
   product_positioning: ProductPositioning | null;
   theme?: string | null;
 }
@@ -114,10 +111,11 @@ export interface CampaignListItem {
   product_image_url: string | null;
   created_at: string;
   campaign_type: "post" | "reels" | "both" | null;
+  content_type: CampaignCanonicalContentType | null;
+  legacy_content_type: string | null;
   post_status: "none" | "draft" | "ready" | "approved" | null;
   reels_status: "none" | "draft" | "ready" | "approved" | null;
 
-  // Campos de conteúdo para os modais de listagem
   ai_text: string | null;
   ai_caption: string | null;
   ai_cta: string | null;
@@ -136,5 +134,4 @@ export interface CampaignListItem {
 }
 
 export interface CampaignDetail extends Campaign {
-  // Atualmente igual à Campaign, mas preparada para extensões de UI
 }

@@ -5,7 +5,7 @@ export const NormalizedBoxSchema = z.object({
   y: z.number().min(0).max(1),
   width: z.number().min(0).max(1),
   height: z.number().min(0).max(1),
-}).refine(
+}).strict().refine(
   (box) => box.width > 0 && box.height > 0,
   {
     message: "width and height must be greater than 0",
@@ -22,9 +22,12 @@ export const VisualReaderInputSchema = z.object({
   targetLabel: z.string().min(1),
   productName: z.string().optional(),
   category: z.string().optional(),
+
+  campaignType: z.enum(["single_product", "multiple_products", "info"]).optional(),
+  content_type: z.string().optional(),
 });
 
-export const VisualReaderOutputSchema = z.object({
+export const VisualReaderSchema = z.object({
   detected: z.boolean(),
   matchType: z.enum(["exact", "category_only", "none"]),
   matchedTarget: z.string().nullable(),
@@ -40,8 +43,19 @@ export const VisualReaderOutputSchema = z.object({
   visibility: z.enum(["clear", "partial", "obstructed", "unknown"]),
   framing: z.enum(["good", "tight", "distant", "unknown"]),
   backgroundNoise: z.enum(["low", "medium", "high", "unknown"]),
+  backgroundType: z.enum(["transparent", "solid", "simple", "complex", "unknown"]),
+  hasBackground: z.union([
+    z.boolean(),
+    z.literal("true"),
+    z.literal("false"),
+    z.literal("unknown"),
+  ]),
+  subjectCutoff: z.enum(["none", "light", "moderate", "severe", "unknown"]),
+  safeExpansionPotential: z.enum(["low", "medium", "high", "unknown"]),
+  focusClarity: z.enum(["low", "medium", "high", "unknown"]),
+  visualIsolation: z.enum(["low", "medium", "high", "unknown"]),
   reasoningSummary: z.string().min(1),
-}).superRefine((output, ctx) => {
+}).strict().superRefine((output, ctx) => {
   if (output.matchType === "exact") {
     if (!output.detected) {
       ctx.addIssue({
@@ -101,9 +115,12 @@ export const VisualReaderOutputSchema = z.object({
   }
 });
 
+export const VisualReaderOutputSchema = VisualReaderSchema;
+
 export type NormalizedBox = z.infer<typeof NormalizedBoxSchema>;
 export type VisualReaderInput = z.infer<typeof VisualReaderInputSchema>;
-export type VisualReaderOutput = z.infer<typeof VisualReaderOutputSchema>;
+export type VisualReaderResult = z.infer<typeof VisualReaderSchema>;
+export type VisualReaderOutput = VisualReaderResult;
 
 export const DEFAULT_VISUAL_READER_OUTPUT: VisualReaderOutput = {
   detected: false,
@@ -121,5 +138,11 @@ export const DEFAULT_VISUAL_READER_OUTPUT: VisualReaderOutput = {
   visibility: "unknown",
   framing: "unknown",
   backgroundNoise: "unknown",
+  backgroundType: "unknown",
+  hasBackground: "unknown" as const,
+  subjectCutoff: "unknown",
+  safeExpansionPotential: "low",
+  focusClarity: "unknown",
+  visualIsolation: "low",
   reasoningSummary: "Leitura visual inválida.",
 };

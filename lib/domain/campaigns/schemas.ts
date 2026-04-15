@@ -1,4 +1,19 @@
 import { z } from "zod";
+import { OBJECTIVE_VALUES } from "@/lib/constants/strategy";
+import { normalizeObjective } from "@/lib/formatters/strategyLabels";
+
+const CampaignObjectiveSchema = z.preprocess(
+  (value) => {
+    if (value == null || value === "") return null;
+    const normalized = normalizeObjective(String(value));
+    return normalized || value;
+  },
+  z.enum(OBJECTIVE_VALUES).nullable()
+);
+
+export const CampaignReadableContentTypeSchema = z
+  .enum(["product", "service", "info", "message"])
+  .nullable();
 
 export const CampaignRequestSchema = z.object({
   campaign_id: z.string().uuid(),
@@ -35,11 +50,14 @@ export const DbCampaignSchema = z.object({
   price: z.coerce.number().nullable(),
   price_label: z.string().nullable(),
   audience: z.string().nullable(),
-  objective: z.string().nullable(),
+  objective: CampaignObjectiveSchema,
   product_positioning: z.string().nullable(),
   status: z.string().nullable(),
   campaign_type: z.enum(["post", "reels", "both"]).nullable(),
-  content_type: z.enum(["product", "service", "info"]).nullable(),
+  content_type: CampaignReadableContentTypeSchema,
+  legacy_content_type: z.string().nullable().optional(),
+  domain_input: z.record(z.unknown()).nullable().optional(),
+  domain_input_version: z.coerce.number().nullable().optional(),
   post_status: z.enum(["none", "draft", "ready", "approved"]).nullable(),
   reels_status: z.enum(["none", "draft", "ready", "approved"]).nullable(),
   origin: z.enum(["manual", "plan"]).default("manual"),

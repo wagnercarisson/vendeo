@@ -14,7 +14,10 @@ import {
   CheckCircle2, 
   FileText 
 } from "lucide-react";
-import { getSignedUrlAction } from "@/lib/supabase/storage-actions";
+import {
+  getApprovedAssetSignedUrlAction,
+  getSignedUrlAction,
+} from "@/lib/supabase/storage-actions";
 import { formatAudience, formatObjective } from "@/lib/formatters/strategyLabels";
 import * as selectors from "@/lib/domain/campaigns/selectors";
 import { CampaignListItem } from "@/lib/domain/campaigns/types";
@@ -50,6 +53,11 @@ export function CampaignCard({
 }: CampaignCardProps) {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
 
+  function isRenderableImageSrc(value: string | null | undefined): value is string {
+    if (!value) return false;
+    return value.startsWith("http://") || value.startsWith("https://") || value.startsWith("/");
+  }
+
   useEffect(() => {
     async function loadSignedUrl() {
       const isApproved = campaign.status === "approved";
@@ -58,8 +66,15 @@ export function CampaignCard({
         : campaign.product_image_url;
 
       if (rawUrl) {
-        const signed = await getSignedUrlAction(rawUrl);
-        setSignedUrl(signed);
+        const signed = isApproved
+          ? await getApprovedAssetSignedUrlAction({
+              campaignId: campaign.id,
+              storeId: campaign.store_id,
+              assetKind: "post_image",
+              fallbackPathOrUrl: rawUrl,
+            })
+          : await getSignedUrlAction(rawUrl);
+        setSignedUrl(isRenderableImageSrc(signed) ? signed : null);
       } else {
         setSignedUrl(null);
       }
@@ -85,7 +100,7 @@ export function CampaignCard({
       className="group relative flex flex-row items-stretch gap-6 rounded-2xl border border-black/10 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg"
     >
       <div className="relative w-24 aspect-[4/5] flex-none overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 shadow-sm">
-        {signedUrl ? (
+        {isRenderableImageSrc(signedUrl) ? (
           <Image
             src={signedUrl}
             alt={campaign.product_name || "Campanha"}

@@ -35,7 +35,7 @@ export async function PendingPlanItems({
   // Buscar itens pendentes deste plano
   const { data: pendingItems } = await supabase
     .from("weekly_plan_items")
-    .select("id, day_of_week, theme, recommended_time, content_type, brief")
+    .select("id, day_of_week, theme, recommended_time, content_type, target_content_type, brief")
     .eq("plan_id", planId)
     .is("campaign_id", null)
     .order("day_of_week", { ascending: true })
@@ -125,7 +125,7 @@ export async function PendingPlanItems({
                 </Link>
               ) : (
                 <Link
-                  href={`/dashboard/campaigns/new?plan_item_id=${item.id}&theme=${encodeURIComponent(item.theme || "")}&audience=${encodeURIComponent(normalizeAudience(item.brief?.audience))}&objective=${encodeURIComponent(normalizeObjective(item.brief?.objective))}&positioning=${encodeURIComponent(normalizePositioning(item.brief?.product_positioning))}&content_type=${encodeURIComponent(item.content_type || "post")}`}
+                  href={`/dashboard/campaigns/new?plan_item_id=${item.id}&theme=${encodeURIComponent(item.theme || "")}&audience=${encodeURIComponent(normalizeAudience(item.brief?.audience))}&objective=${encodeURIComponent(normalizeObjective(item.brief?.objective))}&positioning=${encodeURIComponent(normalizePositioning(item.brief?.product_positioning))}&content_type=${encodeURIComponent(item.content_type || "post")}${item.target_content_type ? `&type=${encodeURIComponent(item.target_content_type)}` : ""}`}
                   className="shrink-0 inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#0B2E22] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#0F3D2E]"
                 >
                   <Zap className="h-3 w-3 text-orange-400" />

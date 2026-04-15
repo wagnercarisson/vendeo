@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { CampaignObjective } from "@/lib/constants/strategy";
 import { WeeklyPlanItemBrief } from "@/lib/domain/weekly-plans/types";
 import Link from "next/link";
 import { Plus, Cloud, CloudDrizzle, CloudLightning, CloudRain, CloudSnow, Sun, CloudFog } from "lucide-react";
@@ -11,7 +12,7 @@ type Day = {
     fullDate: string;
     status: "done" | "upcoming" | "today";
     campaignFormat?: string;
-    campaignObjective?: string;
+    campaignObjective?: CampaignObjective;
     badgeColor?: string;
     textColor?: string;
     textHoverColor?: string;
@@ -36,12 +37,12 @@ type PlanItemWithCampaign = {
     campaigns: Array<{
         id: string;
         status: string;
-        objective: string | null;
+        objective: CampaignObjective | null;
         product_name: string | null;
     }> | {
         id: string;
         status: string;
-        objective: string | null;
+        objective: CampaignObjective | null;
         product_name: string | null;
     } | null;
 };
@@ -212,8 +213,11 @@ export async function ContentCalendar({ storeId }: { storeId: string }) {
                 const qObjective = encodeURIComponent(matchingItem.brief?.objective || "");
                 const qPositioning = encodeURIComponent(matchingItem.brief?.product_positioning || "");
                 const qContentType = encodeURIComponent(matchingItem.content_type || "post");
+                const qTargetType = matchingItem.target_content_type
+                    ? `&type=${encodeURIComponent(matchingItem.target_content_type)}`
+                    : "";
 
-                ctaLink = `/dashboard/campaigns/new?plan_item_id=${matchingItem.id}&theme=${qTheme}&audience=${qAudience}&objective=${qObjective}&positioning=${qPositioning}&content_type=${qContentType}`;
+                ctaLink = `/dashboard/campaigns/new?plan_item_id=${matchingItem.id}&theme=${qTheme}&audience=${qAudience}&objective=${qObjective}&positioning=${qPositioning}&content_type=${qContentType}${qTargetType}`;
             } else {
                 const statusInfo = formatCampaignStatus(cStatus);
                 badgeColor = getStatusBadgeClass(statusInfo.tone).split(" ")[1]; // bg-X-Y

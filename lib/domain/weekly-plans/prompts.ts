@@ -1,5 +1,8 @@
 import { StoreContext } from "@/lib/domain/stores/types";
+import { OBJECTIVE_VALUES } from "@/lib/constants/strategy";
 import { WeatherData, WeeklyPlanItemBrief } from "./types";
+
+const OBJECTIVE_PROMPT_VALUES = OBJECTIVE_VALUES.map((value) => `"${value}"`).join(", ");
 
 const MAP_DAYS: Record<number, string> = {
   1: "Segunda", 2: "Terça", 3: "Quarta", 4: "Quinta",
@@ -84,7 +87,8 @@ SUA LÓGICA DE DECISÃO (O "PULO DO GATO"):
 REGRAS:
 1. Para cada dia solicitado acima, devolva um objeto json cobrindo: audience, objective, positioning, content_type, e reasoning.
 2. [audience]: escolha EXATAMENTE dentre: "geral", "jovens_festa", "familia", "infantil", "maes_pais", "mulheres", "homens", "fitness", "terceira_idade", "premium_exigente", "economico", "b2b".
-3. [objective]: escolha EXATAMENTE dentre: "promocao", "novidade", "queima", "sazonal", "reposicao", "combo", "engajamento", "visitas".
+3. [objective]: escolha EXATAMENTE dentre: ${OBJECTIVE_PROMPT_VALUES}.
+  Observação: use "novidade" quando a intenção for lançamento/chegada recente; não use "lancamento" como valor.
 4. [positioning]: escolha EXATAMENTE dentre: "popular", "medio", "premium", "jovem", "familia".
 5. [content_type]: "post" ou "reels".
 6. [reasoning]: Crie uma frase CURTA, AGRESSIVA e "MÃO NA MASSA" (MÁXIMO 12 PALAVRAS). Foque em vender e girar estoque. Ex: "Fim de estoque: combo de gelada + petisco para girar prateleira hoje."

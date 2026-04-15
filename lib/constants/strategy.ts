@@ -26,7 +26,16 @@ export const OBJECTIVE_OPTIONS = [
     { value: "combo", label: "Combo / leve mais por menos" },
     { value: "engajamento", label: "Engajamento (perguntas/enquete)" },
     { value: "visitas", label: "Gerar visitas na loja" },
+    { value: "informativo", label: "Informativo (educar / orientar cliente)" },
+    { value: "institucional", label: "Institucional (marca / confiança da loja)" },
+    { value: "autoridade", label: "Autoridade (especialidade / credibilidade)" },
 ] as const;
+
+export type CampaignObjective = (typeof OBJECTIVE_OPTIONS)[number]["value"];
+
+export const OBJECTIVE_VALUES = OBJECTIVE_OPTIONS.map(
+    (option) => option.value
+) as [CampaignObjective, ...CampaignObjective[]];
 
 export const PRODUCT_POSITIONING_OPTIONS = [
     { value: "popular", label: "Popular" },

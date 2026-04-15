@@ -1,27 +1,77 @@
 import { z } from "zod";
-import { 
-  CampaignAISchema, 
-  CampaignReelsSchema, 
-  DbCampaignSchema, 
-  DbCampaignRaw 
+import {
+  CampaignAISchema,
+  CampaignReelsSchema,
+  DbCampaignSchema,
 } from "./schemas";
-import { 
-  Campaign, 
-  CampaignContext, 
+import {
+  Campaign,
+  CampaignContext,
   CampaignAIOutput,
   CampaignAudience,
-  CampaignObjective,
+  CampaignCanonicalContentType,
+  CampaignListItem,
+  CampaignReadableContentType,
   ProductPositioning,
-  CampaignListItem
 } from "./types";
+import type { CampaignObjective } from "@/lib/constants/strategy";
 import { StoreContext } from "@/lib/domain/stores/types";
 import * as selectors from "./selectors";
 
 type AIData = z.infer<typeof CampaignAISchema>;
 
-/**
- * Normaliza o conteúdo gerado pela IA.
- */
+export function normalizeCampaignContentType(
+  value: unknown
+): CampaignCanonicalContentType {
+  if (value === "service") return "service";
+  if (value === "info" || value === "message") return "message";
+  return "product";
+}
+
+export function buildCampaignContentTypeWrite(
+  value: unknown,
+  existingLegacyContentType?: unknown
+): {
+  content_type: CampaignReadableContentType;
+  legacy_content_type: string | null;
+} {
+  const content_type = normalizeCampaignContentType(value);
+  const persistedLegacy =
+    typeof existingLegacyContentType === "string" && existingLegacyContentType.trim().length > 0
+      ? existingLegacyContentType
+      : null;
+
+  if (value === "info") {
+    return {
+      content_type: "info",
+      legacy_content_type: "info",
+    };
+  }
+
+  if (content_type === "message") {
+    return {
+      content_type: "info",
+      legacy_content_type: "info",
+    };
+  }
+
+  return {
+    content_type,
+    legacy_content_type: null,
+  };
+}
+
+function resolveCampaignLegacyContentType(
+  rawContentType: CampaignReadableContentType | null,
+  storedLegacyContentType?: string | null
+): string | null {
+  if (typeof storedLegacyContentType === "string" && storedLegacyContentType.trim().length > 0) {
+    return storedLegacyContentType;
+  }
+
+  return rawContentType === "info" ? "info" : null;
+}
+
 export function mapAiCampaignToDomain(
   aiData: AIData,
   campaign: CampaignContext,
@@ -47,11 +97,13 @@ export function mapAiCampaignToDomain(
   };
 }
 
-/**
- * Mapeia uma linha crua do banco para o tipo de domínio Campaign de forma segura.
- */
 export function mapDbCampaignToDomain(data: unknown): Campaign {
   const raw = DbCampaignSchema.parse(data);
+  const contentType = normalizeCampaignContentType(raw.content_type);
+  const legacyContentType = resolveCampaignLegacyContentType(
+    raw.content_type,
+    raw.legacy_content_type
+  );
 
   return {
     id: String(raw.id),
@@ -59,33 +111,32 @@ export function mapDbCampaignToDomain(data: unknown): Campaign {
     product_name: raw.product_name ?? null,
     price: raw.price != null ? Number(raw.price) : null,
     price_label: raw.price_label ?? null,
-    
-    // Casting de segurança com fallbacks (Blindagem de Domínio)
     audience: (raw.audience as CampaignAudience) || null,
     objective: (raw.objective as CampaignObjective) || null,
     product_positioning: (raw.product_positioning as ProductPositioning) || null,
-    
     status: raw.status ?? null,
     campaign_type: raw.campaign_type ?? "both",
-    content_type: raw.content_type ?? "product",
+    content_type: contentType,
+    legacy_content_type: legacyContentType,
+    domain_input:
+      raw.domain_input && typeof raw.domain_input === "object" && !Array.isArray(raw.domain_input)
+        ? raw.domain_input
+        : {},
+    domain_input_version: raw.domain_input_version ?? 1,
     post_status: raw.post_status ?? "none",
     reels_status: raw.reels_status ?? "none",
-
     origin: raw.origin === "plan" ? "plan" : "manual",
     weekly_plan_item_id: raw.weekly_plan_item_id ?? null,
-
     image_url: raw.image_url ?? null,
     product_image_url: raw.product_image_url ?? null,
     headline: raw.headline ?? null,
     body_text: raw.body_text ?? null,
     cta: raw.cta ?? null,
-
     ai_caption: raw.ai_caption ?? null,
     ai_text: raw.ai_text ?? null,
     ai_cta: raw.ai_cta ?? null,
     ai_hashtags: raw.ai_hashtags ?? null,
     ai_generated_at: raw.ai_generated_at ?? null,
-
     reels_hook: raw.reels_hook ?? null,
     reels_script: raw.reels_script ?? null,
     reels_shotlist: Array.isArray(raw.reels_shotlist) ? raw.reels_shotlist : null,
@@ -96,14 +147,10 @@ export function mapDbCampaignToDomain(data: unknown): Campaign {
     reels_cta: raw.reels_cta ?? null,
     reels_hashtags: raw.reels_hashtags ?? null,
     reels_generated_at: raw.reels_generated_at ?? null,
-
     created_at: raw.created_at ? new Date(raw.created_at).toISOString() : new Date().toISOString(),
   };
 }
 
-/**
- * Mapeia dados do banco para o contexto lean usado pela IA.
- */
 export function mapDbCampaignToAIContext(data: unknown, theme?: string | null): CampaignContext {
   const raw = DbCampaignSchema.parse(data);
   return {
@@ -119,9 +166,6 @@ export function mapDbCampaignToAIContext(data: unknown, theme?: string | null): 
   };
 }
 
-/**
- * Mapeia uma campanha do domínio para o formato de preview usado no editor/review.
- */
 export function mapCampaignToPreviewData(
   campaign: Campaign,
   store?: any
@@ -136,7 +180,7 @@ export function mapCampaignToPreviewData(
     hashtags: campaign.ai_hashtags || "",
     price: campaign.price,
     price_label: campaign.price_label,
-    layout: "solid", // default
+    layout: "solid",
     reels_hook: campaign.reels_hook,
     reels_script: campaign.reels_script,
     reels_shotlist: campaign.reels_shotlist,
@@ -157,35 +201,29 @@ export function mapCampaignToPreviewData(
   };
 }
 
-/**
- * Valida e mapeia a resposta da IA de Arte para o formato de preview.
- */
 export function mapAiArtToPreview(
   campaign: Campaign,
   aiResponse: unknown
 ): Partial<any> {
   const ai = CampaignAISchema.parse(aiResponse);
-  
+
   return {
     headline: ai.headline || campaign.product_name || "",
     body_text: ai.text || "",
     cta: ai.cta || "",
     caption: ai.caption || "",
     hashtags: ai.hashtags || "",
-    price_label: (ai.price_label !== undefined && ai.price_label !== null) 
-      ? ai.price_label 
+    price_label: (ai.price_label !== undefined && ai.price_label !== null)
+      ? ai.price_label
       : (campaign.price && Number(campaign.price) > 0 ? "OFERTA" : null),
   };
 }
 
-/**
- * Valida e mapeia a resposta da IA de Reels para o formato de preview.
- */
 export function mapAiReelsToPreview(
   aiResponse: unknown
 ): Partial<any> {
   const reels = CampaignReelsSchema.parse(aiResponse);
-  
+
   return {
     reels_hook: reels.hook || "",
     reels_script: reels.script || "",
@@ -199,9 +237,6 @@ export function mapAiReelsToPreview(
   };
 }
 
-/**
- * Mapeia uma campanha do domínio para o modelo simplificado de lista.
- */
 export function mapCampaignToListItem(c: Campaign): CampaignListItem {
   return {
     id: c.id,
@@ -217,6 +252,8 @@ export function mapCampaignToListItem(c: Campaign): CampaignListItem {
     product_image_url: c.product_image_url || null,
     created_at: c.created_at,
     campaign_type: c.campaign_type,
+    content_type: c.content_type,
+    legacy_content_type: c.legacy_content_type,
     post_status: c.post_status,
     reels_status: c.reels_status,
     ai_text: c.ai_text,

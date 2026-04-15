@@ -1,3 +1,4 @@
+import type { CampaignObjective } from "@/lib/constants/strategy";
 import type { StrategyData } from "./types";
 import { AUDIENCE_OPTIONS, OBJECTIVE_OPTIONS, PRODUCT_POSITIONING_OPTIONS } from "./constants";
 
@@ -14,6 +15,10 @@ export function StrategyFormCard({
     isDisabled = false,
     disableCampaignType = false,
 }: StrategyFormCardProps) {
+    function parseObjectiveValue(value: string): CampaignObjective | "" {
+        return value === "" ? "" : (value as CampaignObjective);
+    }
+
     function updateField<K extends keyof StrategyData>(
         field: K,
         fieldValue: StrategyData[K]
@@ -82,7 +87,7 @@ export function StrategyFormCard({
                     <select
                         id="objective"
                         value={value.objective}
-                        onChange={(e) => updateField("objective", e.target.value)}
+                        onChange={(e) => updateField("objective", parseObjectiveValue(e.target.value))}
                         disabled={isDisabled || value.source === "ai"}
                         className="w-full h-11 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 bg-white disabled:opacity-50 disabled:bg-zinc-50"
                     >

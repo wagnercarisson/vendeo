@@ -1,10 +1,13 @@
+import type { CampaignObjective } from "@/lib/constants/strategy";
+import type { CampaignCanonicalContentType } from "@/lib/domain/campaigns/types";
+
 /** Brief detalhado de um item do plano. */
 export interface WeeklyPlanItemBrief {
   angle: string;
   hook_hint: string;
   cta_hint: string;
   audience: string;
-  objective: string;
+  objective: CampaignObjective;
   product_positioning: string;
 }
 
@@ -14,6 +17,8 @@ export interface WeeklyPlanItem {
   plan_id: string;
   day_of_week: number;
   content_type: "post" | "reels";
+  target_content_type: CampaignCanonicalContentType | null;
+  target_domain_input: Record<string, unknown>;
   theme: string | null;
   recommended_time: string | null;
   campaign_id: string | null;
@@ -43,9 +48,11 @@ export interface WeeklyPlan {
 export interface StrategyItem {
   day_of_week: number;
   audience: string;
-  objective: string;
+  objective: CampaignObjective;
   positioning: string;
   content_type: "post" | "reels";
+  target_content_type?: CampaignCanonicalContentType | null;
+  target_domain_input?: Record<string, unknown>;
   reasoning: string;
 }
 

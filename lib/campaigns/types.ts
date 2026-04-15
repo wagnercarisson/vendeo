@@ -6,7 +6,7 @@ export interface Campaign {
   productName: string | null;
   price: number | null;
   audience: string | null;
-  objective: CampaignObjective | string | null;
+  objective: CampaignObjective | null;
   strategy: CampaignStrategy | string | null;
   productPositioning: string | null;
   status: CampaignStatus | string | null;

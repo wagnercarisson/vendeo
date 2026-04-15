@@ -84,11 +84,19 @@ export function CampaignArtViewer({
 
     const whatsappDisplay = formatWhatsApp(store?.whatsapp || store?.phone);
 
+    const isRenderableImageSrc = (value?: string | null): value is string => {
+        if (!value) return false;
+        return value.startsWith("http://") || value.startsWith("https://") || value.startsWith("/");
+    };
+
+    const renderableImageUrl = isRenderableImageSrc(image_url) ? image_url : "";
+    const renderableLogoUrl = isRenderableImageSrc(store?.logo_url) ? store.logo_url : "";
+
     if (variant === "thumbnail") {
         return (
             <div className="relative h-full w-full overflow-hidden bg-zinc-100">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={image_url || ""} alt="" className="h-full w-full object-cover" />
+                <img src={renderableImageUrl} alt="" className="h-full w-full object-cover" />
                 {formattedPrice && (
                     <div className="absolute bottom-1 right-1 rounded border border-white/20 bg-emerald-600/90 px-1.5 py-0.5 text-[8px] font-bold text-white backdrop-blur shadow-sm">
                         {formattedPrice}
@@ -102,7 +110,7 @@ export function CampaignArtViewer({
         return (
             <div ref={containerRef} className="w-full max-w-md mx-auto aspect-[4/5] relative group overflow-hidden bg-zinc-900 shadow-2xl rounded-lg">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={image_url || ""} alt="" className="h-full w-full object-cover transition-transform duration-1000 group-hover:scale-110" />
+                <img src={renderableImageUrl} alt="" className="h-full w-full object-cover transition-transform duration-1000 group-hover:scale-110" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
                 
                 {(hasEffectivePrice || hasEffectiveLabel) && (
@@ -183,16 +191,16 @@ export function CampaignArtViewer({
             <div ref={containerRef} className="w-full max-w-md mx-auto aspect-[4/5] relative flex bg-zinc-900 shadow-2xl rounded-lg overflow-hidden">
                 <div className="w-[50%] relative overflow-hidden border-r border-white/10">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={image_url || ""} alt="" className="h-full w-full object-cover" />
+                    <img src={renderableImageUrl} alt="" className="h-full w-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/40" />
                 </div>
                 <div className="flex-1 p-5 flex flex-col justify-between text-left relative overflow-hidden">
                     <div className="space-y-4">
                         <div className="flex items-center gap-[5px]">
-                            {store?.logo_url && (
+                            {renderableLogoUrl && (
                                 <div className="h-9 w-9 rounded-full overflow-hidden border border-white/20 shrink-0 shadow-lg">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={store.logo_url} alt="" className="h-full w-full object-cover" />
+                                    <img src={renderableLogoUrl} alt="" className="h-full w-full object-cover" />
                                 </div>
                             )}
                             <span className="text-[10px] font-bold uppercase tracking-[0px]" style={{ color: primary_color }}>
@@ -231,7 +239,7 @@ export function CampaignArtViewer({
                         </div>
 
                         <div className="text-[8px] text-zinc-500 space-y-0.5 border-t border-white/5 pt-3">
-                            <p className="font-bold text-white/70 flex items-center gap-1">
+                            <div className="font-bold text-white/70 flex items-center gap-1">
                                  {/* eslint-disable-next-line @next/next/no-img-element */}
                                  <div ref={whatsappRef} className="flex items-center space-x-1.5 shrink-0">
                                     <div ref={waIconRef} className="text-white">
@@ -239,7 +247,7 @@ export function CampaignArtViewer({
                                     </div>
                                     <span ref={waTextRef} className="inline-block leading-none">{whatsappDisplay}</span>
                                  </div>
-                            </p>
+                            </div>
                             <p className="truncate">{store?.address}</p>
                         </div>
                     </div>
@@ -253,7 +261,7 @@ export function CampaignArtViewer({
         <div ref={containerRef} className="w-full max-w-md mx-auto aspect-[4/5] relative flex flex-col bg-white shadow-2xl rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500 transition-all">
             <div className="relative h-[55%] w-full overflow-hidden shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={image_url || ""} alt="" className="h-full w-full object-cover" />
+                <img src={renderableImageUrl} alt="" className="h-full w-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                 
                 {(hasEffectivePrice || hasEffectiveLabel) && (

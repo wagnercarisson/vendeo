@@ -38,7 +38,9 @@ export async function fetchStoreContext(
       `id, name, city, state,
        brand_positioning, main_segment, tone_of_voice,
        whatsapp, phone, instagram,
-       primary_color, secondary_color, logo_url`
+       address, neighborhood,
+       primary_color, secondary_color, logo_url,
+       brand_profile, brand_profile_version, brand_profile_updated_at`
     )
     .eq("id", storeId)
     .single();

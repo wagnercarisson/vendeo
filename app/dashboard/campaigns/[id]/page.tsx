@@ -4,13 +4,18 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getUserStoreIdOrThrow } from "@/lib/store/getUserStoreId";
 import { CampaignPreviewClient } from "./_components/CampaignPreviewClient";
 import { mapDbCampaignToDomain } from "@/lib/domain/campaigns/mapper";
-import { getSignedImageUrl } from "@/lib/supabase/storage-server";
+import { mapDbStoreToDomain } from "@/lib/domain/stores/mapper";
+import {
+    getApprovedCampaignAssetSignedUrl,
+    getSignedImageUrl,
+} from "@/lib/supabase/storage-server";
 
 export default async function CampaignPreviewPage({
     params,
 }: {
-    params: { id: string };
+    params: Promise<{ id: string }>;
 }) {
+    const { id } = await params;
     const supabase = await createSupabaseServerClient();
     const { storeId } = await getUserStoreIdOrThrow();
 
@@ -22,30 +27,38 @@ export default async function CampaignPreviewPage({
               id, name, city, state,
               brand_positioning, main_segment, tone_of_voice,
               address, neighborhood, phone, whatsapp, instagram,
-              primary_color, secondary_color, logo_url
+                            primary_color, secondary_color, logo_url,
+                            brand_profile, brand_profile_version, brand_profile_updated_at
             )
         `)
-        .eq("id", params.id)
+        .eq("id", id)
         .eq("store_id", storeId)
         .maybeSingle();
 
     if (error || !campaign) return notFound();
 
     const storesRaw = Array.isArray(campaign.stores) ? campaign.stores[0] : campaign.stores || null;
+    const resolvedStore = storesRaw ? mapDbStoreToDomain(storesRaw) : null;
 
     // Assinar URLs de imagem
     const [signedImageUrl, signedProductImageUrl, signedLogoUrl] = await Promise.all([
-        getSignedImageUrl(campaign.image_url),
+        getApprovedCampaignAssetSignedUrl({
+            supabase,
+            campaignId: campaign.id,
+            storeId,
+            assetKind: "post_image",
+            fallbackPathOrUrl: campaign.image_url,
+        }),
         getSignedImageUrl(campaign.product_image_url),
-        getSignedImageUrl(storesRaw?.logo_url),
+        getSignedImageUrl(resolvedStore?.logo_url || null),
     ]);
 
     const normalizedCampaign = {
         ...mapDbCampaignToDomain(campaign),
         image_url: signedImageUrl,
         product_image_url: signedProductImageUrl,
-        stores: storesRaw ? {
-            ...storesRaw,
+        stores: resolvedStore ? {
+            ...resolvedStore,
             logo_url: signedLogoUrl,
         } : null,
     };

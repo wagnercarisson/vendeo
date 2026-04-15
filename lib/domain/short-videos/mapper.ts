@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ShortVideoAISchema } from "./schemas";
 import { ShortVideoContext, ShortVideoAIOutput, ShortVideoShotScene } from "./types";
 import { StoreContext } from "@/lib/domain/stores/types";
+import { normalizeObjective } from "@/lib/formatters/strategyLabels";
 
 type AIData = z.infer<typeof ShortVideoAISchema>;
 
@@ -45,10 +46,10 @@ export function mapDbCampaignToShortVideoContext(raw: any, theme?: string | null
     product_name: String(raw.product_name || "Produto"),
     price: raw.price != null ? String(raw.price) : null,
     audience: String(raw.audience || "Público Geral"),
-    objective: String(raw.objective || "Vendas"),
+    objective: normalizeObjective(String(raw.objective || "")) || "promocao",
     product_positioning: raw.product_positioning ?? null,
     theme: theme ?? null,
-    
+
     reels_generated_at: raw.reels_generated_at ?? null,
     reels_hook: raw.reels_hook ?? null,
     reels_script: raw.reels_script ?? null,

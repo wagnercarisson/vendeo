@@ -1,3 +1,5 @@
+import type { CampaignObjective } from "@/lib/constants/strategy";
+
 /** Campos mínimos de campanha usados pelo gerador de vídeo curto. */
 export interface ShortVideoContext {
   id: string;
@@ -5,7 +7,7 @@ export interface ShortVideoContext {
   product_name: string;
   price: string | null;
   audience: string;
-  objective: string;
+  objective: CampaignObjective;
   product_positioning: string | null;
   /** Tema estratégico vindo do plano (opcional) */
   theme?: string | null;

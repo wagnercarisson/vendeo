@@ -28,6 +28,10 @@ export function LinkCampaignModal({ item, onClose }: Props) {
       reasoning: item.brief?.angle ?? "",
     });
 
+    if (item.target_content_type) {
+      params.set("type", item.target_content_type);
+    }
+
     router.push(`/dashboard/campaigns/new?${params.toString()}`);
   }
 

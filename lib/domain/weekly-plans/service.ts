@@ -17,9 +17,10 @@ import {
   OBJECTIVE_OPTIONS,
   AUDIENCE_OPTIONS,
   PRODUCT_POSITIONING_OPTIONS,
+  type CampaignObjective,
 } from "@/lib/constants/strategy";
 
-import { normalizeStrategyValue } from "@/lib/formatters/strategyLabels";
+import { normalizeObjective, normalizeStrategyValue } from "@/lib/formatters/strategyLabels";
 
 function getLabel(
   value: string,
@@ -48,24 +49,13 @@ export function getWeekStartMondayISO(today = new Date()): string {
 }
 
 function getRecommendedTimeByObjective(
-  objective: string | null | undefined
+  objective: CampaignObjective | null | undefined
 ): string {
-  const normalized = String(objective ?? "").trim().toLowerCase();
-
-  if (
-    normalized.includes("oferta") ||
-    normalized.includes("promo") ||
-    normalized.includes("venda")
-  ) {
+  if (objective === "promocao" || objective === "queima") {
     return "12:30";
   }
 
-  if (
-    normalized.includes("combo") ||
-    normalized.includes("tráfego") ||
-    normalized.includes("trafego") ||
-    normalized.includes("visita")
-  ) {
+  if (objective === "combo" || objective === "visitas") {
     return "18:00";
   }
 
@@ -106,9 +96,7 @@ export async function fetchWeeklyPlan(
 
   const { data: items, error: itemsErr } = await supabaseAdmin
     .from("weekly_plan_items")
-    .select(
-      "id, plan_id, day_of_week, content_type, theme, recommended_time, campaign_id, status, brief, created_at"
-    )
+    .select("*")
     .eq("plan_id", plan.id)
     .order("day_of_week", { ascending: true });
 
@@ -128,14 +116,7 @@ export async function fetchWeeklyPlan(
   if (campaignIds.length) {
     const { data: cData, error: cErr } = await supabaseAdmin
       .from("campaigns")
-      .select(
-        `id, store_id, product_name, price, audience, objective, product_positioning, created_at,
-         status, image_url, product_image_url, headline, body_text, cta,
-         ai_caption, ai_text, ai_cta, ai_hashtags, ai_generated_at,
-         reels_hook, reels_script, reels_shotlist, reels_on_screen_text,
-         reels_audio_suggestion, reels_duration_seconds,
-         reels_caption, reels_cta, reels_hashtags, reels_generated_at`
-      )
+      .select("*")
       .in("id", campaignIds);
 
     if (cErr) throw new Error(cErr.message);
@@ -310,7 +291,7 @@ export async function generateWeeklyPlan(
       angle: `Focar em ${st.reasoning}`,
       hook_hint: "Atenção inicial focada na estratégia",
       cta_hint: "Chamada para ação clara",
-      objective: normalizeStrategyValue(st.objective, OBJECTIVE_OPTIONS),
+      objective: normalizeObjective(st.objective) || "promocao",
       audience: normalizeStrategyValue(st.audience, AUDIENCE_OPTIONS),
       product_positioning: normalizeStrategyValue(
         st.positioning,
@@ -324,6 +305,11 @@ export async function generateWeeklyPlan(
       plan_id: plan.id,
       day_of_week: st.day_of_week,
       content_type: st.content_type,
+      target_content_type: st.target_content_type ?? null,
+      target_domain_input:
+        st.target_domain_input && typeof st.target_domain_input === "object" && !Array.isArray(st.target_domain_input)
+          ? st.target_domain_input
+          : {},
       theme,
       recommended_time: getRecommendedTimeByObjective(st.objective),
       campaign_id: null,

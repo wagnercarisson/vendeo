@@ -16,6 +16,17 @@ export type ChangelogRelease = {
 
 export const changelogData: ChangelogRelease[] = [
     {
+        version: "v1.0.0-beta.7",
+        date: "2026-04-15",
+        title: "Consolidação do Ciclo Inicial e Limpeza de Schema",
+        description: "Entrega completa das stories 1.1 a 1.7, cobrindo o fluxo base, weekly plan, geração, aprovação, feedback e QA. Realizada limpeza de campos obsoletos no schema e alinhamento total com o banco real.",
+        changes: [
+            { type: "feat", scope: "core", description: "Implementação e validação das stories 1.1 a 1.7: fluxo base, weekly plan, geração, aprovação, feedback e QA." },
+            { type: "refactor", scope: "database", description: "Remoção dos campos stores.brand_dna, campaigns.info_subtype e campaigns.branch_scope do schema." },
+            { type: "chore", scope: "database", description: "Alinhamento do schema.sql ao banco real e remoção do snapshot legacy schema.remote-2026-04-15.sql." }
+        ]
+    },
+    {
         version: "v1.0.0-beta.6",
         date: "2026-04-10",
         title: "Motor Visual — Qualidade de Imagem e Refinamento Semântico",

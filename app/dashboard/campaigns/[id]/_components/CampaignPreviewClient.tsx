@@ -24,9 +24,17 @@ import { Campaign as CampaignModel, ActiveTab, ViewMode } from "@/lib/domain/cam
 import { CampaignPreviewData } from "../../new/_components/types";
 import { PreviewReadyState } from "../../new/_components/PreviewReadyState";
 import { renderGraphicToBlob } from "@/lib/graphics/renderer";
-import { mapCampaignToPreviewData, mapAiArtToPreview, mapAiReelsToPreview } from "@/lib/domain/campaigns/mapper";
+import {
+    mapCampaignToPreviewData,
+    mapAiArtToPreview,
+    mapAiReelsToPreview,
+    buildCampaignContentTypeWrite,
+} from "@/lib/domain/campaigns/mapper";
 import * as selectors from "@/lib/domain/campaigns/selectors";
-import { getSignedUrlAction } from "@/lib/supabase/storage-actions";
+import {
+    getSignedUrlAction,
+    registerApprovedAssetAction,
+} from "@/lib/supabase/storage-actions";
 
 export type Campaign = CampaignModel & {
     stores?: Store | null;
@@ -147,7 +155,7 @@ export function CampaignPreviewClient({
 
     const canGenerate = !!(
         campaign.product_name &&
-        campaign.price != null &&
+        (campaign.content_type === "message" || campaign.price != null) &&
         campaign.audience &&
         campaign.objective
     );
@@ -183,8 +191,30 @@ export function CampaignPreviewClient({
             product_positioning: data.product_positioning,
             product_image_url: data.product_image_url,
             body_text: data.description,
-            content_type: data.content_type,
+            ...buildCampaignContentTypeWrite(data.content_type, campaign.legacy_content_type),
         };
+    }
+
+    function resolveObjectiveForSave(
+        objective: CampaignSavePayload["objective"] | "" | null | undefined
+    ): CampaignSavePayload["objective"] {
+        if (!objective) {
+            throw new Error("objective_required");
+        }
+
+        return objective;
+    }
+
+    async function resolvePreviewImageUrl(
+        imageUrl: string | null | undefined,
+        fallbackUrl?: string | null
+    ) {
+        if (!imageUrl) {
+            return fallbackUrl || "";
+        }
+
+        const signedUrl = await getSignedUrlAction(imageUrl);
+        return signedUrl || fallbackUrl || "";
     }
 
     async function executeSaveBaseFields(data: CampaignSavePayload, shouldRegenerate: boolean = false) {
@@ -272,7 +302,7 @@ export function CampaignPreviewClient({
                 reels_caption: data.reels_caption,
                 reels_cta: data.reels_cta,
                 reels_hashtags: data.reels_hashtags,
-                content_type: data.content_type,
+                ...buildCampaignContentTypeWrite(data.content_type, campaign.legacy_content_type),
                 status: "approved" as const,
             };
 
@@ -337,7 +367,9 @@ export function CampaignPreviewClient({
                             description: overrides?.description ?? campaign.body_text ?? "",
                             price: overrides?.price ?? campaign.price ?? null,
                             audience: overrides?.audience ?? campaign.audience ?? "",
-                            objective: overrides?.objective ?? campaign.objective ?? "",
+                            objective: resolveObjectiveForSave(
+                                overrides?.objective ?? campaign.objective
+                            ),
                             product_positioning:
                                 overrides?.product_positioning ?? campaign.product_positioning ?? "",
                             product_image_url:
@@ -371,11 +403,15 @@ export function CampaignPreviewClient({
 
             const aiOutput = genData.output;
             const mappedArt = mapAiArtToPreview(campaign as any, aiOutput);
+            const previewImageUrl = await resolvePreviewImageUrl(
+                overrides?.product_image_url || campaign.product_image_url,
+                previewData?.image_url
+            );
 
             setPreviewData((prev) => ({
                 ...prev,
                 ...mappedArt,
-                image_url: overrides?.product_image_url || campaign.product_image_url || prev?.image_url || "",
+                image_url: previewImageUrl,
                 price: overrides?.price !== undefined ? overrides.price : campaign.price,
                 layout: "solid",
                 store: campaign.stores
@@ -573,48 +609,88 @@ export function CampaignPreviewClient({
 
                 if (upErr) throw upErr;
 
-                // Em conformidade com auditoria Dia 7: Usar Signed URL em vez de PublicUrl
-                const signedUrl = await getSignedUrlAction(path);
-                finalImageUrl = signedUrl || "";
-            }
+                // Persistimos o path do storage; a assinatura deve ser gerada sob demanda.
+                finalImageUrl = path;
 
-            const artData = {
-                price:
-                    typeof previewData.price === "string"
-                        ? parseFloat(previewData.price.replace(",", ".")) || 0
-                        : previewData.price,
-                body_text: campaign.body_text, // Preservar detalhes do produto
-                audience: campaign.audience,
-                objective: campaign.objective,
-                product_positioning: campaign.product_positioning,
-                product_image_url: campaign.product_image_url,
-                headline: previewData.headline,
-                ai_text: previewData.body_text,
-                ai_cta: previewData.cta,
-                ai_caption: previewData.caption,
-                ai_hashtags: previewData.hashtags,
-                image_url: finalImageUrl,
-                ai_generated_at: new Date().toISOString(),
-                status: "approved" as const,
-                post_status: "approved" as const,
-            };
+                const { data: publicUrlData } = supabase.storage
+                    .from("campaign-images")
+                    .getPublicUrl(path);
 
-            const videoPayload = {
-                reels_hook: previewData.reels_hook,
-                reels_script: previewData.reels_script,
-                reels_shotlist: previewData.reels_shotlist,
-                reels_on_screen_text: previewData.reels_on_screen_text,
-                reels_audio_suggestion: previewData.reels_audio_suggestion,
-                reels_duration_seconds: previewData.reels_duration_seconds,
-                reels_caption: previewData.reels_caption,
-                reels_cta: previewData.reels_cta,
-                reels_hashtags: previewData.reels_hashtags,
-                reels_generated_at: new Date().toISOString(),
-                status: "approved" as const,
-                reels_status: "approved" as const,
-            };
+                const publicUrlLegacy = publicUrlData.publicUrl || null;
 
-            if (activeTab === "video") {
+                const artData = {
+                    price:
+                        typeof previewData.price === "string"
+                            ? parseFloat(previewData.price.replace(",", ".")) || 0
+                            : previewData.price,
+                    body_text: campaign.body_text,
+                    audience: campaign.audience,
+                    objective: campaign.objective,
+                    product_positioning: campaign.product_positioning,
+                    product_image_url: campaign.product_image_url,
+                    headline: previewData.headline,
+                    ai_text: previewData.body_text,
+                    ai_cta: previewData.cta,
+                    ai_caption: previewData.caption,
+                    ai_hashtags: previewData.hashtags,
+                    image_url: finalImageUrl,
+                    ai_generated_at: new Date().toISOString(),
+                    status: "approved" as const,
+                    post_status: "approved" as const,
+                };
+
+                const newGlobalStatus = selectors.getGlobalStatus({
+                  ...campaign,
+                  post_status: "approved"
+                } as any);
+
+                const { error: dbErr } = await supabase
+                    .from("campaigns")
+                    .update({
+                        ...artData,
+                        status: newGlobalStatus
+                    })
+                    .eq("id", campaign.id);
+
+                if (dbErr) throw dbErr;
+
+                await registerApprovedAssetAction({
+                    campaignId: campaign.id,
+                    storeId: campaign.store_id,
+                    assetKind: "post_image",
+                    storageBucket: "campaign-images",
+                    storagePath: path,
+                    publicUrlLegacy,
+                    generationSource: "campaign_approval",
+                    visualSnapshot: {
+                        layout: previewData.layout || "solid",
+                        headline: previewData.headline,
+                        body_text: previewData.body_text,
+                        cta: previewData.cta,
+                        caption: previewData.caption,
+                        hashtags: previewData.hashtags,
+                        price: previewData.price,
+                        price_label: previewData.price_label,
+                    },
+                });
+
+                setLocalPostStatus("approved");
+            } else {
+                const videoPayload = {
+                    reels_hook: previewData.reels_hook,
+                    reels_script: previewData.reels_script,
+                    reels_shotlist: previewData.reels_shotlist,
+                    reels_on_screen_text: previewData.reels_on_screen_text,
+                    reels_audio_suggestion: previewData.reels_audio_suggestion,
+                    reels_duration_seconds: previewData.reels_duration_seconds,
+                    reels_caption: previewData.reels_caption,
+                    reels_cta: previewData.reels_cta,
+                    reels_hashtags: previewData.reels_hashtags,
+                    reels_generated_at: new Date().toISOString(),
+                    status: "approved" as const,
+                    reels_status: "approved" as const,
+                };
+
                 const newGlobalStatus = selectors.getGlobalStatus({
                   ...campaign,
                   reels_status: "approved"
@@ -630,22 +706,6 @@ export function CampaignPreviewClient({
 
                 if (videoErr) throw videoErr;
                 setLocalReelsStatus("approved");
-            } else {
-                const newGlobalStatus = selectors.getGlobalStatus({
-                  ...campaign,
-                  post_status: "approved"
-                } as any);
-
-                const { error: dbErr } = await supabase
-                    .from("campaigns")
-                    .update({
-                        ...artData,
-                        status: newGlobalStatus
-                    })
-                    .eq("id", campaign.id);
-
-                if (dbErr) throw dbErr;
-                setLocalPostStatus("approved");
             }
 
             setIsEditingBase(false);
@@ -730,7 +790,9 @@ export function CampaignPreviewClient({
                             description: overrides?.description ?? campaign.body_text ?? "",
                             price: overrides?.price ?? campaign.price ?? null,
                             audience: overrides?.audience ?? campaign.audience ?? "",
-                            objective: overrides?.objective ?? campaign.objective ?? "",
+                            objective: resolveObjectiveForSave(
+                                overrides?.objective ?? campaign.objective
+                            ),
                             product_positioning:
                                 overrides?.product_positioning ?? campaign.product_positioning ?? "",
                             product_image_url:
@@ -763,11 +825,15 @@ export function CampaignPreviewClient({
             }
             const reels = genData.reels;
             const mappedReels = mapAiReelsToPreview(reels);
+            const previewImageUrl = await resolvePreviewImageUrl(
+                overrides?.product_image_url || campaign.product_image_url,
+                previewData?.image_url
+            );
 
             setPreviewData((prev) => ({
                 ...prev,
                 ...mappedReels,
-                image_url: overrides?.product_image_url || campaign.product_image_url || prev?.image_url || "",
+                image_url: previewImageUrl,
                 headline: overrides?.product_name || campaign.product_name || prev?.headline || "",
                 price: overrides?.price !== undefined ? overrides.price : campaign.price,
                 store: campaign.stores

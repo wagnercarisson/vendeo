@@ -1,7 +1,8 @@
 import { 
     AUDIENCE_OPTIONS, 
     OBJECTIVE_OPTIONS, 
-    PRODUCT_POSITIONING_OPTIONS 
+    PRODUCT_POSITIONING_OPTIONS,
+    CampaignObjective,
 } from "@/lib/constants/strategy";
 
 export function formatAudience(value?: string | null) {
@@ -68,7 +69,47 @@ export function normalizeAudience(input?: string | null) {
 }
 
 export function normalizeObjective(input?: string | null) {
-    return normalizeStrategyValue(input, OBJECTIVE_OPTIONS);
+    if (!input) return "";
+
+    const normalizedInput = input.trim().toLowerCase();
+
+    const aliases: Record<string, CampaignObjective> = {
+        promo: "promocao",
+        "promoção": "promocao",
+        promocao: "promocao",
+        promocoes: "promocao",
+        "promoções": "promocao",
+        lancamento: "novidade",
+        "lançamento": "novidade",
+        novidade: "novidade",
+        "chegou hoje": "novidade",
+        queima: "queima",
+        sazonal: "sazonal",
+        reposicao: "reposicao",
+        reposição: "reposicao",
+        combo: "combo",
+        engajamento: "engajamento",
+        visitas: "visitas",
+        trafego: "visitas",
+        "tráfego": "visitas",
+        informativo: "informativo",
+        informacao: "informativo",
+        informação: "informativo",
+        institucional: "institucional",
+        reconhecimento: "institucional",
+        autoridade: "autoridade",
+        consideracao: "autoridade",
+        consideração: "autoridade",
+    };
+
+    if (aliases[normalizedInput]) {
+        return aliases[normalizedInput];
+    }
+
+    const normalized = normalizeStrategyValue(input, OBJECTIVE_OPTIONS);
+    return OBJECTIVE_OPTIONS.some((opt) => opt.value === normalized)
+        ? (normalized as CampaignObjective)
+        : "";
 }
 
 export function normalizePositioning(input?: string | null) {

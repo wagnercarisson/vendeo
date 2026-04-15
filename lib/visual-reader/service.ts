@@ -1,11 +1,12 @@
-import { callAI, callAIWithRetry, parseJsonFirstObject } from "@/lib/ai/parse";
+import { callAI, parseJsonFirstObject } from "@/lib/ai/parse";
 import {
   VisualReaderInput,
-  VisualReaderOutput,
-  VisualReaderOutputSchema,
+  VisualReaderInputSchema,
+  VisualReaderResult,
+  VisualReaderSchema,
   DEFAULT_VISUAL_READER_OUTPUT,
 } from "./contracts";
-import { buildVisualReaderPrompt } from "./prompts";
+import { VISUAL_READER_SYSTEM_PROMPT } from "./prompts";
 
 export type VisualCropInput = {
   imageWidth: number;
@@ -31,7 +32,7 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-function buildDefaultOutput(reasoningSummary?: string): VisualReaderOutput {
+function buildDefaultOutput(reasoningSummary?: string): VisualReaderResult {
   return {
     ...DEFAULT_VISUAL_READER_OUTPUT,
     ignoredElements: [...DEFAULT_VISUAL_READER_OUTPUT.ignoredElements],
@@ -40,7 +41,7 @@ function buildDefaultOutput(reasoningSummary?: string): VisualReaderOutput {
   };
 }
 
-function cloneOutput(output: VisualReaderOutput): VisualReaderOutput {
+function cloneOutput(output: VisualReaderResult): VisualReaderResult {
   return {
     ...output,
     ignoredElements: [...output.ignoredElements],
@@ -48,12 +49,12 @@ function cloneOutput(output: VisualReaderOutput): VisualReaderOutput {
   };
 }
 
-function getBoxArea(box: NonNullable<VisualReaderOutput["targetBox"]>): number {
+function getBoxArea(box: NonNullable<VisualReaderResult["targetBox"]>): number {
   return box.width * box.height;
 }
 
 function isValidNormalizedBox(
-  box: NonNullable<VisualReaderOutput["targetBox"]>
+  box: NonNullable<VisualReaderResult["targetBox"]>
 ): boolean {
   if (box.x < 0 || box.x > 1) return false;
   if (box.y < 0 || box.y > 1) return false;
@@ -65,8 +66,8 @@ function isValidNormalizedBox(
 }
 
 function normalizeMatchConsistency(
-  output: VisualReaderOutput
-): VisualReaderOutput {
+  output: VisualReaderResult
+): VisualReaderResult {
   // fallback defensivo
   if (!output.matchType) {
     output.matchType = "none";
@@ -118,7 +119,7 @@ function normalizeMatchConsistency(
   return output;
 }
 
-function normalizeBox(output: VisualReaderOutput): VisualReaderOutput {
+function normalizeBox(output: VisualReaderResult): VisualReaderResult {
   if (!output.targetBox) return output;
 
   let { x, y, width, height } = output.targetBox;
@@ -162,8 +163,8 @@ function normalizeBox(output: VisualReaderOutput): VisualReaderOutput {
 }
 
 function validateBoxValidity(
-  output: VisualReaderOutput
-): VisualReaderOutput {
+  output: VisualReaderResult
+): VisualReaderResult {
   if (!output.targetBox) return output;
 
   if (!isValidNormalizedBox(output.targetBox)) {
@@ -191,7 +192,13 @@ function validateBoxValidity(
   }
 
   // Box 1:1 só deve ser barrada quando a cena não é full_scene
-  if (isFullBox && output.sceneType !== "full_scene") {
+  const allowFullBox =
+    output.sceneType === "full_scene" ||
+    output.sceneType === "single_product" ||
+    output.matchType === "exact" ||
+    output.confidence === "high";
+
+  if (isFullBox && !allowFullBox) {
     return buildDefaultOutput(
       "Inconsistência detectada: bounding box ocupando a imagem inteira sem alvo útil."
     );
@@ -200,7 +207,7 @@ function validateBoxValidity(
   return output;
 }
 
-function normalizeSceneType(output: VisualReaderOutput): VisualReaderOutput {
+function normalizeSceneType(output: VisualReaderResult): VisualReaderResult {
   // Se há mais de um alvo compatível, certamente é múltiplo
   if (output.sceneType === "single_product" && output.relevantCount > 1) {
     output.sceneType = "multiple_products";
@@ -218,7 +225,7 @@ function normalizeSceneType(output: VisualReaderOutput): VisualReaderOutput {
   return output;
 }
 
-function normalizeOccupancy(output: VisualReaderOutput): VisualReaderOutput {
+function normalizeOccupancy(output: VisualReaderResult): VisualReaderResult {
   if (!output.targetBox) return output;
 
   const area = getBoxArea(output.targetBox);
@@ -238,7 +245,7 @@ function normalizeOccupancy(output: VisualReaderOutput): VisualReaderOutput {
   return output;
 }
 
-function normalizePosition(output: VisualReaderOutput): VisualReaderOutput {
+function normalizePosition(output: VisualReaderResult): VisualReaderResult {
   if (!output.targetBox) return output;
 
   const x = output.targetBox.x;
@@ -255,7 +262,7 @@ function normalizePosition(output: VisualReaderOutput): VisualReaderOutput {
   return output;
 }
 
-function normalizeMatchedTarget(output: VisualReaderOutput): VisualReaderOutput {
+function normalizeMatchedTarget(output: VisualReaderResult): VisualReaderResult {
   if (output.matchType === "none") {
     output.matchedTarget = null;
     return output;
@@ -268,7 +275,7 @@ function normalizeMatchedTarget(output: VisualReaderOutput): VisualReaderOutput 
   return output;
 }
 
-function validatePostModelLogic(output: VisualReaderOutput): VisualReaderOutput {
+function validatePostModelLogic(output: VisualReaderResult): VisualReaderResult {
   let normalized = cloneOutput(output);
 
   normalized = normalizeMatchConsistency(normalized);
@@ -358,48 +365,52 @@ export function buildVisualCrop(input: VisualCropInput): VisualCropOutput {
 
 export async function readVisualTarget(
   input: VisualReaderInput
-): Promise<VisualReaderOutput> {
-  const prompt = buildVisualReaderPrompt(input);
-  const ai_model = "gpt-5.4-mini"; // usar modelo mais leve, pois o prompt é bem específico e queremos otimizar custo e latência  
-
-  try {
-    const raw = await callAIWithRetry(prompt, VisualReaderOutputSchema, {
-      model: ai_model,
-      temperature: 0.2,
-      timeoutMs: 25000,
-      imageUrl: input.imageUrl,
-    });
-
-    return validatePostModelLogic(raw.data);
-  } catch {
-    try {
-      const fallbackAttempt = await callAI(
-        [
-          {
-            role: "system",
-            content:
-              "Responda somente com JSON válido, sem markdown, sem comentários e obedecendo exatamente o schema solicitado.",
-          },
-          { role: "user", content: prompt },
-        ],
-        {
-          model: ai_model,
-          temperature: 0.2,
-          timeoutMs: 25000,
-          imageUrl: input.imageUrl,
-        }
-      );
-
-      const parsed = parseJsonFirstObject(fallbackAttempt);
-      const safe = VisualReaderOutputSchema.safeParse(parsed);
-
-      if (safe.success) {
-        return validatePostModelLogic(safe.data);
-      }
-    } catch {
-      // ignora falha secundária
-    }
+): Promise<VisualReaderResult> {
+  const validatedInput = VisualReaderInputSchema.safeParse(input);
+  if (!validatedInput.success) {
+    return buildDefaultOutput();
   }
 
-  return buildDefaultOutput();
+  const payload = {
+    targetLabel: validatedInput.data.targetLabel,
+    productName: validatedInput.data.productName ?? null,
+    category: validatedInput.data.category ?? null,
+    campaignType: validatedInput.data.campaignType ?? null,
+    content_type: validatedInput.data.content_type ?? null,
+  };
+
+  const userPrompt = [
+    "Analise a imagem com base no contexto abaixo.",
+    "Retorne somente JSON puro e valido, sem markdown e sem texto adicional.",
+    JSON.stringify(payload, null, 2),
+  ].join("\n\n");
+
+  try {
+    const raw = await callAI(
+      [
+        { role: "system", content: VISUAL_READER_SYSTEM_PROMPT },
+        { role: "user", content: userPrompt },
+      ],
+      {
+        model: "gpt-5.4-mini",
+        temperature: 0.2,
+        timeoutMs: 25000,
+        imageUrl: validatedInput.data.imageUrl,
+      }
+    );
+
+    const parsed = parseJsonFirstObject(raw);
+    const safe = VisualReaderSchema.safeParse(parsed);
+    if (!safe.success) {
+      console.error("[VisualReader] schema validation failed", {
+        issues: safe.error.issues,
+        parsed,
+      });
+      return buildDefaultOutput();
+    }
+
+    return validatePostModelLogic(safe.data);
+  } catch {
+    return buildDefaultOutput();
+  }
 }

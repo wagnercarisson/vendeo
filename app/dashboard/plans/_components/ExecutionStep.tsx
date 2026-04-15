@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { CheckCircle2, Sparkles, Video, ArrowRight, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { WeeklyPlanItem } from "@/lib/domain/weekly-plans/types";
+import type { CampaignObjective } from "@/lib/constants/strategy";
 import { formatAudience, formatObjective, formatPositioning, normalizeAudience, normalizeObjective, normalizePositioning } from "@/lib/formatters/strategyLabels";
 
 type CampaignSummary = {
@@ -11,7 +12,7 @@ type CampaignSummary = {
   product_name: string;
   status: string | null;
   audience?: string | null;
-  objective?: string | null;
+  objective?: CampaignObjective | null;
   product_positioning?: string | null;
   origin?: "manual" | "plan" | string | null;
 };
@@ -193,6 +194,10 @@ export function ExecutionStep({
             positioning: normalizePositioning(item.brief?.product_positioning),
             reasoning: item.brief?.angle ?? "",
           });
+
+          if (item.target_content_type) {
+            params.set("type", item.target_content_type);
+          }
 
           return (
             <article

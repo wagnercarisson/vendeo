@@ -1,6 +1,15 @@
 import { getUserStoreIdOrThrow } from "@/lib/store/getUserStoreId";
 import { NextResponse } from "next/server";
 import { getOpenAI } from "@/lib/ai/client";
+import {
+  AUDIENCE_OPTIONS,
+  OBJECTIVE_VALUES,
+  PRODUCT_POSITIONING_OPTIONS,
+} from "@/lib/constants/strategy";
+
+const AUDIENCE_PROMPT_VALUES = AUDIENCE_OPTIONS.map((option) => `"${option.value}"`).join(", ");
+const OBJECTIVE_PROMPT_VALUES = OBJECTIVE_VALUES.map((value) => `"${value}"`).join(", ");
+const POSITIONING_PROMPT_VALUES = PRODUCT_POSITIONING_OPTIONS.map((option) => `"${option.value}"`).join(", ");
 
 export async function POST(req: Request) {
   const openai = getOpenAI();
@@ -24,13 +33,14 @@ PREÇO: ${product.price || "não informado"}
 REGRAS DE CONTEÚDO (ESCOLHA OBRIGATORIAMENTE DAS OPÇÕES ABAIXO):
 
 1. PÚBLICO (audience):
-Opções: "geral", "jovens_festa", "familia", "infantil", "maes_pais", "mulheres", "homens", "fitness", "terceira_idade", "premium_exigente", "economico", "b2b"
+Opções: ${AUDIENCE_PROMPT_VALUES}
 
 2. OBJETIVO (objective):
-Opções: "promocao", "novidade", "queima", "sazonal", "reposicao", "combo", "engajamento", "visitas"
+Opções: ${OBJECTIVE_PROMPT_VALUES}
+Use "novidade" quando a intenção for lançamento/chegada recente. Não use "lancamento" como valor.
 
 3. POSICIONAMENTO (productPositioning):
-Opções: "popular", "medio", "premium", "jovem", "familia"
+Opções: ${POSITIONING_PROMPT_VALUES}
 
 4. REASONING: Explique em 2 frases curtas POR QUE essa combinação vai ajudar o lojista a vender.
 

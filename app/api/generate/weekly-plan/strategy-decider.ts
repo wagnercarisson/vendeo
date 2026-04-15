@@ -1,4 +1,9 @@
-import { AUDIENCE_OPTIONS, OBJECTIVE_OPTIONS, PRODUCT_POSITIONING_OPTIONS } from "@/app/dashboard/campaigns/new/_components/constants";
+import {
+    AUDIENCE_OPTIONS,
+    OBJECTIVE_OPTIONS,
+    PRODUCT_POSITIONING_OPTIONS,
+    type CampaignObjective,
+} from "@/lib/constants/strategy";
 
 type DeciderOptions = {
     selectedDays: number[];
@@ -17,7 +22,7 @@ export type AlgorithmGeneratedItem = {
         hook_hint: string;
         cta_hint: string;
         audience: string;
-        objective: string;
+        objective: CampaignObjective;
         product_positioning: string;
     };
 };
@@ -49,7 +54,7 @@ export function generateDailyItems(
     else if (positioning === "premium") audience = "premium_exigente";
     else if (positioning === "popular") audience = "economico";
 
-    const getObjectiveLabel = (obj: string) => OBJECTIVE_OPTIONS.find(o => o.value === obj)?.label || obj;
+    const getObjectiveLabel = (obj: CampaignObjective) => OBJECTIVE_OPTIONS.find(o => o.value === obj)?.label || obj;
     const getAudienceLabel = (aud: string) => AUDIENCE_OPTIONS.find(o => o.value === aud)?.label || aud;
     const getPositioningLabel = (pos: string) => PRODUCT_POSITIONING_OPTIONS.find(o => o.value === pos)?.label || pos;
 
@@ -57,7 +62,7 @@ export function generateDailyItems(
 
     return daysToGenerate.map((day) => {
         // 3. Objective
-        let objective = "engajamento"; // fallback útil
+        let objective: CampaignObjective = "engajamento";
         
         // Se tem feriado no dia
         if (holidayMap[day]) {

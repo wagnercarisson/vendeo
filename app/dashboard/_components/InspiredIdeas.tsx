@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import type { CampaignObjective } from "@/lib/constants/strategy";
 
 type Idea = {
     icon: string;
@@ -9,8 +10,8 @@ type Idea = {
     title: string;
     description: string;
     params: {
-        type: "product" | "service" | "info";
-        objective: string;
+        type: "product" | "service" | "message";
+        objective: CampaignObjective;
         audience: string;
         positioning: string;
     };

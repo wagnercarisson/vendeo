@@ -3,14 +3,14 @@
  * Esta é a fonte única da verdade para objetivos, status e estratégias.
  */
 
-export const CAMPAIGN_OBJECTIVES = [
-  'VENDAS',
-  'RECONHECIMENTO',
-  'TRAFEGO',
-  'CONSIDERAÇÃO'
-] as const;
+import {
+  OBJECTIVE_VALUES,
+  type CampaignObjective as OfficialCampaignObjective,
+} from "../constants/strategy";
 
-export type CampaignObjective = (typeof CAMPAIGN_OBJECTIVES)[number];
+export const CAMPAIGN_OBJECTIVES = OBJECTIVE_VALUES;
+
+export type CampaignObjective = OfficialCampaignObjective;
 
 export const CAMPAIGN_STATUS = [
   'RASCUNHO',

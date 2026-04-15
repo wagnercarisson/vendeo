@@ -19,6 +19,7 @@ import {
   FileText,
 } from "lucide-react";
 import { mapDbCampaignToDomain, mapCampaignToListItem } from "@/lib/domain/campaigns/mapper";
+import { buildCampaignContentTypeWrite } from "@/lib/domain/campaigns/mapper";
 import { MotionWrapper } from "../_components/MotionWrapper";
 import { PostModal, ReelsModal } from "./_components/CampaignModals";
 import { formatAudience, formatObjective } from "@/lib/formatters/strategyLabels";
@@ -99,6 +100,7 @@ export default function CampaignsPage() {
             objective: c.objective,
             product_positioning: c.product_positioning,
             product_image_url: c.product_image_url,
+            ...buildCampaignContentTypeWrite(c.content_type, c.legacy_content_type),
             status: "draft",
           },
         ])

@@ -1,20 +1,33 @@
 import { z } from "zod";
+import { OBJECTIVE_VALUES } from "@/lib/constants/strategy";
+import { normalizeObjective } from "@/lib/formatters/strategyLabels";
+
+const CampaignObjectiveSchema = z.preprocess(
+  (value) => {
+    if (value == null || value === "") return value;
+    const normalized = normalizeObjective(String(value));
+    return normalized || value;
+  },
+  z.enum(OBJECTIVE_VALUES)
+);
 
 export const WeeklyPlanItemBriefSchema = z.object({
   angle: z.string(),
   hook_hint: z.string(),
   cta_hint: z.string(),
   audience: z.string(),
-  objective: z.string(),
+  objective: CampaignObjectiveSchema,
   product_positioning: z.string(),
 });
 
 export const StrategyItemSchema = z.object({
   day_of_week: z.number().int().min(1).max(7),
   audience: z.string().min(1),
-  objective: z.string().min(1),
+  objective: CampaignObjectiveSchema,
   positioning: z.string().min(1),
   content_type: z.enum(["post", "reels"]),
+  target_content_type: z.enum(["product", "service", "message", "info"]).nullable().optional(),
+  target_domain_input: z.record(z.unknown()).optional().default({}),
   reasoning: z.string().min(1),
 });
 

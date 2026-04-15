@@ -71,12 +71,27 @@ export const isStrategyLocked = (c: Campaign | any): boolean => isFromPlan(c);
  * Retorna o label estratégico (Regra 1.12 - Inferido do objetivo)
  */
 export const getStrategicLabel = (c: Campaign | any): string => {
-  const o = (c.objective || "").toLowerCase();
-  if (o.includes("promocao") || o.includes("queima")) return "OFERTA";
-  if (o.includes("combo")) return "COMBO";
-  if (o.includes("sazonal")) return "MOMENTO";
-  if (o.includes("presente") || o.includes("gift")) return "PRESENTE";
-  return "DESTAQUE";
+  switch (c.objective) {
+    case "promocao":
+    case "queima":
+      return "OFERTA";
+    case "combo":
+      return "COMBO";
+    case "sazonal":
+      return "MOMENTO";
+    case "visitas":
+      return "VISITAS";
+    case "engajamento":
+      return "ENGAJAMENTO";
+    case "informativo":
+      return "INFO";
+    case "institucional":
+      return "MARCA";
+    case "autoridade":
+      return "AUTORIDADE";
+    default:
+      return "DESTAQUE";
+  }
 };
 
 export interface DisplayBadge {

@@ -7,7 +7,6 @@ import { getSignedUrlAction } from "@/lib/supabase/storage-actions";
 import type { CampaignFormData, CampaignContentType } from "./types";
 import { formatBRLMask } from "@/lib/formatters/priceMask";
 
-
 type ProductFormCardProps = {
     value: CampaignFormData;
     storeId?: string;
@@ -42,7 +41,7 @@ export function ProductFormCard({
     const contentTypes: { id: CampaignContentType; label: string; icon: any; comingSoon?: boolean }[] = [
         { id: "product", label: "Produto", icon: Package },
         { id: "service", label: "Serviço", icon: Ruler },
-        { id: "info", label: "Aviso", icon: Megaphone, comingSoon: true },
+        { id: "message", label: "Aviso", icon: Megaphone, comingSoon: true },
     ];
 
     const labels = {
@@ -58,7 +57,7 @@ export function ProductFormCard({
             descLabel: "Detalhes (opcional)",
             descPlaceholder: "Ex.: Lavagem externa, aspiração e pretinho..."
         },
-        info: { 
+        message: { 
             title: "Nome da Oferta *", 
             placeholder: "Ex.: Novo Horário de Atendimento",
             descLabel: "Detalhes (opcional)",
@@ -224,7 +223,7 @@ export function ProductFormCard({
                     />
                 </div>
 
-                {value.type !== "info" && (
+                {value.type !== "message" && (
                     <div className="space-y-1.5">
                         <label htmlFor="price" className="text-sm font-medium text-zinc-700">
                             Preço (opcional)

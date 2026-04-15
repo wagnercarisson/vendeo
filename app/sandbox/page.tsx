@@ -4,13 +4,26 @@ import { useRef, useState } from "react";
 
 type TargetBox = { x: number; y: number; width: number; height: number };
 type ReaderOutput = {
-    matchType: string;
+    matchType: "exact" | "category_only" | "none";
     matchedTarget: string | null;
-    confidence: string;
+    confidence: "low" | "medium" | "high";
     detected: boolean;
     reasoningSummary: string;
     targetBox: TargetBox | null;
-    sceneType: string;
+    sceneType: "single_product" | "multiple_products" | "lifestyle_scene" | "full_scene" | "unclear";
+    targetOccupancy: "low" | "medium" | "high" | "full";
+    targetOrientation: "vertical" | "horizontal" | "square" | "mixed" | "unknown";
+    targetPosition: "left" | "center" | "right" | "top" | "bottom" | "mixed" | "unknown";
+    imageQuality: "good" | "acceptable" | "poor" | "unknown";
+    visibility: "clear" | "partial" | "obstructed" | "unknown";
+    framing: "good" | "tight" | "distant" | "unknown";
+    backgroundNoise: "low" | "medium" | "high" | "unknown";
+    backgroundType: "transparent" | "solid" | "simple" | "complex" | "unknown";
+    hasBackground: "true" | "false" | "unknown";
+    subjectCutoff: "none" | "light" | "moderate" | "severe" | "unknown";
+    safeExpansionPotential: "low" | "medium" | "high";
+    focusClarity: "low" | "medium" | "high" | "unknown";
+    visualIsolation: "low" | "medium" | "high" | "unknown";
     relevantCount: number;
     ignoredElements: string[];
     [key: string]: unknown;
@@ -23,6 +36,8 @@ export default function VisualReaderSandboxPage() {
     const [targetLabel, setTargetLabel] = useState("");
     const [productName, setProductName] = useState("");
     const [category, setCategory] = useState("");
+    const [campaignType, setCampaignType] = useState<"" | "single_product" | "multiple_products" | "info">("");
+    const [contentType, setContentType] = useState("");
     const [loading, setLoading] = useState(false);
     const [reader, setReader] = useState<ReaderOutput | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -45,6 +60,8 @@ export default function VisualReaderSandboxPage() {
                     targetLabel,
                     ...(productName ? { productName } : {}),
                     ...(category ? { category } : {}),
+                    ...(campaignType ? { campaignType } : {}),
+                    ...(contentType ? { content_type: contentType } : {}),
                 }),
             });
             const data = await res.json();
@@ -94,6 +111,29 @@ export default function VisualReaderSandboxPage() {
                     <input type="text" value={category} onChange={(e) => setCategory(e.target.value)}
                         className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm" />
                 </div>
+                <div className="flex flex-col gap-1">
+                    <label className="text-sm text-gray-400">Campaign Type (opcional)</label>
+                    <select
+                        value={campaignType}
+                        onChange={(e) => setCampaignType(e.target.value as "" | "single_product" | "multiple_products" | "info")}
+                        className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm"
+                    >
+                        <option value="">(não informar)</option>
+                        <option value="single_product">single_product</option>
+                        <option value="multiple_products">multiple_products</option>
+                        <option value="info">info</option>
+                    </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                    <label className="text-sm text-gray-400">content_type (opcional)</label>
+                    <input
+                        type="text"
+                        value={contentType}
+                        onChange={(e) => setContentType(e.target.value)}
+                        className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm"
+                        placeholder="ex: info"
+                    />
+                </div>
                 <button type="submit" disabled={loading}
                     className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded px-4 py-2 font-medium text-sm">
                     {loading ? "Analisando..." : "Analisar"}
@@ -109,8 +149,22 @@ export default function VisualReaderSandboxPage() {
                         <div><span className="text-gray-400 block text-xs uppercase">confidence</span><span className="font-mono font-semibold">{reader.confidence}</span></div>
                         <div><span className="text-gray-400 block text-xs uppercase">detected</span><span className="font-mono font-semibold">{String(reader.detected)}</span></div>
                         <div><span className="text-gray-400 block text-xs uppercase">matchedTarget</span><span className="font-mono font-semibold">{reader.matchedTarget ?? "null"}</span></div>
+                        <div><span className="text-gray-400 block text-xs uppercase">sceneType</span><span className="font-mono font-semibold">{reader.sceneType}</span></div>
+                        <div><span className="text-gray-400 block text-xs uppercase">targetOccupancy</span><span className="font-mono font-semibold">{reader.targetOccupancy}</span></div>
+                        <div><span className="text-gray-400 block text-xs uppercase">targetOrientation</span><span className="font-mono font-semibold">{reader.targetOrientation}</span></div>
+                        <div><span className="text-gray-400 block text-xs uppercase">targetPosition</span><span className="font-mono font-semibold">{reader.targetPosition}</span></div>
+                        <div><span className="text-gray-400 block text-xs uppercase">imageQuality</span><span className="font-mono font-semibold">{reader.imageQuality}</span></div>
+                        <div><span className="text-gray-400 block text-xs uppercase">visibility</span><span className="font-mono font-semibold">{reader.visibility}</span></div>
+                        <div><span className="text-gray-400 block text-xs uppercase">framing</span><span className="font-mono font-semibold">{reader.framing}</span></div>
+                        <div><span className="text-gray-400 block text-xs uppercase">backgroundNoise</span><span className="font-mono font-semibold">{reader.backgroundNoise}</span></div>
+                        <div><span className="text-gray-400 block text-xs uppercase">backgroundType</span><span className="font-mono font-semibold">{reader.backgroundType}</span></div>
+                        <div><span className="text-gray-400 block text-xs uppercase">hasBackground</span><span className="font-mono font-semibold">{reader.hasBackground}</span></div>
+                        <div><span className="text-gray-400 block text-xs uppercase">subjectCutoff</span><span className="font-mono font-semibold">{reader.subjectCutoff}</span></div>
+                        <div><span className="text-gray-400 block text-xs uppercase">safeExpansionPotential</span><span className="font-mono font-semibold">{reader.safeExpansionPotential}</span></div>
+                        <div><span className="text-gray-400 block text-xs uppercase">focusClarity</span><span className="font-mono font-semibold">{reader.focusClarity}</span></div>
+                        <div><span className="text-gray-400 block text-xs uppercase">visualIsolation</span><span className="font-mono font-semibold">{reader.visualIsolation}</span></div>
                         {reader.reasoningSummary && (
-                            <div className="col-span-2"><span className="text-gray-400 block text-xs uppercase">reasoning</span><span className="italic text-gray-300">{reader.reasoningSummary}</span></div>
+                            <div className="col-span-2"><span className="text-gray-400 block text-xs uppercase">reasoningSummary</span><span className="italic text-gray-300">{reader.reasoningSummary}</span></div>
                         )}
                     </div>
 

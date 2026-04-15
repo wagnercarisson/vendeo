@@ -1,4 +1,7 @@
-export type CampaignContentType = "product" | "service" | "info";
+import type { CampaignObjective } from "@/lib/constants/strategy";
+import type { CampaignCanonicalContentType } from "@/lib/domain/campaigns/types";
+
+export type CampaignContentType = CampaignCanonicalContentType;
 
 export type CampaignFormData = {
     type: CampaignContentType;
@@ -11,7 +14,7 @@ export type CampaignFormData = {
 
 export type StrategyData = {
     audience: string;
-    objective: string;
+    objective: CampaignObjective | "";
     product_positioning: string;
     reasoning?: string;
     source: "ai" | "manual" | null;

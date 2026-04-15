@@ -3,7 +3,10 @@
 import { useMemo, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { getSignedUrlAction } from "@/lib/supabase/storage-actions";
+import {
+    getSignedUrlAction,
+    registerApprovedAssetAction,
+} from "@/lib/supabase/storage-actions";
 import { NewCampaignHeader } from "./NewCampaignHeader";
 import { ProductFormCard } from "./ProductFormCard";
 import { StrategyFormCard } from "./StrategyFormCard";
@@ -11,6 +14,7 @@ import { GenerateCampaignCard } from "./GenerateCampaignCard";
 import { CampaignPreviewPanel } from "./CampaignPreviewPanel";
 import { renderGraphicToBlob } from "@/lib/graphics/renderer";
 import { MotionWrapper } from "@/app/dashboard/_components/MotionWrapper";
+import { extractStoragePath } from "@/lib/supabase/storage-path";
 import type {
     CampaignGenerationState,
     CampaignPreviewData,
@@ -18,7 +22,17 @@ import type {
     StrategyData,
 } from "./types";
 import { parseBRLToNumber } from "@/lib/formatters/priceMask";
-
+import { normalizeObjective } from "@/lib/formatters/strategyLabels";
+import {
+    buildCampaignContentTypeWrite,
+    normalizeCampaignContentType,
+} from "@/lib/domain/campaigns/mapper";
+import { mapDbStoreToDomain } from "@/lib/domain/stores/mapper";
+import {
+    buildCampaignDomainInputFromWeeklyPlanTarget,
+    normalizeWeeklyPlanTargetContentType,
+    normalizeWeeklyPlanTargetDomainInput,
+} from "@/lib/domain/weekly-plans/mapper";
 
 const INITIAL_CAMPAIGN: CampaignFormData = {
     type: "product",
@@ -78,6 +92,16 @@ export function NewCampaignShell() {
     const [storeId, setStoreId] = useState<string | null>(null);
     const [isRegenerating, setIsRegenerating] = useState(false);
 
+    async function getPlanItemContext(planItemId: string) {
+        const { data } = await supabase
+            .from("weekly_plan_items")
+            .select("*, weekly_plans(status, week_start)")
+            .eq("id", planItemId)
+            .single();
+
+        return data || null;
+    }
+
     useEffect(() => {
         async function fetchStore() {
             const { data: { user } } = await supabase.auth.getUser();
@@ -91,7 +115,7 @@ export function NewCampaignShell() {
 
     useEffect(() => {
         const typeParam = searchParams.get("type");
-        const objectiveParam = searchParams.get("objective");
+        const objectiveParam = normalizeObjective(searchParams.get("objective"));
         const audienceParam = searchParams.get("audience");
         const positioningParam = searchParams.get("positioning");
 
@@ -110,12 +134,7 @@ export function NewCampaignShell() {
         if (typeParam) {
             setProduct((prev) => ({
                 ...prev,
-                type:
-                    typeParam === "product" ||
-                        typeParam === "service" ||
-                        typeParam === "info"
-                        ? typeParam
-                        : prev.type,
+                type: normalizeCampaignContentType(typeParam),
             }));
         }
 
@@ -144,7 +163,6 @@ export function NewCampaignShell() {
         if (planItemIdParam && !objectiveParam && !audienceParam && !positioningParam) {
             setStrategy((prev) => ({
                 ...prev,
-                objective: themeParam || prev.objective,
                 reasoning: "Diretriz automática vinda do Plano Semanal.",
                 source: "ai",
                 generate_post: planFlags.generate_post,
@@ -152,22 +170,29 @@ export function NewCampaignShell() {
             }));
         }
 
-        // Safety check for draft plans
         if (planItemIdParam) {
-            checkPlanStatus(planItemIdParam);
+            hydrateFromPlanItem(planItemIdParam);
         }
 
-        async function checkPlanStatus(id: string) {
-            const { data } = await supabase
-                .from("weekly_plan_items")
-                .select("weekly_plans(status, week_start)")
-                .eq("id", id)
-                .single();
-            
-            const plan = data?.weekly_plans as any;
+        async function hydrateFromPlanItem(id: string) {
+            const planItem = await getPlanItemContext(id);
+            const plan = planItem?.weekly_plans as any;
+
             if (plan?.status === "draft") {
                 alert("Este plano ainda é um rascunho. Por favor, revise e aprove o plano antes de orquestrar campanhas.");
                 router.replace(`/dashboard/plans?view=new&week_start=${plan.week_start}`);
+                return;
+            }
+
+            const plannedTargetType = normalizeWeeklyPlanTargetContentType(
+                planItem?.target_content_type
+            );
+
+            if (plannedTargetType) {
+                setProduct((prev) => ({
+                    ...prev,
+                    type: plannedTargetType,
+                }));
             }
         }
     }, [searchParams, router]);
@@ -262,12 +287,12 @@ export function NewCampaignShell() {
         const { data: fullStore } = await supabase
             .from("stores")
             .select(
-                "name, address, neighborhood, city, state, whatsapp, phone, primary_color, secondary_color, logo_url"
+                "id, name, address, neighborhood, city, state, whatsapp, phone, primary_color, secondary_color, logo_url, brand_profile, brand_profile_version, brand_profile_updated_at"
             )
             .eq("id", storeId)
             .single();
 
-        return fullStore;
+        return fullStore ? mapDbStoreToDomain(fullStore) : null;
     }
 
     async function buildPreview(
@@ -306,9 +331,13 @@ export function NewCampaignShell() {
         const fullStore = await getFullStore(storeId);
 
         const nextImageUrl = finalCampaign.product_image_url || "";
+                const [signedImg, signedLogo] = await Promise.all([
+                    getSignedUrlAction(nextImageUrl),
+                    getSignedUrlAction(fullStore?.logo_url)
+                ]);
 
         setArtPreview({
-            image_url: nextImageUrl,
+                        image_url: signedImg || "",
             headline: finalCampaign.headline || finalCampaign.product_name || "",
             body_text: finalCampaign.ai_text || "",
             cta: finalCampaign.ai_cta || "",
@@ -326,7 +355,7 @@ export function NewCampaignShell() {
                     whatsapp: fullStore.whatsapp || fullStore.phone || "",
                     primary_color: fullStore.primary_color,
                     secondary_color: fullStore.secondary_color,
-                    logo_url: fullStore.logo_url,
+                    logo_url: signedLogo || "",
                 }
                 : undefined,
             reels_hook: reelsRow?.reels_hook || artPreview?.reels_hook || "",
@@ -351,20 +380,6 @@ export function NewCampaignShell() {
             reels_hashtags:
                 reelsRow?.reels_hashtags || artPreview?.reels_hashtags || "",
         });
-
-        // Resolve signed URLs for the preview
-        const [signedImg, signedLogo] = await Promise.all([
-          getSignedUrlAction(nextImageUrl),
-          getSignedUrlAction(fullStore?.logo_url)
-        ]);
-
-        if (signedImg || signedLogo) {
-          setArtPreview(prev => prev ? ({
-            ...prev,
-            image_url: signedImg || prev.image_url,
-            store: prev.store ? { ...prev.store, logo_url: signedLogo || prev.store.logo_url } : prev.store
-          }) : null);
-        }
     }
 
     async function ensureDraftCampaign() {
@@ -372,17 +387,42 @@ export function NewCampaignShell() {
 
         const planItemId = searchParams.get("plan_item_id");
         const isPlanDerived = !!planItemId;
+        const planItemContext = isPlanDerived && planItemId
+            ? await getPlanItemContext(planItemId)
+            : null;
+        const plannedTargetType = normalizeWeeklyPlanTargetContentType(
+            planItemContext?.target_content_type
+        );
+        const effectiveContentType = plannedTargetType || product.type;
+        const contentTypeWrite = buildCampaignContentTypeWrite(effectiveContentType);
+        const normalizedTargetDomainInput = normalizeWeeklyPlanTargetDomainInput(
+            planItemContext?.target_domain_input
+        );
+        const domainInput = isPlanDerived
+            ? buildCampaignDomainInputFromWeeklyPlanTarget({
+                targetContentType: plannedTargetType,
+                targetDomainInput: normalizedTargetDomainInput,
+                productName: product.product_name,
+                price:
+                    !product.price || effectiveContentType === "message"
+                        ? null
+                        : parseBRLToNumber(product.price),
+                priceLabel: product.price_label || null,
+                productPositioning: strategy.product_positioning,
+                productImageUrl: extractStoragePath(product.image_url),
+                description: product.description || null,
+            })
+            : null;
 
         const campaignData = {
             store_id: store.id,
             product_name: product.product_name,
             price:
-                !product.price || product.type === "info"
+                !product.price || effectiveContentType === "message"
                     ? null
                     : parseBRLToNumber(product.price),
             price_label: product.price_label || null,
-
-            product_image_url: product.image_url || null,
+            product_image_url: extractStoragePath(product.image_url),
             audience: strategy.audience,
             objective: strategy.objective,
             product_positioning: strategy.product_positioning,
@@ -390,8 +430,14 @@ export function NewCampaignShell() {
             status: "draft" as const,
             origin: isPlanDerived ? ("plan" as const) : ("manual" as const),
             weekly_plan_item_id: isPlanDerived ? planItemId : null,
-            content_type: product.type,
-            image_url: null, // Limpa arte gerada anterior se houver mudança/rascunho
+            ...contentTypeWrite,
+            ...(domainInput
+                ? {
+                    domain_input: domainInput,
+                    domain_input_version: 1,
+                }
+                : {}),
+            image_url: null,
         };
 
 
@@ -659,13 +705,7 @@ export function NewCampaignShell() {
                     .from("campaign-images")
                     .getPublicUrl(fileName);
 
-                const finalImageUrl = publicUrlData.publicUrl;
-
-                if (!finalImageUrl) {
-                    throw new Error(
-                        "Não conseguimos finalizar a arte. Código: VND-NC-URL-01"
-                    );
-                }
+                const publicUrlLegacy = publicUrlData.publicUrl || null;
 
                 const { error } = await supabase
                     .from("campaigns")
@@ -675,12 +715,12 @@ export function NewCampaignShell() {
                         ai_cta: artPreview.cta,
                         ai_caption: artPreview.caption,
                         ai_hashtags: artPreview.hashtags,
-                        image_url: finalImageUrl,
+                        image_url: fileName,
                         status: "approved",
                         post_status: "approved",
                         reels_status: strategy.generate_reels ? "approved" : "none",
                         price:
-                            (!artPreview.price || product.type === "info")
+                            (!artPreview.price || product.type === "message")
                                 ? null
                                 : typeof artPreview.price === "string"
                                     ? parseFloat(artPreview.price.replace(",", ".")) || 0
@@ -694,6 +734,26 @@ export function NewCampaignShell() {
                         "Não conseguimos salvar sua campanha. Código: VND-NC-SAVE-01"
                     );
                 }
+
+                await registerApprovedAssetAction({
+                    campaignId,
+                    storeId: finalStoreId,
+                    assetKind: "post_image",
+                    storageBucket: "campaign-images",
+                    storagePath: fileName,
+                    publicUrlLegacy,
+                    generationSource: "campaign_approval",
+                    visualSnapshot: {
+                        layout: artPreview.layout || "solid",
+                        headline: artPreview.headline,
+                        body_text: artPreview.body_text,
+                        cta: artPreview.cta,
+                        caption: artPreview.caption,
+                        hashtags: artPreview.hashtags,
+                        price: artPreview.price,
+                        price_label: artPreview.price_label,
+                    },
+                });
             } else {
                 const { error } = await supabase
                     .from("campaigns")
@@ -702,7 +762,7 @@ export function NewCampaignShell() {
                         post_status: "none",
                         reels_status: "approved",
                         price:
-                            (!artPreview.price || product.type === "info")
+                            (!artPreview.price || product.type === "message")
                                 ? null
                                 : typeof artPreview.price === "string"
                                     ? parseFloat(artPreview.price.replace(",", ".")) || 0
@@ -747,7 +807,7 @@ export function NewCampaignShell() {
                 .from("campaigns")
                 .update({
                     price:
-                        product.type === "info"
+                        product.type === "message"
                             ? null
                             : !artPreview.price 
                                 ? null

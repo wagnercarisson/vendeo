@@ -3,8 +3,11 @@
 import React, { useState, useMemo } from "react";
 import { Loader2 } from "lucide-react";
 import { Campaign } from "@/lib/domain/campaigns/types";
+import type { CampaignCanonicalContentType } from "@/lib/domain/campaigns/types";
 import { Store } from "@/lib/domain/stores/types";
+import type { CampaignObjective } from "@/lib/constants/strategy";
 import { formatBRLMask, parseBRLToNumber } from "@/lib/formatters/priceMask";
+import { extractStoragePath } from "@/lib/supabase/storage-path";
 import { StrategyFormCard } from "../../new/_components/StrategyFormCard";
 import { ProductFormCard } from "../../new/_components/ProductFormCard";
 import { MotionWrapper } from "@/app/dashboard/_components/MotionWrapper";
@@ -16,11 +19,11 @@ export type CampaignSavePayload = {
     price: number | null;
     price_label?: string | null;
     audience: string;
-    objective: string;
+    objective: CampaignObjective;
     product_positioning: string;
     product_image_url: string;
     description?: string;
-    content_type: "product" | "service" | "info";
+    content_type: CampaignCanonicalContentType;
     reels_hook?: string;
     reels_script?: string;
     reels_caption?: string;
@@ -82,6 +85,7 @@ export function CampaignEditForm({
     // Estado inicial para detecção de "Dirty State" (Compara com o que veio do banco)
     const initialData = useMemo(() => ({
         product: {
+            type: campaign.content_type || "product",
             product_name: campaign.product_name || "",
             price: campaign.price != null ? formatBRLMask(Math.round(campaign.price * 100).toString()) : "",
             description: campaign.body_text || "",
@@ -98,6 +102,7 @@ export function CampaignEditForm({
 
     const isDirty = useMemo(() => {
         return (
+            formData.type !== initialData.product.type ||
             formData.product_name !== initialData.product.product_name ||
             formData.price !== initialData.product.price ||
             formData.price_label !== initialData.product.price_label ||
@@ -122,17 +127,23 @@ export function CampaignEditForm({
         );
     }, [formData, strategyData]);
 
-    const getSubmissionData = (): CampaignSavePayload => ({
-        product_name: formData.product_name,
-        price: !formData.price ? null : parseBRLToNumber(formData.price),
-        price_label: formData.price_label || null,
-        audience: strategyData.audience,
-        objective: strategyData.objective,
-        product_positioning: strategyData.product_positioning,
-        product_image_url: formData.image_url,
-        description: formData.description,
-        content_type: formData.type,
-    });
+    const getSubmissionData = (): CampaignSavePayload => {
+        if (!strategyData.objective) {
+            throw new Error("objective_required");
+        }
+
+        return {
+            product_name: formData.product_name,
+            price: !formData.price ? null : parseBRLToNumber(formData.price),
+            price_label: formData.price_label || null,
+            audience: strategyData.audience,
+            objective: strategyData.objective,
+            product_positioning: strategyData.product_positioning,
+            product_image_url: extractStoragePath(formData.image_url) || "",
+            description: formData.description,
+            content_type: formData.type,
+        };
+    };
 
 
     return (

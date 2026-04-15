@@ -303,7 +303,7 @@ export default function StorePage() {
       if (!publicUrl) throw new Error("Falha ao obter URL pública da imagem.");
 
       setUploadProgress(100);
-      
+
       const signedUrl = await getSignedUrlAction(path);
       // ✅ IMPORTANTE: Salvar o PATH no banco, não a URL assinada (Etapa 2)
       setLogoUrl(path);
@@ -507,7 +507,7 @@ export default function StorePage() {
 
     const storeData = data as StoreRow;
     const signedLogo = await getSignedUrlAction(storeData.logo_url);
-    
+
     fillFromStore({
       ...storeData,
       logo_url: storeData.logo_url ?? "",

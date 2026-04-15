@@ -1,4 +1,15 @@
 import { z } from 'zod';
+import { OBJECTIVE_VALUES } from "@/lib/constants/strategy";
+import { normalizeObjective } from "@/lib/formatters/strategyLabels";
+
+const CampaignObjectiveSchema = z.preprocess(
+  (value) => {
+    if (value == null || value === "") return null;
+    const normalized = normalizeObjective(String(value));
+    return normalized || value;
+  },
+  z.enum(OBJECTIVE_VALUES).nullable()
+);
 
 /**
  * Zod schemas para validação do domínio de campanhas.
@@ -11,7 +22,7 @@ export const campaignDbRowSchema = z.object({
   product_name: z.string().nullable(),
   price: z.coerce.number().nullable(),
   audience: z.string().nullable(),
-  objective: z.string().nullable(),
+  objective: CampaignObjectiveSchema,
   product_positioning: z.string().nullable(),
   image_url: z.string().nullable(),
   product_image_url: z.string().nullable(),

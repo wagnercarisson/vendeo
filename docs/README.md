@@ -83,6 +83,11 @@ architecture/arquitetura-geral-vendeo-v1.md
 Visão geral da arquitetura do sistema.
 
 
+architecture/arquitetura-alvo-vendeo-v2.md
+
+Arquitetura-alvo oficial para a nova fase do Vendeo, com bounded contexts, contratos entre motores, fontes de verdade, estratégia de persistência e plano de migração do legado.
+
+
 architecture/mapa-sistema-vendeo-v1.md
 
 Mapa estrutural completo do sistema.
