@@ -9,6 +9,32 @@ function isProtectedPath(pathname: string) {
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
+  // --- MODO MANUTENÇÃO ---
+  const maintenanceMode = process.env.MAINTENANCE_MODE === "true";
+
+  // Permite acesso à própria página de manutenção
+  if (pathname === "/maintenance") {
+    // Se NÃO está em manutenção, redireciona para home
+    if (!maintenanceMode) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // Permite acesso a arquivos estáticos
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.match(/\.(ico|png|jpg|jpeg|svg|css|js|woff|woff2|ttf)$/)
+  ) {
+    return NextResponse.next();
+  }
+
+  // Se está em modo manutenção, redireciona para /maintenance
+  if (maintenanceMode) {
+    return NextResponse.redirect(new URL("/maintenance", request.url));
+  }
+  // --- FIM MODO MANUTENÇÃO ---
+
   if (!isProtectedPath(pathname)) {
     return NextResponse.next();
   }
@@ -74,5 +100,13 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/api/generate/:path*"],
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    "/((?!_next/static|_next/image|favicon.ico).*)",
+  ],
 };
