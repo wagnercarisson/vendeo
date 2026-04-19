@@ -4,6 +4,38 @@ Este documento centraliza as discussões sobre o futuro do produto, decisões es
 
 ---
 
+## ✅ Motor V2 - Visual Signature System (CONCLUÍDO - Abril 2026)
+
+**Status:** ✅ FASE 1 completa (Schema Clean)  
+**Branch:** `intra-motor-visual`  
+**Data:** 2026-04-19
+
+### Objetivo
+
+Evoluir o Vendeo de layouts fixos para um **motor de composição visual dinâmica**, capaz de gerar artes personalizadas, consistentes e adaptáveis à identidade de cada loja.
+
+### Conquistas
+
+- ✅ Infraestrutura de banco de dados criada (migrations 025-029)
+- ✅ Sistema de Visual Signatures implementado (core identity + context profiles)
+- ✅ 5 contextos visuais criados: standard, promotional, seasonal, premium, urgency
+- ✅ 9 lojas migradas, 45 profiles gerados
+- ✅ 100% dos testes de integração passando
+- ✅ Zero downtime, sistema antigo coexistindo
+
+### Próximas Fases
+
+| Fase | Status | Objetivo |
+|------|--------|----------|
+| **FASE 1** | ✅ Concluída | Schema Clean - infraestrutura de dados |
+| **FASE 2** | 📋 Planejada | UI para configurar Visual Signatures |
+| **FASE 3** | 📋 Planejada | Motor de composição (Visual Reader + Intent Resolver) |
+| **FASE 4** | 📋 Planejada | Deprecação de schema legado |
+
+**Documentação:** `docs/FASE-1-RESUMO.md`, `docs/FASE-1-EXECUCAO.md`
+
+---
+
 # Estratégia Atual (Foco no Core Value)
 
 Status: foco no Plano Básico (Starter)
