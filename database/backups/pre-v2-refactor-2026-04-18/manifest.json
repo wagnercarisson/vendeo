@@ -1,0 +1,27 @@
+﻿{
+    "restore_tested":  false,
+    "backup_name":  "pre-v2-refactor-2026-04-18",
+    "schema_version":  "v1.0",
+    "purpose":  "Pre-refactor backup for Motor de Composicao Visual V2",
+    "created_at":  "2026-04-18T22:51:55.1828391-03:00",
+    "host":  "db.efxiupkxtvhbekyorddn.supabase.co",
+    "files":  [
+                  {
+                      "size_bytes":  189011,
+                      "name":  "01-schema-only.sql",
+                      "type":  "schema"
+                  },
+                  {
+                      "size_bytes":  251503,
+                      "name":  "02-data-full.sql",
+                      "type":  "data"
+                  },
+                  {
+                      "size_bytes":  176471,
+                      "name":  "03-data-minimal.sql",
+                      "type":  "data_minimal"
+                  }
+              ],
+    "last_migration":  "026_visual_preference_learned",
+    "database":  "postgres"
+}
