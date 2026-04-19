@@ -50,7 +50,7 @@ export default function MaintenancePage() {
           <p>
             Dúvidas urgentes?{" "}
             <a
-              href="mailto:contato@vendeo.com"
+              href="mailto:contato@vendeo.tech"
               className="text-white underline hover:text-purple-100 transition-colors"
             >
               Entre em contato
