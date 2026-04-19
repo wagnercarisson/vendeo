@@ -9,6 +9,32 @@ function isProtectedPath(pathname: string) {
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
+  // --- MODO MANUTENÇÃO ---
+  const maintenanceMode = process.env.MAINTENANCE_MODE === "true";
+
+  // Permite acesso à própria página de manutenção
+  if (pathname === "/maintenance") {
+    // Se NÃO está em manutenção, redireciona para home
+    if (!maintenanceMode) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // Permite acesso a arquivos estáticos e imagens otimizadas
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.match(/\.(ico|png|jpg|jpeg|svg|css|js|woff|woff2|ttf|webp)$/)
+  ) {
+    return NextResponse.next();
+  }
+
+  // Se está em modo manutenção, redireciona tudo para /maintenance
+  if (maintenanceMode) {
+    return NextResponse.redirect(new URL("/maintenance", request.url));
+  }
+  // --- FIM MODO MANUTENÇÃO ---
+
   if (!isProtectedPath(pathname)) {
     return NextResponse.next();
   }
@@ -37,7 +63,6 @@ export async function middleware(request: NextRequest) {
   if (error || !data?.user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    // ✅ padroniza com o layout: ?next=/dashboard/...
     url.searchParams.set("next", pathname + search);
     return NextResponse.redirect(url);
   }
@@ -46,21 +71,21 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith("/api/generate")) {
     try {
       const { success, limit, reset, remaining } = await ratelimit.limit(data.user.id);
-      
+
       if (!success) {
         return NextResponse.json(
-          { 
-            error: "TOO_MANY_REQUESTS", 
+          {
+            error: "TOO_MANY_REQUESTS",
             message: "Você atingiu o limite de gerações. Tente novamente em alguns segundos.",
-            resetAt: new Date(reset).toISOString()
+            resetAt: new Date(reset).toISOString(),
           },
-          { 
+          {
             status: 429,
             headers: {
               "X-RateLimit-Limit": limit.toString(),
               "X-RateLimit-Remaining": remaining.toString(),
               "X-RateLimit-Reset": reset.toString(),
-            }
+            },
           }
         );
       }
@@ -74,5 +99,11 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/api/generate/:path*"],
+  matcher: [
+    /*
+     * Intercepta tudo, exceto assets internos mais comuns.
+     * Isso é necessário para a landing também cair no modo manutenção.
+     */
+    "/((?!_next/static|_next/image|favicon.ico).*)",
+  ],
 };
