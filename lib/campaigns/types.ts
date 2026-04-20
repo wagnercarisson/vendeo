@@ -1,5 +1,9 @@
 import { CampaignObjective, CampaignStatus, CampaignStrategy } from './contracts';
 
+/**
+ * @deprecated Use Campaign from '@/lib/domain/campaigns/types' (snake_case fields).
+ * Este arquivo (lib/campaigns/) e a camada legada. Migrar para lib/domain/campaigns/.
+ */
 export interface Campaign {
   id: string;
   storeId: string;

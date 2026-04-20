@@ -1,8 +1,13 @@
 import { ShortVideoShotScene } from "../short-videos/types";
 import type { CampaignObjective } from "@/lib/constants/strategy";
+import type { CampaignDomain as Campaign } from "./schemas";
+
+export type { CampaignObjective as Objective } from "@/lib/constants/strategy";
+export type { CampaignDomain as Campaign } from "./schemas";
 
 export type CampaignCanonicalContentType = "product" | "service" | "message";
 export type CampaignReadableContentType = CampaignCanonicalContentType | "info";
+export type ContentType = CampaignCanonicalContentType;
 
 export type CampaignAudience =
   | "geral"
@@ -24,53 +29,6 @@ export type ProductPositioning =
   | "premium"
   | "jovem"
   | "familia";
-
-export interface Campaign {
-  id: string;
-  store_id: string;
-  product_name: string | null;
-  price: number | null;
-  price_label: string | null;
-  audience: CampaignAudience | null;
-  objective: CampaignObjective | null;
-  product_positioning: ProductPositioning | null;
-  status: string | null;
-  campaign_type: "post" | "reels" | "both" | null;
-  content_type: CampaignCanonicalContentType | null;
-  legacy_content_type: string | null;
-  domain_input: Record<string, unknown>;
-  domain_input_version: number;
-  post_status: "none" | "draft" | "ready" | "approved" | null;
-  reels_status: "none" | "draft" | "ready" | "approved" | null;
-
-  origin: "manual" | "plan";
-  weekly_plan_item_id: string | null;
-
-  image_url: string | null;
-  product_image_url: string | null;
-  headline: string | null;
-  body_text: string | null;
-  cta: string | null;
-
-  ai_caption: string | null;
-  ai_text: string | null;
-  ai_cta: string | null;
-  ai_hashtags: string | null;
-  ai_generated_at: string | null;
-
-  reels_hook: string | null;
-  reels_script: string | null;
-  reels_shotlist: ShortVideoShotScene[] | null;
-  reels_on_screen_text: string[] | null;
-  reels_audio_suggestion: string | null;
-  reels_duration_seconds: number | null;
-  reels_caption: string | null;
-  reels_cta: string | null;
-  reels_hashtags: string | null;
-  reels_generated_at: string | null;
-
-  created_at: string;
-}
 
 export interface CampaignContext {
   id: string;
@@ -97,6 +55,7 @@ export type ContentState = "none" | "art_only" | "video_only" | "art_and_video";
 export type ActiveTab = "art" | "video";
 export type ViewMode = "view" | "edit" | "review";
 
+// TODO(Story 2.x): add CampaignListItemSchema when needed.
 export interface CampaignListItem {
   id: string;
   store_id: string;
@@ -133,5 +92,4 @@ export interface CampaignListItem {
   reels_hashtags: string | null;
 }
 
-export interface CampaignDetail extends Campaign {
-}
+export interface CampaignDetail extends Campaign {}

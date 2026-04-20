@@ -4,18 +4,18 @@ import { useMemo } from "react";
 import { CheckCircle2, Sparkles, Video, ArrowRight, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { WeeklyPlanItem } from "@/lib/domain/weekly-plans/types";
-import type { CampaignObjective } from "@/lib/constants/strategy";
+import type { Campaign } from "@/lib/domain/campaigns/types";
 import { formatAudience, formatObjective, formatPositioning, normalizeAudience, normalizeObjective, normalizePositioning } from "@/lib/formatters/strategyLabels";
 
-type CampaignSummary = {
-  id: string;
-  product_name: string;
-  status: string | null;
-  audience?: string | null;
-  objective?: CampaignObjective | null;
-  product_positioning?: string | null;
-  origin?: "manual" | "plan" | string | null;
-};
+type CampaignSummary = Pick<Campaign,
+  | "id"
+  | "product_name"
+  | "status"
+  | "audience"
+  | "objective"
+  | "product_positioning"
+  | "origin"
+>;
 
 type Props = {
   items: WeeklyPlanItem[];
