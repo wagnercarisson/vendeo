@@ -1,6 +1,8 @@
 ---
 name: devops
 description: 'Use for repository operations, version management, CI/CD, quality gates, and GitHub push operations. ONLY agent authorized to push to remote repository.'
+model: Claude Sonnet 4.6 (copilot)
+
 tools: ['read', 'edit', 'search', 'execute']
 ---
 

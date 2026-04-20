@@ -1,6 +1,7 @@
 ---
 name: dev
 description: 'Use for code implementation, debugging, refactoring, and development best practices'
+model: GPT-5.4 (copilot)
 tools: ['read', 'edit', 'search', 'execute']
 ---
 

@@ -1,84 +1,84 @@
-# Execution Plan: Epic 2 — Arquitetura de Campanhas
+﻿# Execution Plan: Epic 2 ÔÇö Arquitetura de Campanhas
 
-**Status:** 🟡 Planning  
+**Status:** ­ƒƒí Planning  
 **Created:** 2026-04-20  
-**Epic:** Contratos & Domínio (ROADMAP Fase 1 - Frente A)  
+**Epic:** Contratos & Dom├¡nio (ROADMAP Fase 1 - Frente A)  
 **Branch:** TBD (criar antes de Story 2.1)
 
 ---
 
-## 🎯 Mission
+## ­ƒÄ» Mission
 
-Implementar arquitetura de contratos e domínio para **prevenir bugs** antes de expandir Motor Visual V2 e Weekly Plan integração.
+Implementar arquitetura de contratos e dom├¡nio para **prevenir bugs** antes de expandir Motor Visual V2 e Weekly Plan integra├º├úo.
 
-**Meta:** Padronizar fluxo `query raw → schema → mapper → domain → view model` em toda aplicação.
+**Meta:** Padronizar fluxo `query raw ÔåÆ schema ÔåÆ mapper ÔåÆ domain ÔåÆ view model` em toda aplica├º├úo.
 
 ---
 
-## 📚 Context Locked
+## ­ƒôÜ Context Locked
 
 ### Decisions Approved (2026-04-20)
 
 | Decision | Value | Source |
 |----------|-------|--------|
-| **Priorização estratégica** | 1) Campanhas → 2) Pricing → 3) Weekly Plan → 4) Informativo | ROADMAP.md |
+| **Prioriza├º├úo estrat├®gica** | 1) Campanhas ÔåÆ 2) Pricing ÔåÆ 3) Weekly Plan ÔåÆ 4) Informativo | ROADMAP.md |
 | **Content Type fechado** | `product \| service \| message` | persistencia-e-migracao-v2.md |
-| **Variações visuais (Opção C)** | 2 tentativas (5-6 cada) + 1 regeneração completa | Aprovado nesta sessão |
-| **Fluxo de geração** | Estratégia → IA gera → Escolhe variação → Aprova → Sistema aprende | Aprovado nesta sessão |
-| **Story-driven incremental** | 2.1 → 2.6 (blocos atômicos) | Aprovado nesta sessão |
-| **Workflow com @prompt-eng** | @aiox-master requirements → @prompt-eng estrutura → agentes executam | Validado nesta sessão |
+| **Varia├º├Áes visuais (Op├º├úo C)** | 2 tentativas (5-6 cada) + 1 regenera├º├úo completa | Aprovado nesta sess├úo |
+| **Fluxo de gera├º├úo** | Estrat├®gia ÔåÆ IA gera ÔåÆ Escolhe varia├º├úo ÔåÆ Aprova ÔåÆ Sistema aprende | Aprovado nesta sess├úo |
+| **Story-driven incremental** | 2.1 ÔåÆ 2.6 (blocos at├┤micos) | Aprovado nesta sess├úo |
+| **Workflow com @prompt-eng** | @aiox-master requirements ÔåÆ @prompt-eng estrutura ÔåÆ agentes executam | Validado nesta sess├úo |
 
 ### State Atual
 
-✅ **FASE 1 Motor V2 completa:**
+Ô£à **FASE 1 Motor V2 completa:**
 - Migrations 025-029 executadas
 - visual_signatures: 9 records
 - visual_signature_profiles: 45 records
-- Testes de integração: 9/9 passing
+- Testes de integra├º├úo: 9/9 passing
 
-🟡 **Arquitetura de domínio parcial:**
-- `lib/domain/campaigns/mapper.ts` — existe (básico)
-- `lib/domain/campaigns/logic.ts` — existe (misturado)
-- `lib/domain/campaigns/service.ts` — existe (sem validação)
-- ❌ Faltam: `schemas.ts`, `types.ts`, `contracts.ts`, `selectors.ts`
+­ƒƒí **Arquitetura de dom├¡nio parcial:**
+- `lib/domain/campaigns/mapper.ts` ÔÇö existe (b├ísico)
+- `lib/domain/campaigns/logic.ts` ÔÇö existe (misturado)
+- `lib/domain/campaigns/service.ts` ÔÇö existe (sem valida├º├úo)
+- ÔØî Faltam: `schemas.ts`, `types.ts`, `contracts.ts`, `selectors.ts`
 
-🟡 **Schema preparado mas não ativo:**
+­ƒƒí **Schema preparado mas n├úo ativo:**
 - Migration 024: `campaigns.domain_input` (JSONB)
 - Migration 023: `stores.brand_profile` (JSONB)
 - Migration 021-022: `campaign_approved_assets`
-- **Nenhum está sendo usado no código**
+- **Nenhum est├í sendo usado no c├│digo**
 
 ### Problems to Solve
 
-1. **Dados crus na UI** — Supabase response direto em components
-2. **IA sem validação** — OpenAI response usado sem schema Zod
-3. **Tipos espalhados** — `Campaign`, `CampaignListItem` duplicados
-4. **Lógica misturada** — Selectors dentro de components
-5. **Content type aberto** — Aceita valores não documentados
+1. **Dados crus na UI** ÔÇö Supabase response direto em components
+2. **IA sem valida├º├úo** ÔÇö OpenAI response usado sem schema Zod
+3. **Tipos espalhados** ÔÇö `Campaign`, `CampaignListItem` duplicados
+4. **L├│gica misturada** ÔÇö Selectors dentro de components
+5. **Content type aberto** ÔÇö Aceita valores n├úo documentados
 
 ---
 
-## 📋 Stories Queue
+## ­ƒôï Stories Queue
 
-### Story 2.1: Schemas de Validação (Zod) ✅ READY
-**Esforço:** 2-3h | **Risco:** 🟢 Baixo | **Testável:** ✅ Sim | **Status:** Ready (validated 2026-04-20)
+### Story 2.1: Schemas de Valida├º├úo (Zod) Ô£à READY
+**Esfor├ºo:** 2-3h | **Risco:** ­ƒƒó Baixo | **Test├ível:** Ô£à Sim | **Status:** Ready (validated 2026-04-20)
 
-**Goal:** Criar fundação de validação para dados de banco e IA
+**Goal:** Criar funda├º├úo de valida├º├úo para dados de banco e IA
 
 **Requirements:**
 - Criar `lib/domain/campaigns/schemas.ts`
 - Schemas Zod:
-  - `DbCampaignSchema` — valida raw do Supabase
-  - `AICampaignContentSchema` — valida resposta OpenAI
-  - `CampaignDomainSchema` — tipo de domínio limpo
-- Validar contra dados reais do banco de produção
-- Zero breaking changes em código existente
+  - `DbCampaignSchema` ÔÇö valida raw do Supabase
+  - `AICampaignContentSchema` ÔÇö valida resposta OpenAI
+  - `CampaignDomainSchema` ÔÇö tipo de dom├¡nio limpo
+- Validar contra dados reais do banco de produ├º├úo
+- Zero breaking changes em c├│digo existente
 
 **Success Criteria:**
 - [ ] Schemas validam 100% dos registros reais de `campaigns`
 - [ ] Schema valida resposta atual de `/api/generate/campaign`
-- [ ] Testes unitários para cada schema (happy path + error cases)
-- [ ] Código existente continua funcionando (nenhuma importação quebrada)
+- [ ] Testes unit├írios para cada schema (happy path + error cases)
+- [ ] C├│digo existente continua funcionando (nenhuma importa├º├úo quebrada)
 
 **Files Expected:**
 ```
@@ -90,10 +90,10 @@ lib/domain/campaigns/schemas.test.ts (new)
 
 ---
 
-### Story 2.2: Tipos de Domínio Centralizados
-**Esforço:** 2-3h | **Risco:** 🟡 Médio | **Testável:** ✅ Sim
+### Story 2.2: Tipos de Dom├¡nio Centralizados
+**Esfor├ºo:** 2-3h | **Risco:** ­ƒƒí M├®dio | **Test├ível:** Ô£à Sim
 
-**Goal:** Consolidar tipos esparsos em fonte única de verdade
+**Goal:** Consolidar tipos esparsos em fonte ├║nica de verdade
 
 **Requirements:**
 - Criar `lib/domain/campaigns/types.ts`
@@ -107,18 +107,18 @@ lib/domain/campaigns/schemas.test.ts (new)
 
 **Success Criteria:**
 - [ ] Todos os tipos inferidos de schemas Zod
-- [ ] Enum `ContentType` restrito (não aceita outros valores)
+- [ ] Enum `ContentType` restrito (n├úo aceita outros valores)
 - [ ] Tipos duplicados removidos ou marcados deprecated
-- [ ] Importações atualizadas sem breaking changes
+- [ ] Importa├º├Áes atualizadas sem breaking changes
 
 **Dependencies:** Story 2.1 (precisa dos schemas)
 
 ---
 
 ### Story 2.3: Contratos de API
-**Esforço:** 1-2h | **Risco:** 🟢 Baixo | **Testável:** ✅ Sim
+**Esfor├ºo:** 1-2h | **Risco:** ­ƒƒó Baixo | **Test├ível:** Ô£à Sim
 
-**Goal:** Definir contratos tipados para endpoints de geração
+**Goal:** Definir contratos tipados para endpoints de gera├º├úo
 
 **Requirements:**
 - Criar `lib/domain/campaigns/contracts.ts`
@@ -127,45 +127,45 @@ lib/domain/campaigns/schemas.test.ts (new)
   - `GenerateCampaignResponse`
   - `RegenerateCampaignRequest`
 - Tipos baseados em Zod schemas
-- Documentação inline (JSDoc) com exemplos
+- Documenta├º├úo inline (JSDoc) com exemplos
 
 **Success Criteria:**
 - [ ] Contratos validam payloads com Zod
 - [ ] JSDoc com exemplos de uso
-- [ ] Exportações claras para uso em API routes
+- [ ] Exporta├º├Áes claras para uso em API routes
 
 **Dependencies:** Story 2.1, 2.2
 
 ---
 
 ### Story 2.4: Mappers Seguros
-**Esforço:** 3-4h | **Risco:** 🔴 Alto | **Testável:** ✅ Sim
+**Esfor├ºo:** 3-4h | **Risco:** ­ƒö┤ Alto | **Test├ível:** Ô£à Sim
 
-**Goal:** Implementar fluxo seguro `raw → validate → map → domain`
+**Goal:** Implementar fluxo seguro `raw ÔåÆ validate ÔåÆ map ÔåÆ domain`
 
 **Requirements:**
 - Refatorar `lib/domain/campaigns/mapper.ts`
-- Funções:
-  - `mapDbCampaignToDomain()` — com validação Zod
-  - `mapAiCampaignToDomain()` — com validação Zod
-  - `mapDomainToCampaignDb()` — write mapper
-- Erros claros em caso de validação falhar
+- Fun├º├Áes:
+  - `mapDbCampaignToDomain()` ÔÇö com valida├º├úo Zod
+  - `mapAiCampaignToDomain()` ÔÇö com valida├º├úo Zod
+  - `mapDomainToCampaignDb()` ÔÇö write mapper
+- Erros claros em caso de valida├º├úo falhar
 - Fallbacks documentados para campos opcionais
 
 **Success Criteria:**
-- [ ] Validação Zod executada antes de mapear
-- [ ] Erros com mensagens úteis (não genéricas)
+- [ ] Valida├º├úo Zod executada antes de mapear
+- [ ] Erros com mensagens ├║teis (n├úo gen├®ricas)
 - [ ] Testes com dados reais do banco
-- [ ] Zero regressões em campanhas existentes
+- [ ] Zero regress├Áes em campanhas existentes
 
 **Dependencies:** Story 2.1, 2.2, 2.3
 
 ---
 
 ### Story 2.5: Selectors Puros
-**Esforço:** 2-3h | **Risco:** 🟢 Baixo | **Testável:** ✅ Sim
+**Esfor├ºo:** 2-3h | **Risco:** ­ƒƒó Baixo | **Test├ível:** Ô£à Sim
 
-**Goal:** Extrair lógica de UI para funções puras testáveis
+**Goal:** Extrair l├│gica de UI para fun├º├Áes puras test├íveis
 
 **Requirements:**
 - Criar `lib/domain/campaigns/selectors.ts`
@@ -174,114 +174,116 @@ lib/domain/campaigns/schemas.test.ts (new)
   - `getCampaignStatus()`
   - `getCampaignDisplayBadges()`
   - `hasGeneratedContent()`
-- Funções puras (sem side effects)
+- Fun├º├Áes puras (sem side effects)
 - Marcar `logic.ts` como deprecated
 
 **Success Criteria:**
-- [ ] Todas as funções puras (input → output, sem mutations)
-- [ ] Testes unitários para cada selector
-- [ ] Components atualizam importações
+- [ ] Todas as fun├º├Áes puras (input ÔåÆ output, sem mutations)
+- [ ] Testes unit├írios para cada selector
+- [ ] Components atualizam importa├º├Áes
 - [ ] `logic.ts` mantido para compatibilidade (deprecated)
 
 **Dependencies:** Story 2.2
 
 ---
 
-### Story 2.6: Integração API Routes
-**Esforço:** 4-5h | **Risco:** 🔴 Alto | **Testável:** ✅ Sim
+### Story 2.6: Integra├º├úo API Routes
+**Esfor├ºo:** 4-5h | **Risco:** ­ƒö┤ Alto | **Test├ível:** Ô£à Sim
 
-**Goal:** Ativar validação em endpoints de produção
+**Goal:** Ativar valida├º├úo em endpoints de produ├º├úo
 
 **Requirements:**
 - Atualizar `app/api/generate/campaign/route.ts`
 - Validar request com `GenerateCampaignRequest`
 - Validar resposta IA com `AICampaignContentSchema`
-- Usar mappers seguros para persistência
+- Usar mappers seguros para persist├¬ncia
 - Manter compatibilidade com campanhas legadas
 
 **Success Criteria:**
 - [ ] Request validado antes de processar
 - [ ] Response IA validada antes de persistir
 - [ ] Erros retornam status code + mensagem clara
-- [ ] Testes de integração passam
+- [ ] Testes de integra├º├úo passam
 - [ ] Campanhas existentes continuam funcionando
 
 **Dependencies:** Story 2.1-2.5 (precisa de todo o stack)
 
 ---
 
-## 🔄 Workflow Approved
+## ­ƒöä Workflow Approved
 
 ### Story Execution Loop
 
 ```
-1. @aiox-master fornece Story Requirements (alto nível)
-   ↓
+1. @aiox-master fornece Story Requirements (alto n├¡vel)
+   Ôåô
 2. @prompt-eng transforma em prompt estruturado (XML + CoT + Few-shot)
-   ↓
+   Ôåô
 3. @sm *draft cria story formal
-   ↓
-4. [Usuário valida com @aiox-master]
-   ↓
+   Ôåô
+4. [Usu├írio valida com @aiox-master]
+   Ôåô
 5. @po *validate-story-draft (10-point checklist)
-   ↓ (se GO)
-6. @prompt-eng cria prompt de implementação
-   ↓
+   Ôåô (se GO)
+6. @prompt-eng cria prompt de implementa├º├úo
+   Ôåô
 7. @dev *develop implementa
-   ↓
-8. [Usuário valida com @aiox-master]
-   ↓
+   Ôåô
+8. [Usu├írio valida com @aiox-master]
+   Ôåô
 9. @qa *qa-gate valida (7-point checklist)
-   ↓ (se PASS)
-10. ✅ Story Done → Atualiza checkpoint → Próxima story
+   Ôåô (se PASS)
+10. Ô£à Story Done ÔåÆ Atualiza checkpoint ÔåÆ Pr├│xima story
 ```
 
 ### Critical Points
 
-- **@prompt-eng chamado 2x:** Para @sm (story) e para @dev (implementação)
-- **@po e @qa:** Usam checklists padrão (já estruturados)
-- **Validação com @aiox-master:** Após @sm e após @dev
-- **Nova aba por story:** Contexto limpo, sem ruído
+- **@prompt-eng chamado 2x:** Para @sm (story) e para @dev (implementa├º├úo)
+- **@po e @qa:** Usam checklists padr├úo (j├í estruturados)
+- **Valida├º├úo com @aiox-master:** Ap├│s @sm e ap├│s @dev
+- **Nova aba por story:** Contexto limpo, sem ru├¡do
 
 ---
 
-## 📊 Progress Tracking
+## ­ƒôè Progress Tracking
 
 | Story | Status | Start | Complete | Notes |
 |-------|--------|-------|----------|-------|
-| 2.1 Schemas | ✅ Done | 2026-04-20 | 2026-04-20 | QA: 9.5/10 — Zero breaking changes +补充 (Audience/Positioning schemas) |
-| 2.2 Types | ✅ Done | 2026-04-20 | 2026-04-20 | QA: CONCERNS (accepted) — 1 minimal .tsx fix approved, framework tests ignored |
-| 2.3 Contracts | ✅ Done | 2026-04-20 | 2026-04-20 | QA: CONCERNS (accepted) — Framework tests ignored (same as 2.2) |
-| 2.4 Mappers | 🔵 Ready | — | — | Dependencies met (2.1 ✅, 2.2 ✅, 2.3 ✅) |
-| 2.5 Selectors | ⚪ Waiting | — | — | Após 2.2 |
-| 2.6 Integration | ⚪ Waiting | — | — | Após 2.1-2.5 |
+| 2.1 Schemas | Ô£à Done | 2026-04-20 | 2026-04-20 | QA: 9.5/10 ÔÇö Zero breaking changes +ÞíÑÕàà (Audience/Positioning schemas) |
+| 2.2 Types | Ô£à Done | 2026-04-20 | 2026-04-20 | QA: CONCERNS (accepted) ÔÇö 1 minimal .tsx fix approved, framework tests ignored |
+| 2.3 Contracts | Ô£à Done | 2026-04-20 | 2026-04-20 | QA: CONCERNS (accepted) ÔÇö Framework tests ignored (same as 2.2) |
+| 2.4 Mappers | ­ƒƒó InReview | 2026-04-20 | ÔÇö | Implemented ÔÇö DoD 13/13, typecheck Ô£ô (5x), 15/15 tests Ô£ô, zero breaking changes |
+| 2.5 Selectors | ÔÜ¬ Waiting | ÔÇö | ÔÇö | Ap├│s 2.2 |
+| 2.6 Integration | ÔÜ¬ Waiting | ÔÇö | ÔÇö | Ap├│s 2.1-2.5 |
 
 ---
 
-## 🎯 Current Story: 2.4
+## ­ƒÄ» Current Story: 2.5
 
-**Status:** 🔵 Ready (dependencies met: 2.1 ✅, 2.2 ✅, 2.3 ✅)
+**Status:** ­ƒöÁ Ready (dependencies met: 2.2 Ô£à)
 
-**Ready for:** @sm *draft Story 2.4 (Mappers Seguros)
+**Ready for:** @sm *draft Story 2.5 (Selectors Puros)
 
-**Story 2.3 Completion Summary:**
-- ✅ QA Gate: CONCERNS (accepted)
-- ✅ 4 schemas Zod criados (GenerateCampaignRequest/Response, StrategyRequest/Response)
-- ✅ Re-export sem duplicação (GenerateCampaignRequestSchema = CampaignRequestSchema)
-- ✅ Discriminated unions por `ok: boolean`
-- ✅ Enum fechado (product|service|message) sem "info"
-- ✅ JSDoc completo com @example
-- ✅ 13/13 testes passing
-- ⚠️ Framework tests ignored (out of scope)
+**Story 2.4 Completion Summary:**
+- Ô£à QA Gate: CONCERNS (accepted)
+- Ô£à 5 fun├º├Áes refatoradas com safeParse() + error handling
+- Ô£à mapDbCampaignToDomain + mapDbCampaignToAIContext: throw com campo espec├¡fico
+- Ô£à mapAiArtToPreview + mapAiReelsToPreview: fallback sem throw (UI-safe)
+- Ô£à mapAiCampaignToDomain: validation + fallbacks inline
+- Ô£à mapDomainToCampaignDb criado com buildCampaignContentTypeWrite()
+- Ô£à 15/15 testes passing, 5x typecheck Ô£ô
+- Ô£à Zero breaking changes
+- Ô£à JSDoc enhancement implementado (valida├º├úo strategy em mapDomainToCampaignDb)
+- ÔÜá´©Å Framework tests ignored (out of scope)
 
 **Next Action:** 
-1. Prepare Story 2.4 requirements for @sm
-2. Execute workflow: @aiox-master → @prompt-eng → @sm *draft
-3. Story 2.4: Mappers Seguros (raw → validate → map → domain)
+1. Prepare Story 2.5 requirements for @sm
+2. Execute workflow: @aiox-master ÔåÆ @prompt-eng ÔåÆ @sm *draft
+3. Story 2.5: Selectors Puros (extrair l├│gica de UI para fun├º├Áes puras)
 
 ---
 
-## 📁 References
+## ­ƒôü References
 
 - **ROADMAP:** `ROADMAP.md`
 - **Architecture:** `docs/architecture/arquitetura-alvo-vendeo-v2.md`
@@ -293,32 +295,37 @@ lib/domain/campaigns/schemas.test.ts (new)
 ---
 
 **Status Legend:**
-- 🔵 Ready — Pode iniciar
-- 🟡 InProgress — Em execução
-- 🟢 Done — Completa e validada
-- ⚪ Waiting — Aguardando dependencies
-- 🔴 Blocked — Impedida
+- ­ƒöÁ Ready ÔÇö Pode iniciar
+- ­ƒƒí InProgress ÔÇö Em execu├º├úo
+- ­ƒƒó Done ÔÇö Completa e validada
+- ÔÜ¬ Waiting ÔÇö Aguardando dependencies
+- ­ƒö┤ Blocked ÔÇö Impedida
 
 ---
 
-## 📝 Execution Log
+## ­ƒôØ Execution Log
 
 | Date | Story | Event | Agent | Result |
 |------|-------|-------|-------|--------|
 | 2026-04-20 | 2.1 | Created | @sm (River) | Story drafted with all requirements |
-| 2026-04-20 | 2.1 | Validated | @po (Pax) | 10/10 PASS — Draft → Ready |
-| 2026-04-20 | 2.1 | Implemented | @dev (Dex) | 12/12 tests ✓, typecheck ✓ — Ready → InReview |
-| 2026-04-20 | 2.1 | QA Gate | @qa (Quinn) | 9.5/10 PASS — InReview → Done |
-| 2026-04-20 | 2.1 |补充 | @dev (Dex) | Adicionados CampaignAudienceSchema, ProductPositioningSchema (discovered in 2.2 implementation) |
-| 2026-04-20 | 2.2 | Created | @sm (River) | Story drafted — Discovery: 2 Campaign duplicados, 5 importadores, ContentType já existe |
-| 2026-04-20 | 2.2 | Validated | @po (Pax) | 10/10 PASS — Draft → Ready |
-| 2026-04-20 | 2.2 | Implemented | @dev (Dex) | typecheck ✓, ContentType rejects "info" ✓, DoD 9/9 ✓ — Ready → InReview |
-| 2026-04-20 | 2.2 | QA Gate | @qa (Quinn) | CONCERNS (accepted) — 1 .tsx minimal fix approved, framework tests ignored — InReview → Done |
-| 2026-04-20 | 2.3 | Created | @sm (River) | Story drafted — Discovery: 2 endpoints, gap em strategy route |
-| 2026-04-20 | 2.3 | Validated | @po (Pax) | 10/10 PASS — Draft → Ready |
-| 2026-04-20 | 2.3 | Implemented | @dev (Dex) | 13/13 tests ✓, typecheck ✓, DoD 10/10 ✓ — Ready → InReview |
-| 2026-04-20 | 2.3 | QA Gate | @qa (Quinn) | CONCERNS (accepted) — Framework tests ignored (same as 2.2) — InReview → Done |
+| 2026-04-20 | 2.1 | Validated | @po (Pax) | 10/10 PASS ÔÇö Draft ÔåÆ Ready |
+| 2026-04-20 | 2.1 | Implemented | @dev (Dex) | 12/12 tests Ô£ô, typecheck Ô£ô ÔÇö Ready ÔåÆ InReview |
+| 2026-04-20 | 2.1 | QA Gate | @qa (Quinn) | 9.5/10 PASS ÔÇö InReview ÔåÆ Done |
+| 2026-04-20 | 2.1 |ÞíÑÕàà | @dev (Dex) | Adicionados CampaignAudienceSchema, ProductPositioningSchema (discovered in 2.2 implementation) |
+| 2026-04-20 | 2.2 | Created | @sm (River) | Story drafted ÔÇö Discovery: 2 Campaign duplicados, 5 importadores, ContentType j├í existe |
+| 2026-04-20 | 2.2 | Validated | @po (Pax) | 10/10 PASS ÔÇö Draft ÔåÆ Ready |
+| 2026-04-20 | 2.2 | Implemented | @dev (Dex) | typecheck Ô£ô, ContentType rejects "info" Ô£ô, DoD 9/9 Ô£ô ÔÇö Ready ÔåÆ InReview |
+| 2026-04-20 | 2.2 | QA Gate | @qa (Quinn) | CONCERNS (accepted) ÔÇö 1 .tsx minimal fix approved, framework tests ignored ÔÇö InReview ÔåÆ Done |
+| 2026-04-20 | 2.3 | Created | @sm (River) | Story drafted ÔÇö Discovery: 2 endpoints, gap em strategy route |
+| 2026-04-20 | 2.3 | Validated | @po (Pax) | 10/10 PASS ÔÇö Draft ÔåÆ Ready |
+| 2026-04-20 | 2.3 | Implemented | @dev (Dex) | 13/13 tests Ô£ô, typecheck Ô£ô, DoD 10/10 Ô£ô ÔÇö Ready ÔåÆ InReview |
+| 2026-04-20 | 2.3 | QA Gate | @qa (Quinn) | CONCERNS (accepted) ÔÇö Framework tests ignored (same as 2.2) ÔÇö InReview ÔåÆ Done |
+| 2026-04-20 | 2.4 | Created | @sm (River) | Story drafted — Discovery: 4 funções .parse(), 5 callers tsx, mapDomainToCampaignDb ausente |
+| 2026-04-20 | 2.4 | Validated | @po (Pax) | 10/10 PASS — Draft → Ready |
+| 2026-04-20 | 2.4 | Implemented | @dev (Dex) | 15/15 tests ✓, 5x typecheck ✓, DoD 13/13 ✓, error handling perfect — Ready → InReview |
+| 2026-04-20 | 2.4 | JSDoc Enhancement | @dev (Dex) | Added validation strategy docs to mapDomainToCampaignDb (QA suggestion) |
+| 2026-04-20 | 2.4 | QA Gate | @qa (Quinn) | CONCERNS (accepted) — 15/15 tests ✓, typecheck ✓, framework tests out of scope — InReview → Done |
 
 ---
 
-*Last Updated: 2026-04-20 21:00 UTC — Stories 2.1-2.3 DONE, Story 2.4 READY — By @aiox-master (Orion)*
+*Last Updated: 2026-04-20 23:00 UTC — Stories 2.1-2.4 DONE (67% Epic 2), Story 2.5 READY — By @aiox-master (Orion)*

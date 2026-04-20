@@ -4,41 +4,11 @@ Este documento centraliza as discussões sobre o futuro do produto, decisões es
 
 ---
 
-## ✅ Motor V2 - Visual Signature System (CONCLUÍDO - Abril 2026)
-
-**Status:** ✅ FASE 1 completa (Schema Clean)  
-**Branch:** `intra-motor-visual`  
-**Data:** 2026-04-19
-
-### Objetivo
-
-Evoluir o Vendeo de layouts fixos para um **motor de composição visual dinâmica**, capaz de gerar artes personalizadas, consistentes e adaptáveis à identidade de cada loja.
-
-### Conquistas
-
-- ✅ Infraestrutura de banco de dados criada (migrations 025-029)
-- ✅ Sistema de Visual Signatures implementado (core identity + context profiles)
-- ✅ 5 contextos visuais criados: standard, promotional, seasonal, premium, urgency
-- ✅ 9 lojas migradas, 45 profiles gerados
-- ✅ 100% dos testes de integração passando
-- ✅ Zero downtime, sistema antigo coexistindo
-
-### Próximas Fases
-
-| Fase | Status | Objetivo |
-|------|--------|----------|
-| **FASE 1** | ✅ Concluída | Schema Clean - infraestrutura de dados |
-| **FASE 2** | 📋 Planejada | UI para configurar Visual Signatures |
-| **FASE 3** | 📋 Planejada | Motor de composição (Visual Reader + Intent Resolver) |
-| **FASE 4** | 📋 Planejada | Deprecação de schema legado |
-
-**Documentação:** `docs/FASE-1-RESUMO.md`, `docs/FASE-1-EXECUCAO.md`
-
----
-
 # Estratégia Atual (Foco no Core Value)
 
-Status: foco no Plano Básico (Starter)
+Status: foco no Plano Básico ~~(Starter)~~
+
+> Observação histórica: a nomenclatura anterior `Starter / Pro / Premium` evoluiu para `Free / Basic / Pro`. Para a taxonomia vigente, consulte [docs/product/diretrizes-produto-abril-2026.md](docs/product/diretrizes-produto-abril-2026.md) e [docs/analysis/posicionamento-comercial-e-diferenciacao-de-planos.md](docs/analysis/posicionamento-comercial-e-diferenciacao-de-planos.md).
 
 A estratégia imediata do Vendeo é resolver 80% do problema de marketing das lojas físicas focando na combinação mais eficaz atualmente:
 
@@ -248,23 +218,45 @@ Esses recursos serão avaliados após validação real de uso.
 
 # Estrutura futura de planos
 
-Starter
+~~Starter~~
 
-• gerar campanha
-• editar campanha
-• duplicar campanha
+~~• gerar campanha~~
+~~• editar campanha~~
+~~• duplicar campanha~~
+
+~~Pro~~
+
+~~• filtros estratégicos~~
+~~• sugestões automáticas~~
+~~• campanhas sazonais~~
+
+~~Premium~~
+
+~~• analytics~~
+~~• desempenho de campanhas~~
+~~• variações automáticas~~
+
+> Observação histórica: esta estrutura foi substituída pela taxonomia `Free / Basic / Pro`.
+
+Free
+
+• criação manual de campanhas
+• edição e aprovação da campanha
+• uso pontual com limite operacional claro
+
+Basic
+
+• tudo do Free
+• plano semanal
+• constância operacional
+• reaproveitamento rápido de campanhas
 
 Pro
 
-• filtros estratégicos
-• sugestões automáticas
-• campanhas sazonais
-
-Premium
-
-• analytics
-• desempenho de campanhas
-• variações automáticas
+• tudo do Basic
+• direcionamento comercial mais inteligente
+• campanhas sazonais e sugestões mais estratégicas
+• evolução futura de comportamento adaptativo
 
 ---
 

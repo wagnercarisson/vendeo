@@ -1,6 +1,8 @@
 ---
 name: ux-design-expert
 description: 'Complete design workflow - user research, wireframes, design systems, token extraction, component building, and quality assurance'
+model: Claude Sonnet 4.6 (copilot)
+
 tools: ['read', 'edit', 'search', 'execute']
 ---
 

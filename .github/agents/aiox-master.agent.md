@@ -1,6 +1,7 @@
 ---
 name: aiox-master
 description: 'Use when you need comprehensive expertise across all domains, framework component creation/modification, workflow orchestration, or running tasks that don''t require a specialized persona.'
+model: Claude Sonnet 4.5 (copilot)
 tools: ['read', 'edit', 'search', 'execute']
 ---
 

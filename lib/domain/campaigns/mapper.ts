@@ -72,6 +72,18 @@ function resolveCampaignLegacyContentType(
   return rawContentType === "info" ? "info" : null;
 }
 
+/**
+ * Valida e normaliza a saída de IA para o domínio (`CampaignAIOutput`).
+ *
+ * Estratégia de erro:
+ * - Nunca lança erro por validação de IA.
+ * - Se `aiData` for inválido, usa fallbacks determinísticos (comportamento preservado).
+ *
+ * @example
+ * ```ts
+ * const output = mapAiCampaignToDomain(aiData, campaignContext, store);
+ * ```
+ */
 export function mapAiCampaignToDomain(
   aiData: AIData,
   campaign: CampaignContext,
@@ -109,6 +121,18 @@ export function mapAiCampaignToDomain(
   };
 }
 
+/**
+ * Valida `data` com `DbCampaignSchema.safeParse()` e mapeia para o tipo `Campaign` (domain).
+ *
+ * Estratégia de erro:
+ * - Lança `Error` com contexto e campo específico quando a validação falha.
+ * - Mantém throw para compatibilidade com callers server-side.
+ *
+ * @example
+ * ```ts
+ * const campaign = mapDbCampaignToDomain(rowFromSupabase);
+ * ```
+ */
 export function mapDbCampaignToDomain(data: unknown): Campaign {
   const result = DbCampaignSchema.safeParse(data);
 
@@ -172,6 +196,19 @@ export function mapDbCampaignToDomain(data: unknown): Campaign {
   };
 }
 
+/**
+ * Valida `data` com `DbCampaignSchema.safeParse()` e extrai o contexto mínimo
+ * para prompts/IA (`CampaignContext`).
+ *
+ * Estratégia de erro:
+ * - Lança `Error` com campo específico quando a validação falha.
+ * - Mantém fallbacks existentes para campos opcionais (ex.: product_name, audience, objective).
+ *
+ * @example
+ * ```ts
+ * const ctx = mapDbCampaignToAIContext(rowFromSupabase, "tema opcional");
+ * ```
+ */
 export function mapDbCampaignToAIContext(data: unknown, theme?: string | null): CampaignContext {
   const result = DbCampaignSchema.safeParse(data);
 
@@ -231,6 +268,17 @@ export function mapCampaignToPreviewData(
   };
 }
 
+/**
+ * Mapeia uma resposta de IA (arte/post) para dados de preview.
+ *
+ * Estratégia de erro:
+ * - Não lança (client-side): retorna fallback e loga via `console.error`.
+ *
+ * @example
+ * ```ts
+ * const preview = mapAiArtToPreview(campaign, aiOutput);
+ * ```
+ */
 export function mapAiArtToPreview(
   campaign: Campaign,
   aiResponse: unknown
@@ -264,6 +312,17 @@ export function mapAiArtToPreview(
   };
 }
 
+/**
+ * Mapeia uma resposta de IA (reels) para dados de preview.
+ *
+ * Estratégia de erro:
+ * - Não lança (client-side): retorna fallback e loga via `console.error`.
+ *
+ * @example
+ * ```ts
+ * const preview = mapAiReelsToPreview(reelsAiOutput);
+ * ```
+ */
 export function mapAiReelsToPreview(
   aiResponse: unknown
 ): Partial<any> {
@@ -302,6 +361,10 @@ export function mapAiReelsToPreview(
 
 /**
  * Converte Campaign (domain) para formato DB (snake_case) pronto para Supabase.
+ *
+ * Estratégia de validação:
+ * - Valida output com `DbCampaignSchema.partial().safeParse()` para garantir estrutura correta.
+ * - Se validação falhar, loga erro via `console.error` mas **não lança** (evita quebrar fluxo de escrita).
  *
  * @example
  * ```typescript

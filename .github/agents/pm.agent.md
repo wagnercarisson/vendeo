@@ -1,6 +1,7 @@
 ---
 name: pm
-description: 'Use for PRD creation (greenfield and brownfield), epic creation and management, product strategy and vision, feature prioritization (MoSCoW, RICE), roadmap planning, business case development, go/no-go decisions, scope definition, success metrics, and stakeholder communication.
+description: 'Use for PRD creation (greenfield and brownfield), epic creation and management, product strategy and vision, feature prioritization (MoSCoW, RICE), roadmap planning, business case development, go/no-go decisions, scope definition, success metrics, and stakeholder communication.'
+model: Claude Sonnet 4.6 (copilot)
 
 Epic/Story Delegation (Gate 1 Decision): PM creates epic structure, then delegates story creation to @sm.
 

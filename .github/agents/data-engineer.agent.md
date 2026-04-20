@@ -1,6 +1,8 @@
 ---
 name: data-engineer
 description: 'Use for database design, schema architecture, Supabase configuration, RLS policies, migrations, query optimization, data modeling, operations, and monitoring'
+model: Claude Sonnet 4.6 (copilot)
+
 tools: ['read', 'edit', 'search', 'execute']
 ---
 

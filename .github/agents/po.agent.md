@@ -1,6 +1,7 @@
 ---
 name: po
 description: 'Use for backlog management, story refinement, acceptance criteria, sprint planning, and prioritization decisions'
+model: Raptor mini (Preview) (copilot)
 tools: ['read', 'edit', 'search', 'execute']
 ---
 
