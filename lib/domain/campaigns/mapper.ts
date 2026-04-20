@@ -77,28 +77,49 @@ export function mapAiCampaignToDomain(
   campaign: CampaignContext,
   store: StoreContext
 ): CampaignAIOutput {
+  const result = CampaignAISchema.safeParse(aiData);
+
+  // Se validação falhar, usa fallbacks (comportamento atual preservado)
+  const validated = result.success ? result.data : {
+    headline: null,
+    caption: null,
+    text: null,
+    cta: null,
+    hashtags: null,
+    price_label: null,
+  };
+
   return {
-    headline: (aiData.headline ?? "").trim() || campaign.product_name,
+    headline: (validated.headline ?? "").trim() || campaign.product_name,
     caption:
-      (aiData.caption ?? "").trim() ||
+      (validated.caption ?? "").trim() ||
       `✨ ${campaign.product_name} em destaque!`,
     text:
-      (aiData.text ?? "").trim() ||
+      (validated.text ?? "").trim() ||
       `Passe na ${store.name} e garanta o seu hoje.`,
     cta:
-      (aiData.cta ?? "").trim() ||
+      (validated.cta ?? "").trim() ||
       (store.whatsapp
         ? "Chama no WhatsApp e peça agora!"
         : "Fale conosco e peça agora!"),
     hashtags:
-      (aiData.hashtags ?? "").trim() ||
+      (validated.hashtags ?? "").trim() ||
       "#promo #oferta #instafood #loja #bairro",
-    price_label: (aiData.price_label ?? "").trim() || null,
+    price_label: (validated.price_label ?? "").trim() || null,
   };
 }
 
 export function mapDbCampaignToDomain(data: unknown): Campaign {
-  const raw = DbCampaignSchema.parse(data);
+  const result = DbCampaignSchema.safeParse(data);
+
+  if (!result.success) {
+    const firstIssue = result.error.issues[0];
+    const path = firstIssue?.path?.join(".") ?? "unknown";
+    const msg = firstIssue?.message ?? "validação falhou";
+    throw new Error(`[mapDbCampaignToDomain] Campo inválido: ${path} — ${msg}`);
+  }
+
+  const raw = result.data;
   const contentType = normalizeCampaignContentType(raw.content_type);
   const legacyContentType = resolveCampaignLegacyContentType(
     raw.content_type,
@@ -152,7 +173,16 @@ export function mapDbCampaignToDomain(data: unknown): Campaign {
 }
 
 export function mapDbCampaignToAIContext(data: unknown, theme?: string | null): CampaignContext {
-  const raw = DbCampaignSchema.parse(data);
+  const result = DbCampaignSchema.safeParse(data);
+
+  if (!result.success) {
+    const firstIssue = result.error.issues[0];
+    const path = firstIssue?.path?.join(".") ?? "unknown";
+    const msg = firstIssue?.message ?? "validação falhou";
+    throw new Error(`[mapDbCampaignToAIContext] Campo inválido: ${path} — ${msg}`);
+  }
+
+  const raw = result.data;
   return {
     id: String(raw.id),
     store_id: String(raw.store_id),
@@ -205,7 +235,22 @@ export function mapAiArtToPreview(
   campaign: Campaign,
   aiResponse: unknown
 ): Partial<any> {
-  const ai = CampaignAISchema.parse(aiResponse);
+  const result = CampaignAISchema.safeParse(aiResponse);
+
+  if (!result.success) {
+    console.error("[mapAiArtToPreview] AI response inválida:", result.error.format());
+    // Fallback — não throw para não quebrar UI
+    return {
+      headline: campaign.product_name || "",
+      body_text: "",
+      cta: "",
+      caption: "",
+      hashtags: "",
+      price_label: campaign.price && Number(campaign.price) > 0 ? "OFERTA" : null,
+    };
+  }
+
+  const ai = result.data;
 
   return {
     headline: ai.headline || campaign.product_name || "",
@@ -222,7 +267,25 @@ export function mapAiArtToPreview(
 export function mapAiReelsToPreview(
   aiResponse: unknown
 ): Partial<any> {
-  const reels = CampaignReelsSchema.parse(aiResponse);
+  const result = CampaignReelsSchema.safeParse(aiResponse);
+
+  if (!result.success) {
+    console.error("[mapAiReelsToPreview] AI response inválida:", result.error.format());
+    // Fallback — não throw para não quebrar UI
+    return {
+      reels_hook: "",
+      reels_script: "",
+      reels_shotlist: [],
+      reels_on_screen_text: [],
+      reels_audio_suggestion: "",
+      reels_duration_seconds: 30,
+      reels_caption: "",
+      reels_cta: "",
+      reels_hashtags: "",
+    };
+  }
+
+  const reels = result.data;
 
   return {
     reels_hook: reels.hook || "",
@@ -235,6 +298,69 @@ export function mapAiReelsToPreview(
     reels_cta: reels.cta || "",
     reels_hashtags: reels.hashtags || "",
   };
+}
+
+/**
+ * Converte Campaign (domain) para formato DB (snake_case) pronto para Supabase.
+ *
+ * @example
+ * ```typescript
+ * const campaign: Campaign = await getCampaignById(id);
+ * const dbData = mapDomainToCampaignDb(campaign);
+ * await supabase.from('campaigns').update(dbData).eq('id', campaign.id);
+ * ```
+ */
+export function mapDomainToCampaignDb(campaign: Campaign): Record<string, unknown> {
+  const contentTypeWrite = buildCampaignContentTypeWrite(
+    campaign.content_type,
+    campaign.legacy_content_type
+  );
+
+  const dbData = {
+    product_name: campaign.product_name,
+    price: campaign.price,
+    price_label: campaign.price_label,
+    audience: campaign.audience,
+    objective: campaign.objective,
+    product_positioning: campaign.product_positioning,
+    status: campaign.status,
+    campaign_type: campaign.campaign_type,
+    ...contentTypeWrite,
+    domain_input: campaign.domain_input,
+    domain_input_version: campaign.domain_input_version,
+    post_status: campaign.post_status,
+    reels_status: campaign.reels_status,
+    origin: campaign.origin,
+    weekly_plan_item_id: campaign.weekly_plan_item_id,
+    image_url: campaign.image_url,
+    product_image_url: campaign.product_image_url,
+    headline: campaign.headline,
+    body_text: campaign.body_text,
+    cta: campaign.cta,
+    ai_caption: campaign.ai_caption,
+    ai_text: campaign.ai_text,
+    ai_cta: campaign.ai_cta,
+    ai_hashtags: campaign.ai_hashtags,
+    ai_generated_at: campaign.ai_generated_at,
+    reels_hook: campaign.reels_hook,
+    reels_script: campaign.reels_script,
+    reels_shotlist: campaign.reels_shotlist,
+    reels_on_screen_text: campaign.reels_on_screen_text,
+    reels_audio_suggestion: campaign.reels_audio_suggestion,
+    reels_duration_seconds: campaign.reels_duration_seconds,
+    reels_caption: campaign.reels_caption,
+    reels_cta: campaign.reels_cta,
+    reels_hashtags: campaign.reels_hashtags,
+    reels_generated_at: campaign.reels_generated_at,
+  };
+
+  // Validar output antes de retornar (garantir que estrutura DB está correta)
+  const validation = DbCampaignSchema.partial().safeParse(dbData);
+  if (!validation.success) {
+    console.error("[mapDomainToCampaignDb] Output inválido:", validation.error.format());
+  }
+
+  return dbData;
 }
 
 export function mapCampaignToListItem(c: Campaign): CampaignListItem {
