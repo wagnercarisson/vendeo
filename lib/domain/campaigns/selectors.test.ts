@@ -18,7 +18,7 @@ import {
   getCampaignStatusLine,
   getContentState,
 } from "./selectors";
-import { calculateGlobalStatus } from "./logic";
+import { calculateGlobalStatus, hasAnyVisualAsset as hasAnyVisualAssetLegacy } from "./logic";
 import type { Campaign } from "./types";
 
 // Fixture com 35+ campos
@@ -177,6 +177,12 @@ describe("hasGeneratedVisualAsset vs hasAnyVisualAsset", () => {
   it("retorna false para CAMPAIGN_FIXTURE vazia em ambas as funções", () => {
     expect(hasGeneratedVisualAsset(EMPTY_CAMPAIGN_FIXTURE)).toBe(false);
     expect(hasAnyVisualAsset(EMPTY_CAMPAIGN_FIXTURE)).toBe(false);
+  });
+
+  it("legacy import hasAnyVisualAsset from logic.ts aponta para hasGeneratedVisualAsset (CAMPO-based)", () => {
+    const withField = { ...EMPTY_CAMPAIGN_FIXTURE, image_url: "url", post_status: "none" as const };
+    expect(hasAnyVisualAssetLegacy(withField)).toBe(true); // CAMPO presente = true
+    expect(hasGeneratedVisualAsset(withField)).toBe(true); // Mesma semântica
   });
 });
 

@@ -16,6 +16,14 @@ export { getCampaignListStatus } from "./selectors";
 export { getCampaignStatusLine } from "./selectors";
 export { getContentState } from "./selectors";
 export { hasGeneratedVisualAsset } from "./selectors";
+
+/**
+ * @deprecated Legacy name for hasGeneratedVisualAsset (CAMPO-based logic).
+ * Use hasGeneratedVisualAsset from './selectors' instead.
+ * This alias preserves backward compatibility for code that imported hasAnyVisualAsset from logic.ts.
+ */
+export { hasGeneratedVisualAsset as hasAnyVisualAsset } from "./selectors";
+
 export { getCampaignDisplayStatuses } from "./selectors";
 
 /**
