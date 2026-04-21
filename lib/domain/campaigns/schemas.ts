@@ -6,7 +6,7 @@ import {
 } from "@/lib/constants/strategy";
 import { normalizeObjective } from "@/lib/formatters/strategyLabels";
 
-const CampaignObjectiveSchema = z.preprocess(
+export const CampaignObjectiveSchema = z.preprocess(
   (value) => {
     if (value == null || value === "") return null;
     const normalized = normalizeObjective(String(value));
@@ -15,19 +15,19 @@ const CampaignObjectiveSchema = z.preprocess(
   z.enum(OBJECTIVE_VALUES).nullable()
 );
 
-const AUDIENCE_VALUES = AUDIENCE_OPTIONS.map((option) => option.value) as [
+export const AUDIENCE_VALUES = AUDIENCE_OPTIONS.map((option) => option.value) as [
   (typeof AUDIENCE_OPTIONS)[number]["value"],
   ...(typeof AUDIENCE_OPTIONS)[number]["value"][]
 ];
 
-const POSITIONING_VALUES = PRODUCT_POSITIONING_OPTIONS.map(
+export const POSITIONING_VALUES = PRODUCT_POSITIONING_OPTIONS.map(
   (option) => option.value
 ) as [
   (typeof PRODUCT_POSITIONING_OPTIONS)[number]["value"],
   ...(typeof PRODUCT_POSITIONING_OPTIONS)[number]["value"][]
 ];
 
-const CampaignAudienceSchema = z.preprocess(
+export const CampaignAudienceSchema = z.preprocess(
   (value) => {
     if (value == null || value === "") return null;
     return value;
@@ -35,7 +35,7 @@ const CampaignAudienceSchema = z.preprocess(
   z.enum(AUDIENCE_VALUES).nullable()
 );
 
-const ProductPositioningSchema = z.preprocess(
+export const ProductPositioningSchema = z.preprocess(
   (value) => {
     if (value == null || value === "") return null;
     return value;

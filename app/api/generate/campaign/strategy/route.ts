@@ -6,6 +6,7 @@ import {
   OBJECTIVE_VALUES,
   PRODUCT_POSITIONING_OPTIONS,
 } from "@/lib/constants/strategy";
+import { StrategyRequestSchema, StrategyAIOutputSchema } from "@/lib/domain/campaigns/contracts";
 
 const AUDIENCE_PROMPT_VALUES = AUDIENCE_OPTIONS.map((option) => `"${option.value}"`).join(", ");
 const OBJECTIVE_PROMPT_VALUES = OBJECTIVE_VALUES.map((value) => `"${value}"`).join(", ");
@@ -16,7 +17,17 @@ export async function POST(req: Request) {
   const requestId = crypto.randomUUID();
 
   try {
-    const { product } = await req.json();
+    const json = await req.json().catch(() => null);
+    const body = StrategyRequestSchema.safeParse(json);
+
+    if (!body.success) {
+      return NextResponse.json(
+        { ok: false, requestId, error: "INVALID_INPUT", details: body.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    const { product } = body.data;
 
     const { storeId } = await getUserStoreIdOrThrow();
 
@@ -66,17 +77,26 @@ FORMATO:
     });
 
     const content = ai.choices[0].message.content || "{}";
-    const suggestion = JSON.parse(content);
+    const parsed = JSON.parse(content);
+    const validated = StrategyAIOutputSchema.safeParse(parsed);
+
+    if (!validated.success) {
+      console.error("[strategy] AI returned invalid output:", validated.error);
+      return NextResponse.json(
+        { ok: false, requestId, error: "AI_INVALID_OUTPUT", details: validated.error.flatten() },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       ok: true,
       requestId,
-      suggestion,
+      suggestion: validated.data,
     });
   } catch (err: any) {
     console.error("[generate/campaign/strategy] error:", err);
     return NextResponse.json(
-      { ok: false, error: err.message || "UNKNOWN_ERROR" },
+      { ok: false, requestId, error: err.message || "UNKNOWN_ERROR" },
       { status: 500 }
     );
   }

@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { CampaignAISchema, CampaignRequestSchema } from "./schemas";
+import { CampaignAISchema, CampaignRequestSchema, AUDIENCE_VALUES, POSITIONING_VALUES } from "./schemas";
+import { OBJECTIVE_VALUES } from "@/lib/constants/strategy";
 
 // ----------------------------------------------------------------
 // Generate Campaign - Request
@@ -110,6 +111,26 @@ const StrategySuggestionSchema = z.object({
   reasoning: z.string(),
 });
 
+// ----------------------------------------------------------------
+// Strategy AI Output Schema (direct enum validation — NO preprocess)
+// Used to validate AI response in /strategy endpoint.
+// MUST use z.enum() direct (not CampaignObjectiveSchema which has z.preprocess).
+// AI output must return exact enum values — no normalization allowed.
+// ----------------------------------------------------------------
+
+/**
+ * Schema para validar o output da IA no endpoint /strategy.
+ * Usa z.enum() direto para cada campo — sem z.preprocess.
+ * "reconhecimento" deve ser REJEITADO (não normalizado para outro valor).
+ */
+export const StrategyAIOutputSchema = z.object({
+  audience: z.enum(AUDIENCE_VALUES),
+  objective: z.enum(OBJECTIVE_VALUES),
+  productPositioning: z.enum(POSITIONING_VALUES),
+  reasoning: z.string().min(10, "Reasoning deve ter no mínimo 10 caracteres"),
+});
+export type StrategyAIOutput = z.infer<typeof StrategyAIOutputSchema>;
+
 /**
  * Schema de validacao para response de sugestao de estrategia.
  * Discriminated union por campo 'ok'.
@@ -137,7 +158,7 @@ export const StrategyResponseSchema = z.discriminatedUnion("ok", [
   z.object({
     ok: z.literal(true),
     requestId: z.string(),
-    suggestion: StrategySuggestionSchema,
+    suggestion: StrategyAIOutputSchema,
   }),
   z.object({
     ok: z.literal(false),
