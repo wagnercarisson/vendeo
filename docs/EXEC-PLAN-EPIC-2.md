@@ -375,7 +375,8 @@ lib/domain/campaigns/schemas.test.ts (new)
 | 2026-04-20 | 2.6 | Implemented | @dev (Dex) | 3 surgical changes: (1) schemas.ts 5 exports (zero logic), (2) StrategyAIOutputSchema with z.enum direct, (3) route.ts safeParse 400/500. 20/20 tests ✓ (including "reconhecimento" rejection), typecheck ✓, EXEC-PLAN updated 100% — Ready → InReview |
 | 2026-04-20 | 2.6 | Review | @aiox-master (Orion) | 10/10 — Implementation perfect, validation active, Epic 2 100% complete — InReview ready for QA |
 | 2026-04-20 | 2.6 | QA Gate | @qa (Quinn) | CONCERNS (waiver accepted) — All automated checks ✓. Manual tests pending (no UI caller). Waiver: defer to integration phase. InReview → Done. 🎉 **EPIC 2 COMPLETE (6/6)** |
+| 2026-04-21 | 2.6 | Manual Tests | @aiox-master (Orion) | ✅ Test 1 (invalid payload): HTTP 400 "INVALID_INPUT" with fieldErrors. ✅ Test 2 (valid payload): HTTP 200 with suggestion (audience="premium_exigente", objective="novidade", productPositioning="premium"). DoD items 13-14 completed. Story 2.6 100% validated. |
 
 ---
 
-*Last Updated: 2026-04-20 — Epic 2 COMPLETE 🎉 (6/6 stories DONE, 100%) — By @aiox-master (Orion)*
+*Last Updated: 2026-04-21 — Epic 2 COMPLETE 🎉 (6/6 stories DONE, 100%, manual tests validated) — By @aiox-master (Orion)*

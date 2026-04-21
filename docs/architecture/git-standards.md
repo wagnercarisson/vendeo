@@ -2,7 +2,7 @@
 
 Este documento define o padrão oficial de mensagens de commit para o projeto, garantindo um histórico claro e rastreável.
 
-> **Nota Arquitetural:** As classificações e descrições definidas neste documento atuam como o padrão comportamental (behavior.md) para a IA criar, ao fim do processo de fechamento de release da ferramenta, as strings do painel público de novidades `lib/data/changelog.ts`.  
+> **Changelog Público:** Commits técnicos NÃO aparecem automaticamente no changelog público (`lib/data/changelog.ts`). Apenas mudanças com **impacto visível ao usuário final** são documentadas manualmente ao fechar releases. Ver [Release Workflow](../guides/release-workflow.md) para processo completo.
 
 ## 1. Estrutura da Mensagem
 As mensagens devem seguir o formato:
@@ -27,3 +27,28 @@ As mensagens devem seguir o formato:
 
 `- Renomeia coluna 'type' para 'content_type' (Migration 015).`
 `- Adiciona lógica de trava dinâmica (Casos 1, 2 e 3).`
+
+---
+
+## 5. Changelog Público (Story-Driven)
+
+O changelog público (`lib/data/changelog.ts`) é atualizado **apenas com mudanças visíveis ao usuário final**.
+
+### Processo:
+1. **Durante desenvolvimento:** Ao marcar story como Done, adicionar seção `## Public Impact` se houver impacto visível
+2. **No release:** Consolidar Public Impact de todas stories Done em `lib/data/changelog.ts`
+3. **Linguagem:** Não-técnica, focada em benefício para o usuário
+
+### Exemplo:
+**Story técnica (backend):** Public Impact = No → NÃO entra no changelog público
+
+**Story com impacto:** Public Impact = Yes → Entra com descrição adaptada:
+```markdown
+## Public Impact
+**Has Impact:** Yes
+**Type:** feat
+**Scope:** campaigns
+**Description:** Agora você pode criar campanhas sem definir preço - ideal para novidades
+```
+
+**Ver documentação completa:** `docs/guides/release-workflow.md`
