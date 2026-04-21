@@ -252,34 +252,33 @@ lib/domain/campaigns/schemas.test.ts (new)
 | 2.1 Schemas | Ô£à Done | 2026-04-20 | 2026-04-20 | QA: 9.5/10 ÔÇö Zero breaking changes +ÞíÑÕàà (Audience/Positioning schemas) |
 | 2.2 Types | Ô£à Done | 2026-04-20 | 2026-04-20 | QA: CONCERNS (accepted) ÔÇö 1 minimal .tsx fix approved, framework tests ignored |
 | 2.3 Contracts | Ô£à Done | 2026-04-20 | 2026-04-20 | QA: CONCERNS (accepted) ÔÇö Framework tests ignored (same as 2.2) |
-| 2.4 Mappers | ­ƒƒó InReview | 2026-04-20 | ÔÇö | Implemented ÔÇö DoD 13/13, typecheck Ô£ô (5x), 15/15 tests Ô£ô, zero breaking changes |
-| 2.5 Selectors | ÔÜ¬ Waiting | ÔÇö | ÔÇö | Ap├│s 2.2 |
-| 2.6 Integration | ÔÜ¬ Waiting | ÔÇö | ÔÇö | Ap├│s 2.1-2.5 |
+| 2.4 Mappers | Ô£à Done | 2026-04-20 | 2026-04-20 | QA: CONCERNS (accepted) ÔÇö JSDoc enhancement, 15/15 tests Ô£ô, zero breaking changes |
+| 2.5 Selectors | Ô£à Done | 2026-04-20 | 2026-04-20 | QA: PASS ÔÇö 40/40 tests Ô£ô, backward compatibility fix (hasAnyVisualAsset alias), logic.ts 100% deprecated |
+| 2.6 Integration | ­ƒöÁ Ready | ÔÇö | ÔÇö | Dependencies met: 2.1-2.5 Ô£à |
 
 ---
 
-## ­ƒÄ» Current Story: 2.5
+## ­ƒÄ» Current Story: 2.6
 
-**Status:** ­ƒöÁ Ready (dependencies met: 2.2 Ô£à)
+**Status:** ­ƒöÁ Ready (dependencies met: 2.1-2.5 Ô£à)
 
-**Ready for:** @sm *draft Story 2.5 (Selectors Puros)
+**Ready for:** Story 2.6 requirements preparation
 
-**Story 2.4 Completion Summary:**
-- Ô£à QA Gate: CONCERNS (accepted)
-- Ô£à 5 fun├º├Áes refatoradas com safeParse() + error handling
-- Ô£à mapDbCampaignToDomain + mapDbCampaignToAIContext: throw com campo espec├¡fico
-- Ô£à mapAiArtToPreview + mapAiReelsToPreview: fallback sem throw (UI-safe)
-- Ô£à mapAiCampaignToDomain: validation + fallbacks inline
-- Ô£à mapDomainToCampaignDb criado com buildCampaignContentTypeWrite()
-- Ô£à 15/15 testes passing, 5x typecheck Ô£ô
-- Ô£à Zero breaking changes
-- Ô£à JSDoc enhancement implementado (valida├º├úo strategy em mapDomainToCampaignDb)
-- ÔÜá´©Å Framework tests ignored (out of scope)
+**Story 2.5 Completion Summary:**
+- Ô£à QA Gate: PASS (after 1 iteration)
+- Ô£à Discovery: 11 functions selectors.ts, 11 functions logic.ts, 5 real conflicts resolved
+- Ô£à 7 functions migrated: hasGeneratedArt, hasGeneratedCampaignContent, hasGeneratedVideo, hasGeneratedVisualAsset, getCampaignListStatus, getCampaignStatusLine, getContentState
+- Ô£à logic.ts 100% re-exports with @deprecated JSDoc + migration guide
+- Ô£à Backward compatibility: hasAnyVisualAsset alias added (CAMPO-based semantics preserved)
+- Ô£à 40/40 tests passing (including equivalence suite: calculateGlobalStatus = getGlobalStatus)
+- Ô£à typecheck 0 errors
+- Ô£à Conflict resolutions validated: hasAnyVisualAsset (STATUS) vs hasGeneratedVisualAsset (CAMPO), getCampaignDisplayStatuses canonical in selectors.ts
+- Ô£à Zero breaking changes (logic.ts only used in tests)
 
 **Next Action:** 
-1. Prepare Story 2.5 requirements for @sm
+1. Prepare Story 2.6 requirements (Integration API Routes)
 2. Execute workflow: @aiox-master ÔåÆ @prompt-eng ÔåÆ @sm *draft
-3. Story 2.5: Selectors Puros (extrair l├│gica de UI para fun├º├Áes puras)
+3. Story 2.6: HIGH RISK (4-5h, production endpoints) — requires careful validation strategy
 
 ---
 
@@ -325,7 +324,14 @@ lib/domain/campaigns/schemas.test.ts (new)
 | 2026-04-20 | 2.4 | Implemented | @dev (Dex) | 15/15 tests ✓, 5x typecheck ✓, DoD 13/13 ✓, error handling perfect — Ready → InReview |
 | 2026-04-20 | 2.4 | JSDoc Enhancement | @dev (Dex) | Added validation strategy docs to mapDomainToCampaignDb (QA suggestion) |
 | 2026-04-20 | 2.4 | QA Gate | @qa (Quinn) | CONCERNS (accepted) — 15/15 tests ✓, typecheck ✓, framework tests out of scope — InReview → Done |
+| 2026-04-20 | 2.5 | Created | @sm (River) | Story drafted — Discovery: 11 items selectors.ts, 11 items logic.ts, 5 real conflicts, 7 unique functions to migrate, 0 callers of logic.ts confirmed |
+| 2026-04-20 | 2.5 | Validated | @po (Pax) | 10/10 PASS — Exemplary discovery (real grep), clear conflict resolutions, algorithm equivalence analysis — Draft → Ready |
+| 2026-04-20 | 2.5 | Implemented | @dev (Dex) | 39/39 tests ✓, DoD 15/15 ✓, 7 functions migrated, logic.ts 100% re-exports — Ready → InReview |
+| 2026-04-20 | 2.5 | Syntax Fixes | @aiox-master (Orion) | Corrected 3 duplicated "as const" in tests — Ready for QA |
+| 2026-04-20 | 2.5 | QA Gate | @qa (Quinn) | FAIL — Missing hasAnyVisualAsset alias in logic.ts (backward compatibility incomplete) |
+| 2026-04-20 | 2.5 | Compatibility Fix | @aiox-master (Orion) | Added hasAnyVisualAsset alias + legacy test, 40/40 tests ✓ — Ready for QA re-review |
+| 2026-04-20 | 2.5 | QA Gate (2nd) | @qa (Quinn) | PASS — Alias confirmed with @deprecated JSDoc, legacy test validates CAMPO semantics, typecheck ✓ — InReview → Done |
 
 ---
 
-*Last Updated: 2026-04-20 23:00 UTC — Stories 2.1-2.4 DONE (67% Epic 2), Story 2.5 READY — By @aiox-master (Orion)*
+*Last Updated: 2026-04-20 — Stories 2.1-2.5 DONE (83% Epic 2), Story 2.6 READY — By @aiox-master (Orion)*
