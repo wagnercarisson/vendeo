@@ -1,4 +1,5 @@
 import { Campaign } from "./types";
+import { ContentState } from "./types";
 
 /**
  * Retorna true se a campanha possui rascunho ou arte pronta.
@@ -141,3 +142,105 @@ export const getCampaignDisplayStatuses = (c: Campaign | any): DisplayBadge[] =>
 
   return badges.length > 0 ? badges : [{ label: "Sem conteúdo", variant: "none" }];
 };
+
+// ─── Migrated from logic.ts ───────────────────────────────────────────────────
+
+/**
+ * Verifica se a campanha tem arte gerada pela IA.
+ * @param c Campaign
+ * @returns true se image_url, ai_caption ou ai_text existem
+ * @example
+ * hasGeneratedArt({ image_url: "url", ai_caption: "caption" }); // true
+ */
+export const hasGeneratedArt = (c: Campaign): boolean =>
+  !!(c.image_url || c.ai_caption || c.ai_text);
+
+/**
+ * Verifica se a campanha tem conteúdo textual gerado pela IA.
+ * @param c Campaign
+ * @returns true se ai_caption, ai_text ou ai_cta existem
+ * @example
+ * hasGeneratedCampaignContent({ ai_caption: "caption" }); // true
+ */
+export const hasGeneratedCampaignContent = (c: Campaign): boolean =>
+  !!(c.ai_caption || c.ai_text || c.ai_cta);
+
+/**
+ * Verifica se a campanha tem vídeo/reels gerado.
+ * @param c Campaign
+ * @returns true se reels_script ou reels_hook existem
+ * @example
+ * hasGeneratedVideo({ reels_script: "script" }); // true
+ */
+export const hasGeneratedVideo = (c: Campaign): boolean =>
+  !!(c.reels_script || c.reels_hook);
+
+/**
+ * Retorna o status resumido da campanha para listagem.
+ * @param c Campaign
+ * @returns "approved" | "pending" | "none"
+ * @example
+ * getCampaignListStatus({ status: "approved" }); // "approved"
+ */
+export const getCampaignListStatus = (c: Campaign): "approved" | "pending" | "none" => {
+  const art = hasGeneratedArt(c);
+  const video = hasGeneratedVideo(c);
+  const content = hasGeneratedCampaignContent(c);
+
+  if (c.status === "approved") return "approved";
+  if (art || video || content) return "pending";
+  return "none";
+};
+
+/**
+ * Retorna string de status amigável para o usuário.
+ * @param c Campaign
+ * @returns string como "Campanha completa", "Aguardando aprovação", "Sem conteúdo"
+ * @example
+ * getCampaignStatusLine({ status: "approved", image_url: "url", reels_script: "s" }); // "Campanha completa"
+ */
+export const getCampaignStatusLine = (c: Campaign): string => {
+  const status = getCampaignListStatus(c);
+
+  if (status === "approved") {
+    const art = hasGeneratedArt(c);
+    const video = hasGeneratedVideo(c);
+    if (art && video) return "Campanha completa";
+    if (art) return "Arte pronta";
+    if (video) return "Vídeo pronto";
+    return "Aprovada";
+  }
+
+  if (status === "pending") return "Aguardando aprovação";
+  return "Sem conteúdo";
+};
+
+/**
+ * Entende o estado de conteúdo da campanha baseado na presença de campos.
+ * @param c Campaign
+ * @returns "art_and_video" | "art_only" | "video_only" | "none"
+ * @example
+ * getContentState({ image_url: "url", reels_script: "s" }); // "art_and_video"
+ */
+export const getContentState = (c: Campaign): ContentState => {
+  const art = !!(c.image_url || c.ai_caption || c.ai_text || c.ai_generated_at);
+  const video = !!(c.reels_script || c.reels_hook || c.reels_generated_at);
+
+  if (art && video) return "art_and_video";
+  if (art) return "art_only";
+  if (video) return "video_only";
+  return "none";
+};
+
+/**
+ * Verifica se a campanha tem qualquer asset visual gerado (baseado em CAMPOS).
+ * Diferente de hasAnyVisualAsset() que verifica STATUS de geração.
+ * @param c Campaign
+ * @returns true se image_url OU reels_script existem
+ * @example
+ * const campaign = { image_url: "url", post_status: "none" };
+ * hasGeneratedVisualAsset(campaign); // true (CAMPO preenchido)
+ * hasAnyVisualAsset(campaign); // false (STATUS none)
+ */
+export const hasGeneratedVisualAsset = (c: Campaign): boolean =>
+  !!(c.image_url || c.reels_script);
