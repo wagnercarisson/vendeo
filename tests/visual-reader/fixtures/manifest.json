@@ -1,0 +1,312 @@
+[
+  {
+    "id": "01-transparent-exact",
+    "imageFile": "01-transparent-exact.svg",
+    "request": {
+      "imageUrl": "https://example.com/visual-reader/01-transparent-exact.svg",
+      "productName": "Coca Cola 600ml",
+      "content_type": "product"
+    },
+    "expected": {
+      "detected": true,
+      "matchType": "exact",
+      "matchedTarget": "Coca-Cola 600ml bottle",
+      "confidence": "high",
+      "sceneType": "single_product",
+      "relevantCount": 1,
+      "ignoredElements": [],
+      "targetBox": { "x": 0.3, "y": 0.08, "width": 0.4, "height": 0.84 },
+      "targetOrientation": "vertical",
+      "targetPosition": "center",
+      "targetOccupancy": "high",
+      "imageQuality": "good",
+      "visibility": "clear",
+      "framing": "good",
+      "backgroundType": "transparent",
+      "subjectCutoff": "none",
+      "safeExpansionPotential": "high",
+      "focusClarity": "high",
+      "visualIsolation": "high",
+      "reasoningSummary": "Transparent cutout with one clearly visible bottle."
+    }
+  },
+  {
+    "id": "02-solid-single",
+    "imageFile": "02-solid-single.svg",
+    "request": {
+      "imageUrl": "https://example.com/visual-reader/02-solid-single.svg",
+      "productName": "Cafe Premium 500g",
+      "content_type": "product"
+    },
+    "expected": {
+      "detected": true,
+      "matchType": "exact",
+      "matchedTarget": "Cafe Premium 500g pack",
+      "confidence": "high",
+      "sceneType": "single_product",
+      "relevantCount": 1,
+      "ignoredElements": [],
+      "targetBox": { "x": 0.24, "y": 0.18, "width": 0.52, "height": 0.64 },
+      "targetOrientation": "vertical",
+      "targetPosition": "center",
+      "targetOccupancy": "medium",
+      "imageQuality": "good",
+      "visibility": "clear",
+      "framing": "good",
+      "backgroundType": "solid",
+      "subjectCutoff": "none",
+      "safeExpansionPotential": "medium",
+      "focusClarity": "high",
+      "visualIsolation": "high",
+      "reasoningSummary": "Single pack centered on a solid background."
+    }
+  },
+  {
+    "id": "03-lifestyle-scene",
+    "imageFile": "03-lifestyle-scene.svg",
+    "request": {
+      "imageUrl": "https://example.com/visual-reader/03-lifestyle-scene.svg",
+      "productName": "Hamburguer Artesanal",
+      "content_type": "product"
+    },
+    "expected": {
+      "detected": true,
+      "matchType": "exact",
+      "matchedTarget": "Hamburguer artesanal",
+      "confidence": "medium",
+      "sceneType": "lifestyle_scene",
+      "relevantCount": 1,
+      "ignoredElements": ["mesa", "bebida"],
+      "targetBox": { "x": 0.18, "y": 0.24, "width": 0.44, "height": 0.36 },
+      "targetOrientation": "horizontal",
+      "targetPosition": "left",
+      "targetOccupancy": "medium",
+      "imageQuality": "acceptable",
+      "visibility": "clear",
+      "framing": "good",
+      "backgroundType": "complex",
+      "subjectCutoff": "none",
+      "safeExpansionPotential": "medium",
+      "focusClarity": "medium",
+      "visualIsolation": "medium",
+      "reasoningSummary": "Burger is visible within a broader dining scene."
+    }
+  },
+  {
+    "id": "04-compound-products",
+    "imageFile": "04-compound-products.svg",
+    "request": {
+      "imageUrl": "https://example.com/visual-reader/04-compound-products.svg",
+      "productName": "Coca Cola 600ml + Batatas Fritas",
+      "content_type": "product"
+    },
+    "expected": {
+      "detected": true,
+      "matchType": "exact",
+      "matchedTarget": "Coca-Cola 600ml bottle and fries",
+      "confidence": "high",
+      "sceneType": "multiple_products",
+      "relevantCount": 2,
+      "ignoredElements": [],
+      "targetBox": { "x": 0.08, "y": 0.16, "width": 0.8, "height": 0.62 },
+      "targetOrientation": "mixed",
+      "targetPosition": "mixed",
+      "targetOccupancy": "high",
+      "imageQuality": "good",
+      "visibility": "clear",
+      "framing": "good",
+      "backgroundType": "complex",
+      "subjectCutoff": "none",
+      "safeExpansionPotential": "low",
+      "focusClarity": "high",
+      "visualIsolation": "medium",
+      "reasoningSummary": "Both target items are visible and enclosed by one combined box."
+    }
+  },
+  {
+    "id": "05-exact-match",
+    "imageFile": "05-exact-match.svg",
+    "request": {
+      "imageUrl": "https://example.com/visual-reader/05-exact-match.svg",
+      "productName": "Suco Laranja 1L",
+      "content_type": "product"
+    },
+    "expected": {
+      "detected": true,
+      "matchType": "exact",
+      "matchedTarget": "Suco de laranja 1L carton",
+      "confidence": "high",
+      "sceneType": "single_product",
+      "relevantCount": 1,
+      "ignoredElements": [],
+      "targetBox": { "x": 0.34, "y": 0.14, "width": 0.32, "height": 0.7 },
+      "targetOrientation": "vertical",
+      "targetPosition": "center",
+      "targetOccupancy": "medium",
+      "imageQuality": "good",
+      "visibility": "clear",
+      "framing": "good",
+      "backgroundType": "solid",
+      "subjectCutoff": "none",
+      "safeExpansionPotential": "medium",
+      "focusClarity": "high",
+      "visualIsolation": "high",
+      "reasoningSummary": "Declared juice carton is clearly visible and centered."
+    }
+  },
+  {
+    "id": "06-category-only",
+    "imageFile": "06-category-only.svg",
+    "request": {
+      "imageUrl": "https://example.com/visual-reader/06-category-only.svg",
+      "productName": "Coca Cola 600ml",
+      "content_type": "product"
+    },
+    "expected": {
+      "detected": false,
+      "matchType": "category_only",
+      "matchedTarget": "Pepsi bottle",
+      "confidence": "medium",
+      "sceneType": "single_product",
+      "relevantCount": 1,
+      "ignoredElements": [],
+      "targetBox": { "x": 0.32, "y": 0.1, "width": 0.36, "height": 0.78 },
+      "targetOrientation": "vertical",
+      "targetPosition": "center",
+      "targetOccupancy": "medium",
+      "imageQuality": "acceptable",
+      "visibility": "clear",
+      "framing": "good",
+      "backgroundType": "complex",
+      "subjectCutoff": "none",
+      "safeExpansionPotential": "medium",
+      "focusClarity": "medium",
+      "visualIsolation": "medium",
+      "reasoningSummary": "A similar soda bottle is visible, but it is Pepsi rather than Coca-Cola 600ml."
+    }
+  },
+  {
+    "id": "07-no-match",
+    "imageFile": "07-no-match.svg",
+    "request": {
+      "imageUrl": "https://example.com/visual-reader/07-no-match.svg",
+      "productName": "Coca Cola 600ml",
+      "content_type": "product"
+    },
+    "expected": {
+      "detected": false,
+      "matchType": "none",
+      "matchedTarget": null,
+      "confidence": "medium",
+      "sceneType": "lifestyle_scene",
+      "relevantCount": 0,
+      "ignoredElements": ["hamburguer", "batatas fritas"],
+      "targetBox": null,
+      "targetOrientation": "unknown",
+      "targetPosition": "unknown",
+      "targetOccupancy": "low",
+      "imageQuality": "good",
+      "visibility": "unknown",
+      "framing": "unknown",
+      "backgroundType": "complex",
+      "subjectCutoff": "unknown",
+      "safeExpansionPotential": "unknown",
+      "focusClarity": "unknown",
+      "visualIsolation": "unknown",
+      "reasoningSummary": "Declared product is not visible; only unrelated food items appear in the image."
+    }
+  },
+  {
+    "id": "08-subject-cutoff",
+    "imageFile": "08-subject-cutoff.svg",
+    "request": {
+      "imageUrl": "https://example.com/visual-reader/08-subject-cutoff.svg",
+      "productName": "Perfume Elegance 100ml",
+      "content_type": "product"
+    },
+    "expected": {
+      "detected": true,
+      "matchType": "exact",
+      "matchedTarget": "Perfume Elegance 100ml bottle",
+      "confidence": "medium",
+      "sceneType": "single_product",
+      "relevantCount": 1,
+      "ignoredElements": [],
+      "targetBox": { "x": 0.02, "y": 0.08, "width": 0.44, "height": 0.9 },
+      "targetOrientation": "vertical",
+      "targetPosition": "left",
+      "targetOccupancy": "high",
+      "imageQuality": "acceptable",
+      "visibility": "partial",
+      "framing": "tight",
+      "backgroundType": "solid",
+      "subjectCutoff": "severe",
+      "safeExpansionPotential": "low",
+      "focusClarity": "medium",
+      "visualIsolation": "high",
+      "reasoningSummary": "The perfume bottle is visible but significantly cropped by the image edge."
+    }
+  },
+  {
+    "id": "09-low-quality",
+    "imageFile": "09-low-quality.svg",
+    "request": {
+      "imageUrl": "https://example.com/visual-reader/09-low-quality.svg",
+      "productName": "Sabonete Herbal",
+      "content_type": "product"
+    },
+    "expected": {
+      "detected": true,
+      "matchType": "exact",
+      "matchedTarget": "Sabonete Herbal package",
+      "confidence": "low",
+      "sceneType": "single_product",
+      "relevantCount": 1,
+      "ignoredElements": [],
+      "targetBox": { "x": 0.26, "y": 0.26, "width": 0.48, "height": 0.42 },
+      "targetOrientation": "horizontal",
+      "targetPosition": "center",
+      "targetOccupancy": "medium",
+      "imageQuality": "poor",
+      "visibility": "partial",
+      "framing": "good",
+      "backgroundType": "complex",
+      "subjectCutoff": "light",
+      "safeExpansionPotential": "medium",
+      "focusClarity": "low",
+      "visualIsolation": "low",
+      "reasoningSummary": "The target appears present, but the image is blurry and low confidence."
+    }
+  },
+  {
+    "id": "10-kit-set",
+    "imageFile": "10-kit-set.svg",
+    "request": {
+      "imageUrl": "https://example.com/visual-reader/10-kit-set.svg",
+      "productName": "Kit c/6 Coca Cola 600ml",
+      "content_type": "product"
+    },
+    "expected": {
+      "detected": true,
+      "matchType": "exact",
+      "matchedTarget": "Six-pack of Coca-Cola 600ml bottles",
+      "confidence": "high",
+      "sceneType": "multiple_products",
+      "relevantCount": 6,
+      "ignoredElements": [],
+      "targetBox": { "x": 0.12, "y": 0.18, "width": 0.76, "height": 0.56 },
+      "targetOrientation": "mixed",
+      "targetPosition": "center",
+      "targetOccupancy": "high",
+      "imageQuality": "good",
+      "visibility": "clear",
+      "framing": "good",
+      "backgroundType": "complex",
+      "subjectCutoff": "none",
+      "safeExpansionPotential": "low",
+      "focusClarity": "high",
+      "visualIsolation": "medium",
+      "reasoningSummary": "A visible six-pack set of the declared product occupies most of the frame."
+    }
+  }
+]
