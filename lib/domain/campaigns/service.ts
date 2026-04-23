@@ -1,6 +1,9 @@
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { callAIWithRetry } from "@/lib/ai/parse";
 import { fetchStoreContext } from "@/lib/domain/stores/queries";
+// TODO: Revisar ao final da Epic 4 - módulo não existe nesta branch
+// import { getLatestVisualPreference } from "@/lib/domain/visual-preference/service";
+// import { VisualPreferenceShape } from "@/lib/domain/visual-preference/types";
 import { CampaignAISchema } from "./schemas";
 import { buildCampaignPrompt } from "./prompts";
 import { mapAiCampaignToDomain, mapDbCampaignToAIContext } from "./mapper";
@@ -84,8 +87,61 @@ export async function generateCampaignContent(
     return { ok: false, error: "STORE_NOT_FOUND", status: 404 };
   }
 
+  // TODO: Revisar ao final da Epic 4 - visual-preference não implementado nesta branch
+  // let visualPreference: VisualPreferenceShape | null = null;
+  // try {
+  //   visualPreference = await getLatestVisualPreference(storeId);
+  //   console.log('[DEBUG 2.7] Visual Preference loaded:', visualPreference ? 'YES' : 'NO', visualPreference);
+  // } catch (err) {
+  //   console.error('[campaigns/service] visual preference fetch failed:', err);
+  // }
+
+  // 4.1) Contexto de geração: rastreabilidade completa da base declarativa e contextual usada.
+  // brand_profile_source indica se a identidade veio do Brand Profile publicado
+  // ou do fallback legado determinístico.
+  // Fallback legado não é preferência aprendida nem snapshot de composição.
+  // main_segment vem exclusivamente da Store (não do Brand Profile).
+  // O snapshot abaixo captura os dados efetivos no momento da geração para auditoria posterior.
+  const bp = store.brand_profile;
+  const generationContext = {
+    // TODO: Revisar ao final da Epic 4 - brand_profile_source não vem de fetchStoreContext
+    // brand_profile_source: store.brand_profile_source ?? "legacy",
+    brand_profile_version: store.brand_profile_version ?? null,
+    brand_profile_updated_at: store.brand_profile_updated_at ?? null,
+    resolved_at: new Date().toISOString(),
+    visual_preference: null, // TODO: Revisar ao final da Epic 4
+    store: {
+      store_id: store.id,
+      main_segment: store.main_segment ?? null,
+      brand_profile: bp
+        ? {
+            store_name: bp.store_name,
+            contact: {
+              whatsapp: bp.contact.whatsapp,
+              phone: bp.contact.phone,
+            },
+            location: {
+              address: bp.location.address,
+              neighborhood: bp.location.neighborhood ?? null,
+              city: bp.location.city ?? null,
+              state: bp.location.state ?? null,
+            },
+            visual: {
+              primary_color: bp.visual.primary_color,
+              secondary_color: bp.visual.secondary_color,
+              logo_url: bp.visual.logo_url,
+            },
+            voice: {
+              tone_of_voice: bp.voice.tone_of_voice,
+              brand_positioning: bp.voice.brand_positioning,
+            },
+          }
+        : null,
+    },
+  };
+
   // 5) Monta prompt e chama IA
-  const prompt = buildCampaignPrompt(campaignCtx, store, description);
+  const prompt = buildCampaignPrompt(campaignCtx, store, null, description); // TODO: Revisar ao final da Epic 4
   const { data: aiData } = await callAIWithRetry(prompt, CampaignAISchema, { temperature: 0.7 });
 
   // 6) Normaliza cópia gerada
@@ -104,6 +160,7 @@ export async function generateCampaignContent(
         ai_generated_at: new Date().toISOString(),
         status: 'ready',
         post_status: 'ready',
+        domain_input: generationContext,
       })
       .eq("id", campaign_id);
 

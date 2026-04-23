@@ -2,19 +2,24 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
+import { VISUAL_PIPELINE_SCHEMA_VERSION } from "@/lib/domain/visual-composition/contracts";
+
+const HexColorSchema = z.string().regex(/^#(?:[0-9a-fA-F]{3}){1,2}$/);
 
 const BodySchema = z.object({
-  name: z.string().min(2),
-  city: z.string().min(2),
-  state: z.string().min(2),
-  main_segment: z.string().optional(),
-  brand_positioning: z.string().optional(),
-  tone_of_voice: z.string().optional(),
-  whatsapp: z.string().optional(),
-  phone: z.string().optional(),
-  instagram: z.string().optional(),
-  primary_color: z.string().optional(),
-  secondary_color: z.string().optional(),
+  store_name: z.string().trim().min(2),
+  primary_color: HexColorSchema,
+  tone_of_voice: z.string().trim().min(1),
+  main_segment: z.string().trim().min(1),
+  secondary_color: HexColorSchema.optional(),
+  logo_url: z.string().url().optional(),
+  brand_positioning: z.string().trim().optional(),
+  whatsapp: z.string().trim().optional(),
+  phone: z.string().trim().optional(),
+  address: z.string().trim().optional(),
+  neighborhood: z.string().trim().optional(),
+  city: z.string().trim().optional(),
+  state: z.string().trim().optional(),
 });
 
 export async function POST(req: Request) {
@@ -71,8 +76,20 @@ export async function POST(req: Request) {
   const { data: store, error: storeErr } = await admin
     .from("stores")
     .insert({
-      ...parsed.data,
+      name: parsed.data.store_name,
       owner_user_id: user.id,
+      main_segment: parsed.data.main_segment,
+      tone_of_voice: parsed.data.tone_of_voice,
+      primary_color: parsed.data.primary_color,
+      secondary_color: parsed.data.secondary_color ?? null,
+      logo_url: parsed.data.logo_url ?? null,
+      brand_positioning: parsed.data.brand_positioning ?? null,
+      whatsapp: parsed.data.whatsapp ?? null,
+      phone: parsed.data.phone ?? null,
+      address: parsed.data.address ?? null,
+      neighborhood: parsed.data.neighborhood ?? null,
+      city: parsed.data.city ?? null,
+      state: parsed.data.state ?? null,
     })
     .select("id")
     .single();
@@ -113,6 +130,47 @@ export async function POST(req: Request) {
 
     return NextResponse.json(
       { error: "store_insert_failed", details: storeErr?.message },
+      { status: 500 }
+    );
+  }
+
+  const d = parsed.data;
+  const brandProfile = {
+    schema_version: VISUAL_PIPELINE_SCHEMA_VERSION,
+    store_id: store.id,
+    store_name: d.store_name,
+    contact: {
+      whatsapp: d.whatsapp ?? null,
+      phone: d.phone ?? null,
+    },
+    location: {
+      address: d.address ?? null,
+      neighborhood: d.neighborhood ?? null,
+      city: d.city ?? null,
+      state: d.state ?? null,
+    },
+    visual: {
+      primary_color: d.primary_color,
+      secondary_color: d.secondary_color ?? null,
+      logo_url: d.logo_url ?? null,
+    },
+    voice: {
+      tone_of_voice: d.tone_of_voice,
+      brand_positioning: d.brand_positioning ?? null,
+    },
+  };
+
+  const { error: profileErr } = await admin
+    .from("stores")
+    .update({
+      brand_profile: brandProfile,
+      brand_profile_updated_at: new Date().toISOString(),
+    })
+    .eq("id", store.id);
+
+  if (profileErr) {
+    return NextResponse.json(
+      { error: "brand_profile_update_failed", details: profileErr.message },
       { status: 500 }
     );
   }

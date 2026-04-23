@@ -1,5 +1,5 @@
 import { VISUAL_PIPELINE_SCHEMA_VERSION } from "@/lib/domain/visual-composition/contracts";
-import { Store, StoreBrandProfile } from "./types";
+import { Store, StoreBrandProfile, BrandProfileSource } from "./types";
 
 function asNullableString(value: unknown): string | null {
   return typeof value === "string" ? value : null;
@@ -85,11 +85,27 @@ export function resolveStoreBrandProfile(raw: any): StoreBrandProfile {
 }
 
 /**
+ * Resolve o Brand Profile e expõe a fonte usada.
+ * "published"  — brand_profile JSONB existia e foi validado com sucesso.
+ * "legacy"     — brand_profile ausente ou inválido; fallback determinístico aplicado.
+ * O fallback legado é compatibilidade com o estado atual do domínio.
+ * Não equivale a preferência aprendida nem a snapshot de composição.
+ */
+export function resolveStoreBrandProfileWithSource(raw: any): {
+  profile: StoreBrandProfile;
+  source: BrandProfileSource;
+} {
+  const published = parsePublishedBrandProfile(raw);
+  if (published) return { profile: published, source: "published" };
+  return { profile: buildLegacyBrandProfile(raw), source: "legacy" };
+}
+
+/**
  * Mapeia uma linha crua do banco para o tipo de domínio Store.
  * Garante que campos opcionais tenham fallbacks consistentes (null).
  */
 export function mapDbStoreToDomain(raw: any): Store {
-  const brandProfile = resolveStoreBrandProfile(raw);
+  const { profile: brandProfile, source } = resolveStoreBrandProfileWithSource(raw);
 
   return {
     id: String(raw.id),
@@ -112,5 +128,6 @@ export function mapDbStoreToDomain(raw: any): Store {
       typeof raw.brand_profile_version === "number" ? raw.brand_profile_version : null,
     brand_profile_updated_at:
       typeof raw.brand_profile_updated_at === "string" ? raw.brand_profile_updated_at : null,
+    brand_profile_source: source,
   };
 }

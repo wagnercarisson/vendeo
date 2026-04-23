@@ -40,6 +40,90 @@ export type Campaign = CampaignModel & {
     stores?: Store | null;
 };
 
+type ArtVariationSnapshot = Pick<
+    CampaignPreviewData,
+    | "image_url"
+    | "headline"
+    | "body_text"
+    | "cta"
+    | "caption"
+    | "hashtags"
+    | "price"
+    | "price_label"
+    | "store"
+    | "layout"
+>;
+
+type ReelsVariationSnapshot = Pick<
+    CampaignPreviewData,
+    | "reels_hook"
+    | "reels_script"
+    | "reels_shotlist"
+    | "reels_audio_suggestion"
+    | "reels_duration_seconds"
+    | "reels_on_screen_text"
+    | "reels_caption"
+    | "reels_cta"
+    | "reels_hashtags"
+>;
+
+function pickArtVariationSnapshot(
+    preview: CampaignPreviewData | null | undefined
+): ArtVariationSnapshot | null {
+    if (!preview) return null;
+
+    return {
+        image_url: preview.image_url,
+        headline: preview.headline,
+        body_text: preview.body_text,
+        cta: preview.cta,
+        caption: preview.caption,
+        hashtags: preview.hashtags,
+        price: preview.price,
+        price_label: preview.price_label,
+        store: preview.store,
+        layout: preview.layout,
+    };
+}
+
+function pickReelsVariationSnapshot(
+    preview: CampaignPreviewData | null | undefined
+): ReelsVariationSnapshot | null {
+    if (!preview) return null;
+
+    return {
+        reels_hook: preview.reels_hook,
+        reels_script: preview.reels_script,
+        reels_shotlist: preview.reels_shotlist,
+        reels_audio_suggestion: preview.reels_audio_suggestion,
+        reels_duration_seconds: preview.reels_duration_seconds,
+        reels_on_screen_text: preview.reels_on_screen_text,
+        reels_caption: preview.reels_caption,
+        reels_cta: preview.reels_cta,
+        reels_hashtags: preview.reels_hashtags,
+    };
+}
+
+function applyArtVariationSnapshot(
+    preview: CampaignPreviewData | null,
+    snapshot: ArtVariationSnapshot
+): CampaignPreviewData {
+    return {
+        ...(preview ?? {}),
+        ...snapshot,
+    };
+}
+
+function applyReelsVariationSnapshot(
+    preview: CampaignPreviewData | null,
+    snapshot: ReelsVariationSnapshot
+): CampaignPreviewData {
+    return {
+        ...(preview ?? {}),
+        ...snapshot,
+    };
+}
+
 function cx(...classes: (string | boolean | undefined | null)[]) {
     return classes.filter(Boolean).join(" ");
 }
@@ -72,11 +156,14 @@ export function CampaignPreviewClient({
     const [isCloning, setIsCloning] = useState(false);
     const hasAnyReadyContent = selectors.isCampaignReady(campaign as any);
 
-    const [previewData, setPreviewData] = useState<CampaignPreviewData | null>(
-        hasAnyReadyContent
+    const initialPreviewData = useMemo(
+        () => (hasAnyReadyContent
             ? mapCampaignToPreviewData(campaign as any, campaign.stores)
-            : null
+            : null),
+        [campaign, hasAnyReadyContent]
     );
+
+    const [previewData, setPreviewData] = useState<CampaignPreviewData | null>(initialPreviewData);
     const [loadingText, setLoadingText] = useState(false);
     const [loadingReels, setLoadingReels] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -91,6 +178,22 @@ export function CampaignPreviewClient({
         setTimeout(() => setSuccessToast(null), 3000);
     };
     const [isReviewDirty, setIsReviewDirty] = useState(false);
+
+    // Session-local variation collections for art and reels.
+    // Enables prev/next navigation between alternatives in the current session only.
+    // No persistence, no learned preference, no schema change.
+    const hasArtContent = campaign.post_status === "ready" || campaign.post_status === "approved";
+    const hasReelsContent = campaign.reels_status === "ready" || campaign.reels_status === "approved";
+    const [artVariations, setArtVariations] = useState<ArtVariationSnapshot[]>(() => {
+        const initialArtVariation = pickArtVariationSnapshot(initialPreviewData);
+        return hasArtContent && initialArtVariation ? [initialArtVariation] : [];
+    });
+    const [artVariationIndex, setArtVariationIndex] = useState(hasArtContent ? 0 : -1);
+    const [reelsVariations, setReelsVariations] = useState<ReelsVariationSnapshot[]>(() => {
+        const initialReelsVariation = pickReelsVariationSnapshot(initialPreviewData);
+        return hasReelsContent && initialReelsVariation ? [initialReelsVariation] : [];
+    });
+    const [reelsVariationIndex, setReelsVariationIndex] = useState(hasReelsContent ? 0 : -1);
 
     const hasArt = selectors.hasArt(campaign as any) || !!previewData?.headline;
     const hasVideo = selectors.hasVideo(campaign as any) || !!previewData?.reels_hook;
@@ -108,6 +211,27 @@ export function CampaignPreviewClient({
         setLocalPostStatus(campaign.post_status);
         setLocalReelsStatus(campaign.reels_status);
     }, [campaign.post_status, campaign.reels_status]);
+
+    useEffect(() => {
+        if (activeTab === "art") {
+            const activeArtVariation = artVariationIndex >= 0 ? artVariations[artVariationIndex] : null;
+            if (!activeArtVariation) return;
+
+            setPreviewData((prev) => applyArtVariationSnapshot(prev, activeArtVariation));
+            return;
+        }
+
+        const activeReelsVariation = reelsVariationIndex >= 0 ? reelsVariations[reelsVariationIndex] : null;
+        if (!activeReelsVariation) return;
+
+        setPreviewData((prev) => applyReelsVariationSnapshot(prev, activeReelsVariation));
+    }, [
+        activeTab,
+        artVariationIndex,
+        artVariations,
+        reelsVariationIndex,
+        reelsVariations,
+    ]);
 
     const hasAi = hasArt;
     const hasReels = hasVideo;
@@ -139,9 +263,49 @@ export function CampaignPreviewClient({
         setIsEditingBase(true);
     };
 
+    function handleNavigateArtVariation(delta: number) {
+        const newIdx = artVariationIndex + delta;
+        if (newIdx < 0 || newIdx >= artVariations.length) return;
+        setArtVariationIndex(newIdx);
+        setPreviewData((prev) => applyArtVariationSnapshot(prev, artVariations[newIdx]));
+    }
+
+    function handleNavigateReelsVariation(delta: number) {
+        const newIdx = reelsVariationIndex + delta;
+        if (newIdx < 0 || newIdx >= reelsVariations.length) return;
+        setReelsVariationIndex(newIdx);
+        setPreviewData((prev) => applyReelsVariationSnapshot(prev, reelsVariations[newIdx]));
+    }
+
+    function updateActiveArtVariation(nextPreview: CampaignPreviewData) {
+        const nextArtVariation = pickArtVariationSnapshot(nextPreview);
+        if (!nextArtVariation) return;
+
+        setPreviewData((prev) => applyArtVariationSnapshot(prev, nextArtVariation));
+
+        if (artVariationIndex >= 0) {
+            setArtVariations((prev) => prev.map((variation, index) => (
+                index === artVariationIndex ? nextArtVariation : variation
+            )));
+        }
+    }
+
+    function updateActiveReelsVariation(nextPreview: CampaignPreviewData) {
+        const nextReelsVariation = pickReelsVariationSnapshot(nextPreview);
+        if (!nextReelsVariation) return;
+
+        setPreviewData((prev) => applyReelsVariationSnapshot(prev, nextReelsVariation));
+
+        if (reelsVariationIndex >= 0) {
+            setReelsVariations((prev) => prev.map((variation, index) => (
+                index === reelsVariationIndex ? nextReelsVariation : variation
+            )));
+        }
+    }
+
     const finalArtUrlClean = (campaign.image_url || "").split("#")[0];
     const isApprovedView = campaign.status === "approved";
-    const heroImageUrlClean = (isApprovedView 
+    const heroImageUrlClean = (isApprovedView
         ? (campaign.image_url || campaign.product_image_url || "")
         : (campaign.product_image_url || "")).split("#")[0];
 
@@ -160,10 +324,10 @@ export function CampaignPreviewClient({
         campaign.objective
     );
 
-    const isBothReady = (localPostStatus === 'ready' || localPostStatus === 'approved') && 
-                       (localReelsStatus === 'ready' || localReelsStatus === 'approved');
-    const hasAnyReady = (localPostStatus === 'ready' || localPostStatus === 'approved') || 
-                        (localReelsStatus === 'ready' || localReelsStatus === 'approved');
+    const isBothReady = (localPostStatus === 'ready' || localPostStatus === 'approved') &&
+        (localReelsStatus === 'ready' || localReelsStatus === 'approved');
+    const hasAnyReady = (localPostStatus === 'ready' || localPostStatus === 'approved') ||
+        (localReelsStatus === 'ready' || localReelsStatus === 'approved');
 
     const isStrategyLocked = isPlanLinked || campaign.origin === "plan";
 
@@ -221,7 +385,7 @@ export function CampaignPreviewClient({
         try {
             setErrorMsg(null);
             setIsSaving(true);
-            
+
             const payload: any = {
                 ...buildStrategySafeBaseUpdate(data),
                 status: selectors.getGlobalStatus(campaign as any) === 'approved' ? 'ready' : (campaign.status || 'draft'),
@@ -234,21 +398,21 @@ export function CampaignPreviewClient({
                 .eq("id", campaign.id);
 
             if (error) throw error;
-            
+
             setPendingSaveData(null);
 
             if (shouldRegenerate) {
                 // Determine what to regenerate based on active statuses
                 const genArt = localPostStatus !== "none" && localPostStatus !== "draft";
                 const genReels = localReelsStatus !== "none" && localReelsStatus !== "draft";
-                
+
                 if (genArt) {
                     await generateText(true, data, true);
                 }
                 if (genReels) {
                     await generateReels(true, data);
                 }
-                
+
                 setIsEditingBase(false);
                 router.refresh();
                 showSuccess("Tudo pronto! Seu projeto foi atualizado com base nas novas informações.");
@@ -268,8 +432,8 @@ export function CampaignPreviewClient({
     }
 
     async function handleSaveBaseFields(data: CampaignSavePayload) {
-        const hasContent = (localPostStatus !== "none" && localPostStatus !== "draft") || 
-                           (localReelsStatus !== "none" && localReelsStatus !== "draft");
+        const hasContent = (localPostStatus !== "none" && localPostStatus !== "draft") ||
+            (localReelsStatus !== "none" && localReelsStatus !== "draft");
         if (hasContent) {
             setPendingSaveData(data);
         } else {
@@ -408,23 +572,26 @@ export function CampaignPreviewClient({
                 previewData?.image_url
             );
 
-            setPreviewData((prev) => ({
-                ...prev,
+            const artStoreSnapshot = campaign.stores
+                ? {
+                    name: campaign.stores.name,
+                    address: `${campaign.stores.address || ""}${campaign.stores.neighborhood ? `, ${campaign.stores.neighborhood}` : ""}`,
+                    whatsapp: campaign.stores.whatsapp || campaign.stores.phone || "",
+                    primary_color: campaign.stores.primary_color,
+                    secondary_color: campaign.stores.secondary_color,
+                    logo_url: campaign.stores.logo_url,
+                }
+                : previewData?.store;
+            const newArtVariation: ArtVariationSnapshot = {
                 ...mappedArt,
                 image_url: previewImageUrl,
                 price: overrides?.price !== undefined ? overrides.price : campaign.price,
                 layout: "solid",
-                store: campaign.stores
-                    ? {
-                        name: campaign.stores.name,
-                        address: `${campaign.stores.address || ""}${campaign.stores.neighborhood ? `, ${campaign.stores.neighborhood}` : ""}`,
-                        whatsapp: campaign.stores.whatsapp || campaign.stores.phone || "",
-                        primary_color: campaign.stores.primary_color,
-                        secondary_color: campaign.stores.secondary_color,
-                        logo_url: campaign.stores.logo_url,
-                    }
-                    : prev?.store,
-            }));
+                store: artStoreSnapshot,
+            };
+            setPreviewData((prev) => applyArtVariationSnapshot(prev, newArtVariation));
+            setArtVariations((prev) => [...prev, newArtVariation]);
+            setArtVariationIndex((prev) => prev + 1);
 
             setIsCloning(false);
             setActiveTab("art");
@@ -454,7 +621,7 @@ export function CampaignPreviewClient({
                     let left = 0;
                     let current: HTMLElement | null = el;
                     const container = previewContainerRef.current;
-                    
+
                     while (current && current !== container) {
                         top += current.offsetTop;
                         left += current.offsetLeft;
@@ -468,7 +635,7 @@ export function CampaignPreviewClient({
                     const parentRect = parent.getBoundingClientRect();
                     const container = previewContainerRef.current;
                     if (!container) return { top: 0, left: 0 };
-                    
+
                     const scale = container.getBoundingClientRect().width / container.offsetWidth;
                     return {
                         left: (elRect.left - parentRect.left) / scale,
@@ -477,29 +644,29 @@ export function CampaignPreviewClient({
                 };
 
                 const badgeOffset = previewBadgeRef.current ? getElementOffset(previewBadgeRef.current) : { top: undefined, left: undefined };
-                
+
                 // Medições de Texto do Conteúdo Principal (referenciadas pelo CONTAINER raiz)
                 const storePillPos = (previewStorePillRef.current && previewContainerRef.current)
                     ? getUnscaledRelativePos(previewStorePillRef.current, previewContainerRef.current)
                     : { top: undefined, left: undefined };
-                    
+
                 const headlinePos = (previewHeadlineRef.current && previewContainerRef.current)
                     ? getUnscaledRelativePos(previewHeadlineRef.current, previewContainerRef.current)
                     : { top: undefined, left: undefined };
 
-                const waIconRelative = (previewWaIconRef.current && previewCardRef.current) 
-                    ? getUnscaledRelativePos(previewWaIconRef.current, previewCardRef.current) 
+                const waIconRelative = (previewWaIconRef.current && previewCardRef.current)
+                    ? getUnscaledRelativePos(previewWaIconRef.current, previewCardRef.current)
                     : { top: 0, left: 0 };
-                const ctaRelative = (previewCTARef.current && previewCardRef.current) 
-                    ? getUnscaledRelativePos(previewCTARef.current, previewCardRef.current) 
+                const ctaRelative = (previewCTARef.current && previewCardRef.current)
+                    ? getUnscaledRelativePos(previewCTARef.current, previewCardRef.current)
                     : { top: undefined, left: undefined };
-                const waTextRelative = (previewWaTextRef.current && previewCardRef.current) 
-                    ? getUnscaledRelativePos(previewWaTextRef.current, previewCardRef.current) 
+                const waTextRelative = (previewWaTextRef.current && previewCardRef.current)
+                    ? getUnscaledRelativePos(previewWaTextRef.current, previewCardRef.current)
                     : { top: 0, left: 0 };
-                const addressRelative = (previewAddressRef.current && previewCardRef.current) 
-                    ? getUnscaledRelativePos(previewAddressRef.current, previewCardRef.current) 
+                const addressRelative = (previewAddressRef.current && previewCardRef.current)
+                    ? getUnscaledRelativePos(previewAddressRef.current, previewCardRef.current)
                     : { top: undefined, left: undefined };
-                
+
                 // Medimos o tamanho real do ícone no layout (offsetWidth é unscaled se for o layout)
                 const measuredIconSize = previewWaIconRef.current?.offsetWidth || 12;
 
@@ -534,14 +701,14 @@ export function CampaignPreviewClient({
                     measuredWhatsappIconSize: measuredIconSize,
                     measuredWhatsappTextX: waTextRelative.left,
                     measuredWhatsappTextY: waTextRelative.top,
-                    measuredWhatsappFontSize: previewWaTextRef.current 
-                        ? parseFloat(window.getComputedStyle(previewWaTextRef.current).fontSize) 
+                    measuredWhatsappFontSize: previewWaTextRef.current
+                        ? parseFloat(window.getComputedStyle(previewWaTextRef.current).fontSize)
                         : undefined,
-                    measuredPriceFontSize: previewBadgePriceRef.current 
-                        ? parseFloat(window.getComputedStyle(previewBadgePriceRef.current).fontSize) 
+                    measuredPriceFontSize: previewBadgePriceRef.current
+                        ? parseFloat(window.getComputedStyle(previewBadgePriceRef.current).fontSize)
                         : undefined,
-                    measuredLabelFontSize: previewBadgeLabelRef.current 
-                        ? parseFloat(window.getComputedStyle(previewBadgeLabelRef.current).fontSize) 
+                    measuredLabelFontSize: previewBadgeLabelRef.current
+                        ? parseFloat(window.getComputedStyle(previewBadgeLabelRef.current).fontSize)
                         : undefined,
 
                     // Medição do Pill da Loja (Nome do Loja)
@@ -549,8 +716,8 @@ export function CampaignPreviewClient({
                     measuredStorePillH: previewStorePillRef.current?.offsetHeight,
                     measuredStorePillX: storePillPos.left,
                     measuredStorePillY: storePillPos.top,
-                    measuredStorePillFontSize: previewStorePillRef.current 
-                        ? parseFloat(window.getComputedStyle(previewStorePillRef.current).fontSize) 
+                    measuredStorePillFontSize: previewStorePillRef.current
+                        ? parseFloat(window.getComputedStyle(previewStorePillRef.current).fontSize)
                         : undefined,
 
                     // Medição da Headline
@@ -558,27 +725,27 @@ export function CampaignPreviewClient({
                     measuredHeadlineH: previewHeadlineRef.current?.offsetHeight,
                     measuredHeadlineX: headlinePos.left,
                     measuredHeadlineY: headlinePos.top,
-                    measuredHeadlineFontSize: previewHeadlineRef.current 
-                        ? parseFloat(window.getComputedStyle(previewHeadlineRef.current).fontSize) 
+                    measuredHeadlineFontSize: previewHeadlineRef.current
+                        ? parseFloat(window.getComputedStyle(previewHeadlineRef.current).fontSize)
                         : undefined,
-                    measuredHeadlineLineHeight: previewHeadlineRef.current 
-                        ? parseFloat(window.getComputedStyle(previewHeadlineRef.current).lineHeight) 
+                    measuredHeadlineLineHeight: previewHeadlineRef.current
+                        ? parseFloat(window.getComputedStyle(previewHeadlineRef.current).lineHeight)
                         : undefined,
 
                     // Medição do Subtítulo (Body Text)
                     measuredBodyW: previewBodyTextRef.current?.offsetWidth,
                     measuredBodyH: previewBodyTextRef.current?.offsetHeight,
-                    measuredBodyX: previewBodyTextRef.current && previewContainerRef.current 
+                    measuredBodyX: previewBodyTextRef.current && previewContainerRef.current
                         ? (previewBodyTextRef.current.getBoundingClientRect().left - previewContainerRef.current.getBoundingClientRect().left)
                         : undefined,
-                    measuredBodyY: previewBodyTextRef.current && previewContainerRef.current 
+                    measuredBodyY: previewBodyTextRef.current && previewContainerRef.current
                         ? (previewBodyTextRef.current.getBoundingClientRect().top - previewContainerRef.current.getBoundingClientRect().top)
                         : undefined,
-                    measuredBodyFontSize: previewBodyTextRef.current 
-                        ? parseFloat(window.getComputedStyle(previewBodyTextRef.current).fontSize) 
+                    measuredBodyFontSize: previewBodyTextRef.current
+                        ? parseFloat(window.getComputedStyle(previewBodyTextRef.current).fontSize)
                         : undefined,
-                    measuredBodyLineHeight: previewBodyTextRef.current 
-                        ? parseFloat(window.getComputedStyle(previewBodyTextRef.current).lineHeight) 
+                    measuredBodyLineHeight: previewBodyTextRef.current
+                        ? parseFloat(window.getComputedStyle(previewBodyTextRef.current).lineHeight)
                         : undefined,
 
                     // Medição do CTA
@@ -586,15 +753,15 @@ export function CampaignPreviewClient({
                     measuredCTAH: previewCTARef.current?.offsetHeight,
                     measuredCTAX: ctaRelative.left,
                     measuredCTAY: ctaRelative.top,
-                    measuredCTAFontSize: previewCTARef.current 
-                        ? parseFloat(window.getComputedStyle(previewCTARef.current).fontSize) 
+                    measuredCTAFontSize: previewCTARef.current
+                        ? parseFloat(window.getComputedStyle(previewCTARef.current).fontSize)
                         : undefined,
-                    
+
                     measuredAddressW: previewAddressRef.current?.offsetWidth,
                     measuredAddressX: addressRelative.left,
                     measuredAddressY: addressRelative.top,
-                    measuredAddressFontSize: previewAddressRef.current 
-                        ? parseFloat(window.getComputedStyle(previewAddressRef.current).fontSize) 
+                    measuredAddressFontSize: previewAddressRef.current
+                        ? parseFloat(window.getComputedStyle(previewAddressRef.current).fontSize)
                         : undefined,
                 });
 
@@ -640,8 +807,8 @@ export function CampaignPreviewClient({
                 };
 
                 const newGlobalStatus = selectors.getGlobalStatus({
-                  ...campaign,
-                  post_status: "approved"
+                    ...campaign,
+                    post_status: "approved"
                 } as any);
 
                 const { error: dbErr } = await supabase
@@ -663,14 +830,10 @@ export function CampaignPreviewClient({
                     publicUrlLegacy,
                     generationSource: "campaign_approval",
                     visualSnapshot: {
-                        layout: previewData.layout || "solid",
-                        headline: previewData.headline,
-                        body_text: previewData.body_text,
-                        cta: previewData.cta,
-                        caption: previewData.caption,
-                        hashtags: previewData.hashtags,
-                        price: previewData.price,
-                        price_label: previewData.price_label,
+                        layout_preference: previewData.layout || null,
+                        badge_tolerance: previewData.price_label ? "high" : "low",
+                        hierarchy_preference: null, // Não temos essa informação na interface
+                        message_focus: null, // Será inferido pelo processor
                     },
                 });
 
@@ -692,8 +855,8 @@ export function CampaignPreviewClient({
                 };
 
                 const newGlobalStatus = selectors.getGlobalStatus({
-                  ...campaign,
-                  reels_status: "approved"
+                    ...campaign,
+                    reels_status: "approved"
                 } as any);
 
                 const { error: videoErr } = await supabase
@@ -825,24 +988,12 @@ export function CampaignPreviewClient({
             }
             const reels = genData.reels;
             const mappedReels = mapAiReelsToPreview(reels);
-            const previewImageUrl = await resolvePreviewImageUrl(
-                overrides?.product_image_url || campaign.product_image_url,
-                previewData?.image_url
-            );
-
-            setPreviewData((prev) => ({
-                ...prev,
+            const newReelsVariation: ReelsVariationSnapshot = {
                 ...mappedReels,
-                image_url: previewImageUrl,
-                headline: overrides?.product_name || campaign.product_name || prev?.headline || "",
-                price: overrides?.price !== undefined ? overrides.price : campaign.price,
-                store: campaign.stores
-                    ? {
-                        name: campaign.stores.name,
-                        primary_color: campaign.stores.primary_color,
-                    }
-                    : prev?.store,
-            }));
+            };
+            setPreviewData((prev) => applyReelsVariationSnapshot(prev, newReelsVariation));
+            setReelsVariations((prev) => [...prev, newReelsVariation]);
+            setReelsVariationIndex((prev) => prev + 1);
 
             setIsCloning(false);
             setIsEditingBase(false);
@@ -1035,20 +1186,20 @@ export function CampaignPreviewClient({
                             isEditingBase
                                 ? "border-black/5 bg-white text-zinc-700"
                                 : campaign.status === "approved"
-                                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                                : currentTabHasContent
                                     ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                                    : "border-black/5 bg-white text-zinc-700"
+                                    : currentTabHasContent
+                                        ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                                        : "border-black/5 bg-white text-zinc-700"
                         )}
                     >
                         <Sparkles className="h-4 w-4" />
                         <span>
                             {isEditingBase ? "Editando" :
-                              campaign.status === "approved"
-                                ? "Aprovada"
-                                : currentTabHasContent
-                                    ? "Conteúdo por IA"
-                                    : "Aguardando geração"}
+                                campaign.status === "approved"
+                                    ? "Aprovada"
+                                    : currentTabHasContent
+                                        ? "Conteúdo por IA"
+                                        : "Aguardando geração"}
                         </span>
                     </div>
 
@@ -1111,16 +1262,16 @@ export function CampaignPreviewClient({
                                     {campaign.product_name}
                                 </h2>
                                 <div className="flex flex-wrap justify-center sm:justify-start gap-2">
-                                  {isPlanLinked && (
-                                      <span className="rounded bg-amber-50 px-2 py-1 text-[10px] font-bold uppercase text-amber-700 ring-1 ring-inset ring-amber-600/10">
-                                          Plano Semanal
-                                      </span>
-                                  )}
-                                  {isApproved && (
-                                      <span className="rounded bg-emerald-50 px-2 py-1 text-[10px] font-bold uppercase text-emerald-700 ring-1 ring-inset ring-emerald-600/10">
-                                          Aprovada
-                                      </span>
-                                  )}
+                                    {isPlanLinked && (
+                                        <span className="rounded bg-amber-50 px-2 py-1 text-[10px] font-bold uppercase text-amber-700 ring-1 ring-inset ring-amber-600/10">
+                                            Plano Semanal
+                                        </span>
+                                    )}
+                                    {isApproved && (
+                                        <span className="rounded bg-emerald-50 px-2 py-1 text-[10px] font-bold uppercase text-emerald-700 ring-1 ring-inset ring-emerald-600/10">
+                                            Aprovada
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                             <div className="mt-3 flex flex-wrap justify-center sm:justify-start gap-2">
@@ -1158,10 +1309,10 @@ export function CampaignPreviewClient({
                         >
                             <span>Arte</span>
                             {localPostStatus === 'none' || localPostStatus === 'draft' ? null : (
-                              <div className={cx(
-                                  "w-1.5 h-1.5 rounded-full",
-                                  localPostStatus === 'approved' ? "bg-emerald-500" : "bg-amber-400"
-                              )} />
+                                <div className={cx(
+                                    "w-1.5 h-1.5 rounded-full",
+                                    localPostStatus === 'approved' ? "bg-emerald-500" : "bg-amber-400"
+                                )} />
                             )}
                         </button>
                         <button
@@ -1175,10 +1326,10 @@ export function CampaignPreviewClient({
                         >
                             <span>Vídeo</span>
                             {localReelsStatus === 'none' || localReelsStatus === 'draft' ? null : (
-                              <div className={cx(
-                                  "w-1.5 h-1.5 rounded-full",
-                                  localReelsStatus === 'approved' ? "bg-emerald-500" : "bg-amber-400"
-                              )} />
+                                <div className={cx(
+                                    "w-1.5 h-1.5 rounded-full",
+                                    localReelsStatus === 'approved' ? "bg-emerald-500" : "bg-amber-400"
+                                )} />
                             )}
                         </button>
                     </div>
@@ -1204,146 +1355,184 @@ export function CampaignPreviewClient({
                                 </div>
                             ) : localPostStatus === "ready" && previewData ? (
                                 <div className="space-y-6">
-                                  <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm sm:flex-row">
-                                      <div>
-                                          <h2 className="text-lg font-bold text-amber-900">
-                                              Revisão da Arte
-                                          </h2>
-                                          <p className="max-w-md text-sm text-amber-700/80">
-                                              Sua arte foi gerada, revise o conteúdo, ajuste se necessário e salve.
-                                          </p>
-                                      </div>
-                                      <button
-                                          onClick={() => { setActiveTab("art"); handleApproveReview(); }}
-                                          disabled={isSaving || isChildEditing}
-                                          className={`inline-flex h-10 w-full items-center justify-center rounded-xl px-6 text-sm font-bold text-white shadow-sm transition sm:w-auto ${
-                                              isChildEditing ? "bg-zinc-300 cursor-not-allowed shadow-none" : "bg-emerald-600 hover:bg-emerald-700"
-                                          }`}
-                                      >
-                                          {isSaving ? "Salvando..." : "Aprovar Arte"}
-                                      </button>
-                                  </div>
-                                  <PreviewReadyState
-                                      preview={previewData}
-                                      onUpdatePreview={(next) => { setPreviewData(next); setIsReviewDirty(true); }}
-                                      generate_post={hasArt}
-                                      generate_reels={false}
-                                      onRegenerateArt={() => generateText(true)}
-                                      onEditingChange={setIsChildEditing}
-                                      containerRef={previewContainerRef}
-                                      cardRef={previewCardRef}
-                                      badgeRef={previewBadgeRef}
-                                      badgeLabelRef={previewBadgeLabelRef}
-                                      badgePriceRef={previewBadgePriceRef}
-                                      storePillRef={previewStorePillRef}
-                                      headlineRef={previewHeadlineRef}
-                                      bodyTextRef={previewBodyTextRef}
-                                      ctaRef={previewCTARef}
-                                      whatsappRef={previewWhatsappRef}
-                                      waIconRef={previewWaIconRef}
-                                      waTextRef={previewWaTextRef}
-                                      addressRef={previewAddressRef}
-                                  />
-                                  {!isChildEditing && isReviewDirty && (
-                                    <div className="flex items-center justify-end animate-in fade-in slide-in-from-bottom-2">
+                                    <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm sm:flex-row">
+                                        <div>
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <h2 className="text-lg font-bold text-amber-900">
+                                                    Revisão da Arte
+                                                </h2>
+                                                {artVariations.length > 0 && (
+                                                    <span className="rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                                                        {artVariationIndex + 1}/{artVariations.length}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {artVariations.length > 1 && (
+                                                <div className="mt-2 flex items-center gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleNavigateArtVariation(-1)}
+                                                        disabled={artVariationIndex <= 0}
+                                                        className="rounded-lg border border-amber-300 bg-white px-2 py-1 text-xs font-bold text-amber-800 hover:bg-amber-50 disabled:opacity-40"
+                                                    >
+                                                        ← Anterior
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleNavigateArtVariation(1)}
+                                                        disabled={artVariationIndex >= artVariations.length - 1}
+                                                        className="rounded-lg border border-amber-300 bg-white px-2 py-1 text-xs font-bold text-amber-800 hover:bg-amber-50 disabled:opacity-40"
+                                                    >
+                                                        Próxima →
+                                                    </button>
+                                                </div>
+                                            )}
+                                            <p className="mt-1 max-w-md text-sm text-amber-700/80">
+                                                Aprove a variação atual, navegue entre as alternativas ou peça uma nova.
+                                            </p>
+                                        </div>
                                         <button
-                                            onClick={handleSaveDraftReview}
-                                            disabled={isSaving}
-                                            className="inline-flex h-11 items-center justify-center rounded-xl border border-zinc-900 bg-white px-6 text-sm font-bold text-zinc-900 transition hover:bg-zinc-50"
+                                            onClick={() => { setActiveTab("art"); handleApproveReview(); }}
+                                            disabled={isSaving || isChildEditing}
+                                            className={`inline-flex h-10 w-full items-center justify-center rounded-xl px-6 text-sm font-bold text-white shadow-sm transition sm:w-auto ${isChildEditing ? "bg-zinc-300 cursor-not-allowed shadow-none" : "bg-emerald-600 hover:bg-emerald-700"
+                                                }`}
                                         >
-                                            {isSaving ? "Salvando..." : "Salvar rascunho"}
+                                            {isSaving ? "Salvando..." : "Aprovar Arte"}
                                         </button>
                                     </div>
-                                  )}
+                                    <PreviewReadyState
+                                        preview={previewData}
+                                        onUpdatePreview={(next) => { updateActiveArtVariation(next); setIsReviewDirty(true); }}
+                                        generate_post={hasArt}
+                                        generate_reels={false}
+                                        onRegenerateArt={() => generateText(true)}
+                                        onEditingChange={setIsChildEditing}
+                                        containerRef={previewContainerRef}
+                                        cardRef={previewCardRef}
+                                        badgeRef={previewBadgeRef}
+                                        badgeLabelRef={previewBadgeLabelRef}
+                                        badgePriceRef={previewBadgePriceRef}
+                                        storePillRef={previewStorePillRef}
+                                        headlineRef={previewHeadlineRef}
+                                        bodyTextRef={previewBodyTextRef}
+                                        ctaRef={previewCTARef}
+                                        whatsappRef={previewWhatsappRef}
+                                        waIconRef={previewWaIconRef}
+                                        waTextRef={previewWaTextRef}
+                                        addressRef={previewAddressRef}
+                                    />
+                                    {!isChildEditing && isReviewDirty && (
+                                        <div className="flex items-center justify-end animate-in fade-in slide-in-from-bottom-2">
+                                            <button
+                                                onClick={handleSaveDraftReview}
+                                                disabled={isSaving}
+                                                className="inline-flex h-11 items-center justify-center rounded-xl border border-zinc-900 bg-white px-6 text-sm font-bold text-zinc-900 transition hover:bg-zinc-50"
+                                            >
+                                                {isSaving ? "Salvando..." : "Salvar rascunho"}
+                                            </button>
+                                        </div>
+                                    )}
+                                    {!isChildEditing && artVariationIndex >= 0 && (
+                                        <div className="rounded-2xl border border-black/5 bg-zinc-50 p-4">
+                                            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                                                Esta variação é útil para a sua campanha?
+                                            </p>
+                                            <SalesFeedbackInline
+                                                key={`art-v-${artVariationIndex}`}
+                                                contentType="campaign"
+                                                campaignId={campaign.id}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             ) : localPostStatus === "approved" ? (
                                 <div className="space-y-6">
-                                  <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm sm:flex-row">
-                                      <div>
-                                          <div className="flex items-center gap-2 mb-1">
-                                            <h2 className="text-lg font-bold text-emerald-900">
-                                                Arte Aprovada
-                                            </h2>
-                                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-200 text-emerald-800">
-                                                <Check className="h-3 w-3" />
-                                            </span>
-                                          </div>
-                                          <p className="max-w-md text-sm text-emerald-800/80">
-                                              Esta arte já foi aprovada e está pronta para uso em sua campanha.
-                                          </p>
-                                      </div>
-                                  </div>
-                                  <div className="space-y-6 rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm relative overflow-hidden">
-                                  <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
-                                    <div className="aspect-[4/5] relative rounded-2xl overflow-hidden shadow-lg max-w-[400px] mx-auto border border-zinc-100">
-                                        {campaign.image_url ? (
-                                            <img
-                                                src={finalArtUrlClean}
-                                                alt="Arte"
-                                                className="w-full h-full object-cover"
-                                            />
-                                        ) : (
-                                            <div className="h-full grid place-items-center bg-zinc-50 text-zinc-300">
-                                                <ImageIcon className="h-8 w-8" />
+                                    <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm sm:flex-row">
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <h2 className="text-lg font-bold text-emerald-900">
+                                                    Arte Aprovada
+                                                </h2>
+                                                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-200 text-emerald-800">
+                                                    <Check className="h-3 w-3" />
+                                                </span>
                                             </div>
-                                        )}
-                                    </div>
-                                    <div className="space-y-3">
-                                        <Field label="Legenda" value={campaign.ai_caption} />
-                                        <Field
-                                            label="Hashtags"
-                                            value={campaign.ai_hashtags}
-                                        />
-                                        <SalesFeedbackInline
-                                            contentType="campaign"
-                                            campaignId={campaign.id}
-                                        />
-                                        <div className="flex flex-col gap-3 pt-4 sm:flex-row">
-                                            <button
-                                                onClick={handleCopyArt}
-                                                disabled={
-                                                    !campaign.image_url ||
-                                                    artStatus === "copying" ||
-                                                    artStatus === "saving"
-                                                }
-                                                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-black/10 bg-white px-4 text-sm font-bold text-zinc-800 shadow-sm transition hover:bg-zinc-50 disabled:opacity-50"
-                                            >
-                                                {artStatus === "copied" ? (
-                                                    <><Check className="h-4 w-4 text-emerald-600" /> Copiado!</>
-                                                ) : artStatus === "copying" ? (
-                                                    <><ImageIcon className="h-4 w-4 animate-pulse" /> Copiando...</>
-                                                ) : (
-                                                    <><ImageIcon className="h-4 w-4" /> Copiar Arte</>
-                                                )}
-                                            </button>
-                                            <button
-                                                onClick={handleDownloadArt}
-                                                disabled={
-                                                    !campaign.image_url ||
-                                                    artStatus === "saving" ||
-                                                    artStatus === "copying"
-                                                }
-                                                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-zinc-800 disabled:opacity-50"
-                                            >
-                                                {artStatus === "saving" ? (
-                                                    <><Download className="h-4 w-4 animate-bounce" /> Baixando...</>
-                                                ) : (
-                                                    <><Download className="h-4 w-4" /> Baixar Arte</>
-                                                )}
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    setActiveTab("art");
-                                                    startEditing(true);
-                                                }}
-                                                disabled={loadingText || loadingReels || isSaving}
-                                                className="inline-flex h-11 items-center justify-center rounded-xl border border-black/10 bg-white px-6 text-sm font-bold text-zinc-600 shadow-sm transition hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                            >
-                                                Regerar
-                                            </button>
+                                            <p className="max-w-md text-sm text-emerald-800/80">
+                                                Esta arte já foi aprovada e está pronta para uso em sua campanha.
+                                            </p>
                                         </div>
                                     </div>
-                                </div>
+                                    <div className="space-y-6 rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm relative overflow-hidden">
+                                        <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+                                        <div className="aspect-[4/5] relative rounded-2xl overflow-hidden shadow-lg max-w-[400px] mx-auto border border-zinc-100">
+                                            {campaign.image_url ? (
+                                                <img
+                                                    src={finalArtUrlClean}
+                                                    alt="Arte"
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="h-full grid place-items-center bg-zinc-50 text-zinc-300">
+                                                    <ImageIcon className="h-8 w-8" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="space-y-3">
+                                            <Field label="Legenda" value={campaign.ai_caption} />
+                                            <Field
+                                                label="Hashtags"
+                                                value={campaign.ai_hashtags}
+                                            />
+                                            <SalesFeedbackInline
+                                                contentType="campaign"
+                                                campaignId={campaign.id}
+                                            />
+                                            <div className="flex flex-col gap-3 pt-4 sm:flex-row">
+                                                <button
+                                                    onClick={handleCopyArt}
+                                                    disabled={
+                                                        !campaign.image_url ||
+                                                        artStatus === "copying" ||
+                                                        artStatus === "saving"
+                                                    }
+                                                    className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-black/10 bg-white px-4 text-sm font-bold text-zinc-800 shadow-sm transition hover:bg-zinc-50 disabled:opacity-50"
+                                                >
+                                                    {artStatus === "copied" ? (
+                                                        <><Check className="h-4 w-4 text-emerald-600" /> Copiado!</>
+                                                    ) : artStatus === "copying" ? (
+                                                        <><ImageIcon className="h-4 w-4 animate-pulse" /> Copiando...</>
+                                                    ) : (
+                                                        <><ImageIcon className="h-4 w-4" /> Copiar Arte</>
+                                                    )}
+                                                </button>
+                                                <button
+                                                    onClick={handleDownloadArt}
+                                                    disabled={
+                                                        !campaign.image_url ||
+                                                        artStatus === "saving" ||
+                                                        artStatus === "copying"
+                                                    }
+                                                    className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-zinc-800 disabled:opacity-50"
+                                                >
+                                                    {artStatus === "saving" ? (
+                                                        <><Download className="h-4 w-4 animate-bounce" /> Baixando...</>
+                                                    ) : (
+                                                        <><Download className="h-4 w-4" /> Baixar Arte</>
+                                                    )}
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setActiveTab("art");
+                                                        startEditing(true);
+                                                    }}
+                                                    disabled={loadingText || loadingReels || isSaving}
+                                                    className="inline-flex h-11 items-center justify-center rounded-xl border border-black/10 bg-white px-6 text-sm font-bold text-zinc-600 shadow-sm transition hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    Regerar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             ) : null
                         )}
@@ -1368,99 +1557,137 @@ export function CampaignPreviewClient({
                                 </div>
                             ) : localReelsStatus === "ready" && previewData ? (
                                 <div className="space-y-6">
-                                  <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm sm:flex-row">
-                                      <div>
-                                          <h2 className="text-lg font-bold text-amber-900">
-                                              Revisão do Vídeo
-                                          </h2>
-                                          <p className="max-w-md text-sm text-amber-700/80">
-                                              Seu roteiro foi gerado, revise o conteúdo, altere o que precisar e salve.
-                                          </p>
-                                      </div>
-                                      <button
-                                          onClick={() => { setActiveTab("video"); handleApproveReview(); }}
-                                          disabled={isSaving || isChildEditing}
-                                          className={`inline-flex h-10 w-full items-center justify-center rounded-xl px-6 text-sm font-bold text-white shadow-sm transition sm:w-auto ${
-                                              isChildEditing ? "bg-zinc-300 cursor-not-allowed shadow-none" : "bg-emerald-600 hover:bg-emerald-700"
-                                          }`}
-                                      >
-                                          {isSaving ? "Salvando..." : "Aprovar Vídeo"}
-                                      </button>
-                                  </div>
-                                  <PreviewReadyState
-                                      preview={previewData}
-                                      onUpdatePreview={(next) => { setPreviewData(next); setIsReviewDirty(true); }}
-                                      generate_post={false}
-                                      generate_reels={hasVideo}
-                                      onRegenerateReels={() => generateReels(true)}
-                                      onEditingChange={setIsChildEditing}
-                                  />
-                                  {!isChildEditing && isReviewDirty && (
-                                    <div className="flex items-center justify-end animate-in fade-in slide-in-from-bottom-2">
+                                    <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm sm:flex-row">
+                                        <div>
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <h2 className="text-lg font-bold text-amber-900">
+                                                    Revisão do Vídeo
+                                                </h2>
+                                                {reelsVariations.length > 0 && (
+                                                    <span className="rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                                                        {reelsVariationIndex + 1}/{reelsVariations.length}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {reelsVariations.length > 1 && (
+                                                <div className="mt-2 flex items-center gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleNavigateReelsVariation(-1)}
+                                                        disabled={reelsVariationIndex <= 0}
+                                                        className="rounded-lg border border-amber-300 bg-white px-2 py-1 text-xs font-bold text-amber-800 hover:bg-amber-50 disabled:opacity-40"
+                                                    >
+                                                        ← Anterior
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleNavigateReelsVariation(1)}
+                                                        disabled={reelsVariationIndex >= reelsVariations.length - 1}
+                                                        className="rounded-lg border border-amber-300 bg-white px-2 py-1 text-xs font-bold text-amber-800 hover:bg-amber-50 disabled:opacity-40"
+                                                    >
+                                                        Próxima →
+                                                    </button>
+                                                </div>
+                                            )}
+                                            <p className="mt-1 max-w-md text-sm text-amber-700/80">
+                                                Aprove o roteiro atual, navegue entre as alternativas ou peça um novo.
+                                            </p>
+                                        </div>
                                         <button
-                                            onClick={handleSaveDraftReview}
-                                            disabled={isSaving}
-                                            className="inline-flex h-11 items-center justify-center rounded-xl border border-zinc-900 bg-white px-6 text-sm font-bold text-zinc-900 transition hover:bg-zinc-50"
+                                            onClick={() => { setActiveTab("video"); handleApproveReview(); }}
+                                            disabled={isSaving || isChildEditing}
+                                            className={`inline-flex h-10 w-full items-center justify-center rounded-xl px-6 text-sm font-bold text-white shadow-sm transition sm:w-auto ${isChildEditing ? "bg-zinc-300 cursor-not-allowed shadow-none" : "bg-emerald-600 hover:bg-emerald-700"
+                                                }`}
                                         >
-                                            {isSaving ? "Salvando..." : "Salvar rascunho"}
+                                            {isSaving ? "Salvando..." : "Aprovar Vídeo"}
                                         </button>
                                     </div>
-                                  )}
+                                    <PreviewReadyState
+                                        preview={previewData}
+                                        onUpdatePreview={(next) => { updateActiveReelsVariation(next); setIsReviewDirty(true); }}
+                                        generate_post={false}
+                                        generate_reels={hasVideo}
+                                        onRegenerateReels={() => generateReels(true)}
+                                        onEditingChange={setIsChildEditing}
+                                    />
+                                    {!isChildEditing && isReviewDirty && (
+                                        <div className="flex items-center justify-end animate-in fade-in slide-in-from-bottom-2">
+                                            <button
+                                                onClick={handleSaveDraftReview}
+                                                disabled={isSaving}
+                                                className="inline-flex h-11 items-center justify-center rounded-xl border border-zinc-900 bg-white px-6 text-sm font-bold text-zinc-900 transition hover:bg-zinc-50"
+                                            >
+                                                {isSaving ? "Salvando..." : "Salvar rascunho"}
+                                            </button>
+                                        </div>
+                                    )}
+                                    {!isChildEditing && reelsVariationIndex >= 0 && (
+                                        <div className="rounded-2xl border border-black/5 bg-zinc-50 p-4">
+                                            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                                                Este roteiro é útil para a sua campanha?
+                                            </p>
+                                            <SalesFeedbackInline
+                                                key={`reels-v-${reelsVariationIndex}`}
+                                                contentType="reels"
+                                                campaignId={campaign.id}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             ) : localReelsStatus === "approved" ? (
                                 <div className="space-y-6">
-                                  <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm sm:flex-row">
-                                      <div>
-                                          <div className="flex items-center gap-2 mb-1">
-                                            <h2 className="text-lg font-bold text-emerald-900">
-                                                Roteiro Aprovado
-                                            </h2>
-                                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-200 text-emerald-800">
-                                                <Check className="h-3 w-3" />
-                                            </span>
-                                          </div>
-                                          <p className="max-w-md text-sm text-emerald-800/80">
-                                              Este roteiro de vídeo já foi aprovado e está pronto para gravação.
-                                          </p>
-                                      </div>
-                                  </div>
-                                  <div className="space-y-6 rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm relative overflow-hidden">
-                                  <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
-                                    <Field label="Hook" value={campaign.reels_hook} />
-                                    <Field label="Roteiro" value={campaign.reels_script} />
-                                    <SalesFeedbackInline
-                                        contentType="reels"
-                                        campaignId={campaign.id}
-                                    />
-                                    <div className="flex flex-col gap-3 pt-4 sm:flex-row">
-                                        <button
-                                            onClick={handleCopyVideoScript}
-                                            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-black/10 bg-white px-4 text-sm font-bold text-zinc-800 shadow-sm transition hover:bg-zinc-50"
-                                        >
-                                            {videoStatus === "copied" ? (
-                                                <><Check className="h-4 w-4 text-emerald-600" /> Copiado!</>
-                                            ) : (
-                                                <><Copy className="h-4 w-4" /> Copiar Roteiro</>
-                                            )}
-                                        </button>
-                                        <button
-                                            onClick={handlePrintVideo}
-                                            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-zinc-800"
-                                        >
-                                            <Printer className="h-4 w-4" /> Imprimir
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                setActiveTab("video");
-                                                startEditing(true);
-                                            }}
-                                            disabled={loadingText || loadingReels || isSaving}
-                                            className="inline-flex h-11 items-center justify-center rounded-xl border border-black/10 bg-white px-6 text-sm font-bold text-zinc-600 shadow-sm transition hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            Regerar
-                                        </button>
+                                    <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm sm:flex-row">
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <h2 className="text-lg font-bold text-emerald-900">
+                                                    Roteiro Aprovado
+                                                </h2>
+                                                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-200 text-emerald-800">
+                                                    <Check className="h-3 w-3" />
+                                                </span>
+                                            </div>
+                                            <p className="max-w-md text-sm text-emerald-800/80">
+                                                Este roteiro de vídeo já foi aprovado e está pronto para gravação.
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
+                                    <div className="space-y-6 rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm relative overflow-hidden">
+                                        <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+                                        <Field label="Hook" value={campaign.reels_hook} />
+                                        <Field label="Roteiro" value={campaign.reels_script} />
+                                        <SalesFeedbackInline
+                                            contentType="reels"
+                                            campaignId={campaign.id}
+                                        />
+                                        <div className="flex flex-col gap-3 pt-4 sm:flex-row">
+                                            <button
+                                                onClick={handleCopyVideoScript}
+                                                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-black/10 bg-white px-4 text-sm font-bold text-zinc-800 shadow-sm transition hover:bg-zinc-50"
+                                            >
+                                                {videoStatus === "copied" ? (
+                                                    <><Check className="h-4 w-4 text-emerald-600" /> Copiado!</>
+                                                ) : (
+                                                    <><Copy className="h-4 w-4" /> Copiar Roteiro</>
+                                                )}
+                                            </button>
+                                            <button
+                                                onClick={handlePrintVideo}
+                                                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-zinc-800"
+                                            >
+                                                <Printer className="h-4 w-4" /> Imprimir
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setActiveTab("video");
+                                                    startEditing(true);
+                                                }}
+                                                disabled={loadingText || loadingReels || isSaving}
+                                                className="inline-flex h-11 items-center justify-center rounded-xl border border-black/10 bg-white px-6 text-sm font-bold text-zinc-600 shadow-sm transition hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                Regerar
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             ) : null
                         )}
@@ -1473,11 +1700,11 @@ export function CampaignPreviewClient({
                     <div className="bg-white rounded-3xl p-6 shadow-xl max-w-md w-full">
                         <h3 className="text-xl font-bold text-zinc-900 mb-2">Atenção!</h3>
                         <p className="text-sm text-zinc-500 mb-6">
-                            Você alterou informações da campanha que já possui conteúdos gerados. 
+                            Você alterou informações da campanha que já possui conteúdos gerados.
                             Deseja apenas salvar as configurações ou regerar todos os conteúdos (Arte/Vídeo) usando os novos dados?
                         </p>
                         <div className="flex flex-col gap-3">
-                            <button 
+                            <button
                                 onClick={() => executeSaveBaseFields(pendingSaveData, true)}
                                 disabled={isSaving || loadingText || loadingReels}
                                 className="w-full flex justify-center items-center rounded-xl bg-zinc-900 px-4 py-3 text-sm font-bold text-white transition hover:bg-black disabled:opacity-50"
@@ -1485,14 +1712,14 @@ export function CampaignPreviewClient({
                                 {(isSaving || loadingText || loadingReels) ? "Processando..." : "Salvar e Regerar"}
                             </button>
                             <div className="flex gap-3">
-                                <button 
+                                <button
                                     onClick={() => setPendingSaveData(null)}
                                     disabled={isSaving || loadingText || loadingReels}
                                     className="flex-1 rounded-xl border border-black/10 bg-white px-4 py-3 text-sm font-bold text-zinc-600 transition hover:bg-zinc-50 disabled:opacity-50"
                                 >
                                     Cancelar
                                 </button>
-                                <button 
+                                <button
                                     onClick={() => executeSaveBaseFields(pendingSaveData, false)}
                                     disabled={isSaving || loadingText || loadingReels}
                                     className="flex-1 rounded-xl border border-black/10 bg-zinc-50 px-4 py-3 text-sm font-bold text-zinc-900 transition hover:bg-zinc-100 disabled:opacity-50"

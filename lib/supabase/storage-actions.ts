@@ -2,6 +2,9 @@
 
 import { createSupabaseServerClient } from "./server";
 import { getSignedImageUrl } from "./storage-server";
+// TODO: Revisar ao final da Epic 4 - módulo não existe nesta branch
+// import { consolidateVisualPreference } from "@/lib/domain/visual-preference/processor";
+// import { saveVisualPreference } from "@/lib/domain/visual-preference/service";
 import {
   ApprovedCampaignAssetKind,
   getApprovedCampaignAssetSignedUrl,
@@ -111,6 +114,14 @@ export async function registerApprovedAssetAction(
   if (insertError) {
     throw new Error("APPROVED_ASSET_INSERT_FAILED");
   }
+
+  // TODO: Revisar ao final da Epic 4 - visual-preference não implementado nesta branch
+  // consolidateVisualPreference(input.storeId, input.campaignId).then((result) => {
+  //   if (result.ok && result.preference) {
+  //     saveVisualPreference(input.storeId, result.preference, result.signalOrigin)
+  //       .catch((err) => console.error("[visual-preference] save failed:", err));
+  //   }
+  // }).catch((err) => console.error("[visual-preference] consolidation failed:", err));
 
   return { ok: true };
 }

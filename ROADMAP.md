@@ -6,9 +6,7 @@ Este documento centraliza as discussões sobre o futuro do produto, decisões es
 
 # Estratégia Atual (Foco no Core Value)
 
-Status: foco no Plano Básico ~~(Starter)~~
-
-> Observação histórica: a nomenclatura anterior `Starter / Pro / Premium` evoluiu para `Free / Basic / Pro`. Para a taxonomia vigente, consulte [docs/product/diretrizes-produto-abril-2026.md](docs/product/diretrizes-produto-abril-2026.md) e [docs/analysis/posicionamento-comercial-e-diferenciacao-de-planos.md](docs/analysis/posicionamento-comercial-e-diferenciacao-de-planos.md).
+Status: foco no Plano Básico (Starter)
 
 A estratégia imediata do Vendeo é resolver 80% do problema de marketing das lojas físicas focando na combinação mais eficaz atualmente:
 
@@ -49,51 +47,9 @@ antes de ampliar novas features visuais ou novos fluxos, o projeto deve consolid
 
 Status: aprovado para execução
 
----
-
-# 📊 Progresso de Implementação
-
-| Epic | Status | Stories | Testes | Conclusão |
-|------|--------|---------|--------|-----------|
-| Epic 1 | ✅ DONE | 1.1-1.7 | 9/9 ✓ | Março 2026 |
-| Epic 2 | ✅ DONE | 2.1-2.6 | 100/100 ✓ | Abril 2026 |
-| Epic 4 | 🎯 ATUAL | 4.1-4.8 | - | Em andamento |
-| Epic 3 | 📅 PLANEJADO | - | - | Após Epic 4 |
-| Epic 5 | 📅 BACKLOG | 4.9 + expansão | - | Após Epic 3 |
-
-**Legenda:**
-- ✅ DONE: Implementado, testado e em produção
-- 🎯 ATUAL: Em desenvolvimento ativo
-- 📅 PLANEJADO: Próxima fase após atual
-- 📅 BACKLOG: Arquitetura aprovada, implementação adiada
-
----
-
 ## Frente A — Arquitetura de campanhas e prevenção de bugs
 
-### ✅ Status: CONCLUÍDO (Epic 2 — Abril 2026)
-
-Epic 2 implementou 100% da arquitetura de contratos e domínio:
-
-**Entregues (Stories 2.1-2.6):**
-- ✅ Schemas Zod (DbCampaignSchema, AICampaignContentSchema)
-- ✅ Tipos centralizados (Campaign, ContentType, Objective)
-- ✅ Contratos de API (GenerateCampaignRequest/Response, StrategyRequest/Response)
-- ✅ Mappers seguros (mapDbCampaignToDomain, mapAiCampaignToDomain)
-- ✅ Selectors puros (getCampaignStatus, hasGeneratedContent, etc)
-- ✅ Validação ativa em 3 endpoints de produção
-
-**Resultados:**
-- 100 testes passando (12+13+15+40+20)
-- Zero breaking changes
-- Arquitetura `query raw → schema → mapper → domain → view model` ativa
-- Endpoints validam request + response AI com safeParse()
-
-**Documentação:** `docs/EXEC-PLAN-EPIC-2.md`
-
----
-
-### Objetivo Original:
+Objetivo:
 
 padronizar os contratos de campanha e impedir que dados crus do banco ou da IA cheguem diretamente à UI.
 
@@ -149,67 +105,6 @@ Implementar depois da base estabilizar:
 Fluxo obrigatório:
 
 query raw → schema → mapper → tipo de domínio → view model
-
----
-
-## Frente C — Motor de Composição Visual v2.0
-
-Status: 🎯 PRIORIDADE ATUAL (Pós Epic 2)
-
-Objetivo:
-
-Substituir motor de composição atual por arquitetura modular de 3 motores:
-- Motor 1 (Visual Reader): Leitura de imagens de produto
-- Motor 2 (Intent Resolver): Contexto semântico + preferências
-- Motor 3 (Composer): Montagem final com variações
-
-### Decisão Estratégica Aprovada (Abril 2026)
-
-Motor v2.0 será desenvolvido para **campanhas manuais primeiro**.
-
-Integração com Weekly Plan (segundo recurso mais importante) foi **aprovada em design**, mas **adiada em implementação** até Motor v2.0 estar 100% estável em produção.
-
-**Sequência de Desenvolvimento:**
-1. ✅ Epic 2: Arquitetura de Campanhas (CONCLUÍDO)
-2. 🎯 **Epic 4: Motor Visual v2.0** (ATUAL — Stories 4.1-4.8)
-3. ⏭️ Epic 3: Pricing/Monetização
-4. 📅 Epic 5: Weekly Plan (Integração - BACKLOG)
-5. 📅 Epic 6: Informativo (Terceiro tipo de conteúdo)
-
-**Razão:** Qualquer mudança no Motor Visual v2.0 implicará ajustes no Weekly Plan. Implementar Weekly Plan agora = risco de refatoração dupla.
-
-### Stories 4.1-4.8 (Motor Visual v2.0)
-
-**4.1** - Motor 1: Visual Reader (leitura de produto)
-**4.2** - Motor 2: Intent Resolver (contexto semântico)
-**4.3** - Motor 3: Composer (montagem com variações)
-**4.4** - Geração de variações (3-6 opções por campanha)
-**4.5** - Preview e seleção de variação
-**4.6** - Visual Signature System (identidade visual da loja)
-**4.7** - Context Profiles (standard, promotional, seasonal, premium, urgency)
-**4.8** - Integração end-to-end com campanhas manuais
-
-**Meta:** 2 semanas em produção coletando dados reais antes de expandir.
-
-### Integração Futura com Weekly Plan (Story 4.9 — BACKLOG)
-
-**Modelo de Integração Aprovado:**
-
-Weekly Plan gera **4 variações completas** de plano semanal em 1 chamada:
-- Plano A: Agressivo (7 posts, alta frequência)
-- Plano B: Balanceado (3 posts + 2 reels, mix formatos)
-- Plano C: Conservador (3 posts, constância)
-- Plano D: Sazonal (5 posts temáticos)
-
-**Herança de Características:**
-- `theme` e `brief` do plano → enriquecem Motor 2 (contexto, não restrição)
-- `content_type` do plano → hard lock (post/reels/both)
-- `Visual Signature` da loja → aplicada em todas variações
-- Usuário escolhe variação preferida dentro do contexto definido
-
-**Botão Regenerar:** ❌ Removido (4 variações cobrem espectro de preferências)
-
-**Documentação Completa:** `docs/analysis/WEEKLY-PLAN-MOTOR-VISUAL-INTEGRACAO.md`
 
 ---
 
@@ -287,32 +182,18 @@ Duplicar campanha permitirá:
 
 # Fase 2 — Pós‑lançamento
 
-Status: planejado (após Epic 4)
+Status: planejado
 
-### Melhorias de UX previstas:
+Melhorias previstas:
 
 • Menu de ações no card (⋯)
 • Arquivar campanhas
 • Filtros por estratégia
 • Pequenos refinamentos de UX
-
-Arquivar campanhas é preferível à exclusão direta para preservar histórico.
-
-### Expansão de Arquitetura:
-
 • Expansão do padrão de contratos para stores, plans e métricas
 • Hardening de APIs com validações compartilhadas
-• **Pricing/Monetização (Epic 3)**
-  - Planos Free/Basic/Pro
-  - Limites de geração por plano
-  - Sistema de billing
 
-### Integração Weekly Plan:
-
-• **Story 4.9** — Integração Motor v2.0 × Weekly Plan
-• 4 variações de plano semanal completo
-• Herança de theme/brief para campanhas
-• Planejamento estratégico de content_type
+Arquivar campanhas é preferível à exclusão direta para preservar histórico.
 
 ---
 
@@ -322,10 +203,6 @@ Status: futuro
 
 Recursos planejados:
 
-• **Weekly Plan Adaptativo (Basic+)**
-  - Sistema aprende preferências de estilo de plano
-  - Sugestões de dias/formatos baseadas em histórico
-  - Temas sazonais automáticos (Natal, Black Friday, etc)
 • Indicador de desempenho de campanhas
 • Variações automáticas de campanha
 • Sugestões estratégicas
@@ -339,45 +216,23 @@ Esses recursos serão avaliados após validação real de uso.
 
 # Estrutura futura de planos
 
-~~Starter~~
+Starter
 
-~~• gerar campanha~~
-~~• editar campanha~~
-~~• duplicar campanha~~
-
-~~Pro~~
-
-~~• filtros estratégicos~~
-~~• sugestões automáticas~~
-~~• campanhas sazonais~~
-
-~~Premium~~
-
-~~• analytics~~
-~~• desempenho de campanhas~~
-~~• variações automáticas~~
-
-> Observação histórica: esta estrutura foi substituída pela taxonomia `Free / Basic / Pro`.
-
-Free
-
-• criação manual de campanhas
-• edição e aprovação da campanha
-• uso pontual com limite operacional claro
-
-Basic
-
-• tudo do Free
-• plano semanal
-• constância operacional
-• reaproveitamento rápido de campanhas
+• gerar campanha
+• editar campanha
+• duplicar campanha
 
 Pro
 
-• tudo do Basic
-• direcionamento comercial mais inteligente
-• campanhas sazonais e sugestões mais estratégicas
-• evolução futura de comportamento adaptativo
+• filtros estratégicos
+• sugestões automáticas
+• campanhas sazonais
+
+Premium
+
+• analytics
+• desempenho de campanhas
+• variações automáticas
 
 ---
 

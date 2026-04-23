@@ -24,6 +24,14 @@ export interface StoreBrandProfile {
   };
 }
 
+/**
+ * Indica qual fonte originou o Brand Profile resolvido para esta instância da Store.
+ * "published"  — a coluna brand_profile JSONB existia e foi validada com sucesso.
+ * "legacy"     — brand_profile estava ausente ou inválido; fallback determinístico aplicado.
+ * Fallback legado é compatibilidade com o domínio atual, não é preferência aprendida nem snapshot.
+ */
+export type BrandProfileSource = "published" | "legacy";
+
 export interface Store {
   id: string;
   name: string;
@@ -43,6 +51,8 @@ export interface Store {
   brand_profile?: StoreBrandProfile | null;
   brand_profile_version?: number | null;
   brand_profile_updated_at?: string | null;
+  /** Indica a origem do Brand Profile resolvido nesta instância. */
+  brand_profile_source?: BrandProfileSource | null;
 }
 
 export type StoreContext = Store;

@@ -1,5 +1,64 @@
 import { CampaignContext } from "./types";
 import { StoreContext } from "@/lib/domain/stores/types";
+// TODO: Revisar ao final da Epic 4 - módulo não existe nesta branch
+// import { VisualPreferenceShape } from "@/lib/domain/visual-preference/types";
+
+// TODO: Revisar ao final da Epic 4 - função depende de visual-preference
+/*
+function buildVisualPreferenceSection(pref: VisualPreferenceShape): string {
+  const lines: string[] = [];
+
+  // Layout preference → Instrução sobre estrutura/composição da arte
+  if (pref.layout_preference) {
+    const layoutMap: Record<string, string> = {
+      'solid': 'Use layout compacto com elementos centralizados (solid)',
+      'floating': 'Use layout com elementos flutuantes e espaçamento generoso (floating)',
+      'split': 'Divida a arte em seções visuais distintas - produto de um lado, mensagem do outro (split)',
+    };
+    lines.push(`- ESTRUTURA DE LAYOUT: ${layoutMap[pref.layout_preference] || pref.layout_preference}`);
+  }
+
+  // Badge tolerance → Instrução sobre elementos promocionais
+  if (pref.badge_tolerance) {
+    const badgeMap: Record<string, string> = {
+      'low': 'Use badges/selos com moderação (máximo 1 elemento promocional)',
+      'medium': 'Use badges/selos quando relevante (até 2 elementos)',
+      'high': 'Pode usar múltiplos badges/selos se reforçar a oferta',
+    };
+    lines.push(`- ELEMENTOS PROMOCIONAIS: ${badgeMap[pref.badge_tolerance] || pref.badge_tolerance}`);
+  }
+
+  // Hierarchy preference → Instrução sobre destaque visual
+  if (pref.hierarchy_preference) {
+    const hierarchyMap: Record<string, string> = {
+      'strong': 'Destaque o produto com hierarquia forte (contraste alto, tamanho dominante)',
+      'balanced': 'Equilibre produto e mensagem com pesos visuais similares',
+      'discreet': 'Use hierarquia sutil (mensagem protagonista, produto como apoio)',
+    };
+    lines.push(`- HIERARQUIA VISUAL: ${hierarchyMap[pref.hierarchy_preference] || pref.hierarchy_preference}`);
+  }
+
+  // Message focus → Instrução sobre tom da copy
+  if (pref.message_focus) {
+    const focusMap: Record<string, string> = {
+      'offer': 'Foque a copy na OFERTA (preço, desconto, promoção)',
+      'product': 'Foque a copy no PRODUTO (benefícios, diferenciais, qualidade)',
+      'urgency': 'Foque a copy na URGÊNCIA (escassez, prazo, exclusividade)',
+    };
+    lines.push(`- FOCO DA MENSAGEM: ${focusMap[pref.message_focus] || pref.message_focus}`);
+  }
+
+  if (lines.length === 0) {
+    return "";
+  }
+
+  return `
+PREFERÊNCIAS VISUAIS (baseado em aprovações anteriores desta loja):
+${lines.join("\n")}
+Nota: Estas são preferências aprendidas, não regras rígidas. Você pode variar se o contexto da campanha exigir.
+`;
+}
+*/
 
 /**
  * Monta o prompt de copywriting para geração de conteúdo de campanha (post/arte).
@@ -7,8 +66,14 @@ import { StoreContext } from "@/lib/domain/stores/types";
 export function buildCampaignPrompt(
   campaign: CampaignContext,
   store: StoreContext,
+  visualPreference?: any | null, // TODO: Revisar ao final da Epic 4
   description?: string
 ): string {
+  // TODO: Revisar ao final da Epic 4 - visual-preference desabilitado
+  // console.log('[DEBUG 2.7] buildCampaignPrompt called with visualPreference:', visualPreference);
+  // const preferenceSection = visualPreference ? buildVisualPreferenceSection(visualPreference) : '';
+  // console.log('[DEBUG 2.7] Preference section to inject:', preferenceSection || '(empty)');
+  
   return `
 Você é um REDATOR SÊNIOR DE VAREJO, especialista em copy para redes sociais que converte "curtidas" em "vendas". Seu estilo é direto, persuasivo e sem clichês de agência.
 
@@ -22,8 +87,10 @@ CONTEXTO DA LOJA:
 CONTEXTO DA CAMPANHA:
 - PRODUTO: ${campaign.product_name} (Preço: ${campaign.price ?? "não informado"}).
 - ESTRATÉGIA: ${campaign.objective} para ${campaign.audience}.
-- RACIOCÍNIO VAREJISTA: ${campaign.theme || description || "Focar no desejo imediato e benefícios do produto."}
+- preferenceSectionejo imediato e benefícios do produto."}
 - DATA ATUAL: ${new Date().toLocaleDateString("pt-BR", { day: '2-digit', month: 'long', year: 'numeric' })}
+
+${''}
 
 DIRETRIZES DE ESCREVENTE (RIGOROSAS):
 1. SINTONIA SAZONAL E VALIDAÇÃO: Use a DATA ATUAL para contextualizar feriados. Se o PRODUTO (${campaign.product_name}) for sazonal (ex: Ovo de Páscoa, Panetone, Flores), foque EXCLUSIVAMENTE no feriado correspondente (Páscoa para ovos, Natal para panetone). JAMAIS mencione feriados não relacionados ao produto.

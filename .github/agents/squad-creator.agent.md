@@ -1,7 +1,7 @@
 ---
 name: squad-creator
 description: 'Use to create, validate, publish and manage squads'
-model: Auto (copilot)
+model: Claude Sonnet 4.5 (copilot)
 
 tools: ['read', 'edit', 'search', 'execute']
 ---
