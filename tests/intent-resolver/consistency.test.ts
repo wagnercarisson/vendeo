@@ -10,7 +10,7 @@ function calculateConsistency(outputs: CreativeDirection[]) {
     counts.set(key, (counts.get(key) ?? 0) + 1);
   }
 
-  return Math.max(...counts.values()) / outputs.length;
+  return counts.size === 0 ? 0 : Math.max(...Array.from(counts.values())) / outputs.length;
 }
 
 describe("Intent Resolver consistency", () => {

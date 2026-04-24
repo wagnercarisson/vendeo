@@ -522,7 +522,7 @@ function getDecorative(
           ? FULL_OCCUPANCY_HERO_PRESETS[variationIndex].promotionalPosition
           : preset.textBias === "bottom" ? "bottom" : "top",
         fontSize: isFullOccupancyHero ? 48 : input.direction.visualIntensity === "strong" ? 38 : 28,
-        fontWeight: input.direction.mood === "premium" ? "600" : "900",
+        fontWeight: (input.direction.mood === "premium" ? "600" : "900") as "600" | "900",
       }
     : undefined;
 
