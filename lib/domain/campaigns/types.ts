@@ -51,6 +51,67 @@ export interface CampaignAIOutput {
   price_label: string | null;
 }
 
+export type VisualPipelineMotor =
+  | "visual-reader"
+  | "intent-resolver"
+  | "visual-composer"
+  | "renderer";
+
+export type VisualOutputItem = {
+  variation_index: number;
+  url: string;
+  metadata: {
+    width: 1080;
+    height: 1350;
+    format: "png";
+    size: number;
+    renderTime?: number;
+  };
+};
+
+export type GenerateCampaignVisualsInput = {
+  campaign_id: string;
+  store_id: string;
+  product_image_url: string;
+  campaign_data: {
+    product_name: string;
+    objective: CampaignObjective;
+    audience: CampaignAudience | string;
+    price?: number | null;
+    price_label?: string | null;
+    content_type: CampaignCanonicalContentType;
+    product_positioning?: ProductPositioning | null;
+  };
+  visual_signature: {
+    logo_url?: string | null;
+    store_name: string;
+  };
+  force?: boolean;
+  existing_visual_outputs?: VisualOutputItem[];
+};
+
+export type GenerateCampaignVisualsOutput = {
+  trace_id: string;
+  campaign_id: string;
+  visual_outputs: VisualOutputItem[];
+  performance: {
+    motor1_ms: number;
+    motor2_ms: number;
+    motor3_ms: number;
+    motor4_ms: number;
+    total_ms: number;
+  };
+  reused?: boolean;
+};
+
+export type PipelineError = {
+  motor: VisualPipelineMotor;
+  code: string;
+  message: string;
+  details?: unknown;
+  trace_id: string;
+};
+
 export type ContentState = "none" | "art_only" | "video_only" | "art_and_video";
 export type ActiveTab = "art" | "video";
 export type ViewMode = "view" | "edit" | "review";

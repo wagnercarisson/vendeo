@@ -1,6 +1,7 @@
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { callAIWithRetry } from "@/lib/ai/parse";
 import { fetchStoreContext } from "@/lib/domain/stores/queries";
+import { MOTOR_V2_ENABLED } from "@/lib/constants/features";
 // TODO: Revisar ao final da Epic 4 - módulo não existe nesta branch
 // import { getLatestVisualPreference } from "@/lib/domain/visual-preference/service";
 // import { VisualPreferenceShape } from "@/lib/domain/visual-preference/types";
@@ -8,7 +9,8 @@ import { CampaignAISchema } from "./schemas";
 import { buildCampaignPrompt } from "./prompts";
 import { mapAiCampaignToDomain, mapDbCampaignToAIContext } from "./mapper";
 import { mapDbCampaignToDomain } from "./mapper";
-import { CampaignAIOutput } from "./types";
+import { CampaignAIOutput, GenerateCampaignVisualsOutput } from "./types";
+import { generateCampaignVisuals, readExistingVisualOutputs } from "./visual-pipeline";
 
 export type GenerateCampaignInput = {
   campaign_id: string;
@@ -19,8 +21,8 @@ export type GenerateCampaignInput = {
 };
 
 export type GenerateCampaignResult =
-  | { ok: true; reused: true; output?: CampaignAIOutput }
-  | { ok: true; reused: false; campaign_id: string; output?: CampaignAIOutput }
+  | { ok: true; reused: true; output?: CampaignAIOutput; visual_output?: GenerateCampaignVisualsOutput }
+  | { ok: true; reused: false; campaign_id: string; output?: CampaignAIOutput; visual_output?: GenerateCampaignVisualsOutput }
   | { ok: false; error: string; details?: unknown; status: number };
 
 /**
@@ -61,11 +63,37 @@ export async function generateCampaignContent(
 
   // Mapeamento de contexto técnico para a IA (mantemos para compatibilidade com prompts legados)
   const campaignCtx = mapDbCampaignToAIContext(rawCampaign, strategicTheme);
+  const existingVisualOutputs = readExistingVisualOutputs(
+    campaign.domain_input?.visual_v2?.visual_outputs
+  );
+  const shouldRunVisual = Boolean(
+    MOTOR_V2_ENABLED &&
+    (campaign.product_image_url || campaign.image_url) &&
+    campaign.content_type !== "message"
+  );
 
   // 2) Idempotência (usa a versão snake_case mapeada)
   const already = !!(campaign.ai_caption && campaign.ai_caption.trim().length > 0);
-  if (!force && already) {
-    return { ok: true, reused: true };
+  if (!force && already && (!shouldRunVisual || existingVisualOutputs.length > 0)) {
+    return {
+      ok: true,
+      reused: true,
+      visual_output: existingVisualOutputs.length > 0
+        ? {
+            trace_id: String(campaign.domain_input?.visual_v2?.trace_id ?? ""),
+            campaign_id,
+            visual_outputs: existingVisualOutputs,
+            performance: {
+              motor1_ms: Number(campaign.domain_input?.visual_v2?.performance?.motor1_ms ?? 0),
+              motor2_ms: Number(campaign.domain_input?.visual_v2?.performance?.motor2_ms ?? 0),
+              motor3_ms: Number(campaign.domain_input?.visual_v2?.performance?.motor3_ms ?? 0),
+              motor4_ms: Number(campaign.domain_input?.visual_v2?.performance?.motor4_ms ?? 0),
+              total_ms: Number(campaign.domain_input?.visual_v2?.performance?.total_ms ?? 0),
+            },
+            reused: true,
+          }
+        : undefined,
+    };
   }
 
   // 3) Validação mínima dos dados da campanha
@@ -140,27 +168,74 @@ export async function generateCampaignContent(
     },
   };
 
-  // 5) Monta prompt e chama IA
-  const prompt = buildCampaignPrompt(campaignCtx, store, null, description); // TODO: Revisar ao final da Epic 4
-  const { data: aiData } = await callAIWithRetry(prompt, CampaignAISchema, { temperature: 0.7 });
+  let normalized: CampaignAIOutput | undefined;
+  if (!already || force) {
+    const prompt = buildCampaignPrompt(campaignCtx, store, null, description); // TODO: Revisar ao final da Epic 4
+    const { data: aiData } = await callAIWithRetry(prompt, CampaignAISchema, { temperature: 0.7 });
+    normalized = mapAiCampaignToDomain(aiData, campaignCtx, store);
+  }
 
-  // 6) Normaliza cópia gerada
-  const normalized: CampaignAIOutput = mapAiCampaignToDomain(aiData, campaignCtx, store);
+  let visualOutput: GenerateCampaignVisualsOutput | undefined;
+  if (shouldRunVisual) {
+    try {
+      visualOutput = await generateCampaignVisuals({
+        campaign_id,
+        store_id: storeId,
+        product_image_url: campaign.product_image_url || campaign.image_url || "",
+        campaign_data: {
+          product_name: campaign.product_name || "Produto",
+          objective: campaign.objective || "promocao",
+          audience: campaign.audience || "geral",
+          price: campaign.price,
+          price_label: campaign.price_label,
+          content_type: campaign.content_type || "product",
+          product_positioning: campaign.product_positioning,
+        },
+        visual_signature: {
+          logo_url: store.logo_url,
+          store_name: store.name,
+        },
+        force,
+        existing_visual_outputs: existingVisualOutputs,
+      });
+    } catch (error: any) {
+      return {
+        ok: false,
+        error: error?.code || "VISUAL_PIPELINE_FAILED",
+        details: error,
+        status: 422,
+      };
+    }
+  }
 
   // 7) Persiste no banco usando nomes de colunas snake_case (se persist for true)
   if (persist) {
+    const persistedVisualState = visualOutput
+      ? {
+          trace_id: visualOutput.trace_id,
+          visual_outputs: visualOutput.visual_outputs,
+          performance: visualOutput.performance,
+          generated_at: new Date().toISOString(),
+        }
+      : campaign.domain_input?.visual_v2;
+
     const { error: upErr } = await supabaseAdmin
       .from("campaigns")
       .update({
-        headline: normalized.headline,
-        ai_caption: normalized.caption,
-        ai_text: normalized.text,
-        ai_cta: normalized.cta,
-        ai_hashtags: normalized.hashtags,
+        headline: normalized?.headline ?? campaign.headline,
+        ai_caption: normalized?.caption ?? campaign.ai_caption,
+        ai_text: normalized?.text ?? campaign.ai_text,
+        ai_cta: normalized?.cta ?? campaign.ai_cta,
+        ai_hashtags: normalized?.hashtags ?? campaign.ai_hashtags,
         ai_generated_at: new Date().toISOString(),
         status: 'ready',
         post_status: 'ready',
-        domain_input: generationContext,
+        image_url: visualOutput?.visual_outputs[0]?.url ?? campaign.image_url,
+        domain_input: {
+          ...generationContext,
+          ...(campaign.domain_input || {}),
+          ...(persistedVisualState ? { visual_v2: persistedVisualState } : {}),
+        },
       })
       .eq("id", campaign_id);
 
@@ -169,5 +244,5 @@ export async function generateCampaignContent(
     }
   }
 
-  return { ok: true, reused: false, campaign_id, output: normalized };
+  return { ok: true, reused: false, campaign_id, output: normalized, visual_output: visualOutput };
 }
