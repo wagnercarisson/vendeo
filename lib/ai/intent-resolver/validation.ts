@@ -114,11 +114,11 @@ export function applyValidationRules(
   const allowedDirections = DIRECTION_TYPE_MAP[input.image.backgroundType];
   const allowedTreatment = PRODUCT_TREATMENT_RULES[input.image.backgroundType];
 
-  if (!allowedDirections.includes(next.directionType)) {
+  if (!(allowedDirections as readonly CreativeDirection["directionType"][]).includes(next.directionType)) {
     next.directionType = allowedDirections[0];
   }
 
-  if (!allowedTreatment.includes(next.productTreatment)) {
+  if (!(allowedTreatment as readonly CreativeDirection["productTreatment"][]).includes(next.productTreatment)) {
     next.productTreatment = allowedTreatment[0];
   }
 
@@ -127,7 +127,7 @@ export function applyValidationRules(
     // allowed by the current background instead of returning an impossible design.
     next.directionType =
       FULL_OCCUPANCY_DIRECTION_PREFERENCE.find((candidate) =>
-        allowedDirections.includes(candidate)
+        (allowedDirections as readonly CreativeDirection["directionType"][]).includes(candidate)
       ) ?? allowedDirections[0];
   }
 
