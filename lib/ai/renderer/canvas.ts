@@ -106,20 +106,21 @@ function drawPromotionalTitle(input: RendererInput): Buffer | null {
 
 async function drawStoreIdentity(input: RendererInput) {
   const identity = input.spec.decorative.storeIdentity;
-  const origin = resolveStoreIdentityOrigin(identity.position, identity.size);
+  const identitySize = identity.size as { width: number; height: number };
+  const origin = resolveStoreIdentityOrigin(identity.position, identitySize);
 
   if (identity.type === "logo" && input.visualSignature.logo_url) {
-    const logoBuffer = await prepareIdentityImage(input.visualSignature.logo_url, identity.size);
+    const logoBuffer = await prepareIdentityImage(input.visualSignature.logo_url, identitySize);
     return [{ input: logoBuffer, left: origin.x, top: origin.y }];
   }
 
   return [
-    { input: buildRoundedPillSvg(origin.x, origin.y, identity.size.width, identity.size.height, "rgba(31,41,55,0.16)") },
+    { input: buildRoundedPillSvg(origin.x, origin.y, identitySize.width, identitySize.height, "rgba(31,41,55,0.16)") },
     { input: buildTextOverlay(input.visualSignature.store_name, {
     x: origin.x + 12,
     y: origin.y + 8,
-    width: identity.size.width - 24,
-    height: identity.size.height - 16,
+    width: identitySize.width - 24,
+    height: identitySize.height - 16,
   }, {
     fontSize: 22,
     fontWeight: "700",
