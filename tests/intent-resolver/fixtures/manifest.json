@@ -1,0 +1,554 @@
+[
+  {
+    "id": "01-transparent-novidade",
+    "input": {
+      "image": {
+        "backgroundType": "transparent",
+        "targetOccupancy": "low",
+        "sceneType": "single_product",
+        "visibility": "clear",
+        "framing": "good",
+        "imageQuality": "good",
+        "matchType": "exact",
+        "targetPosition": "center",
+        "targetOrientation": "vertical"
+      },
+      "campaign": {
+        "content_type": "product",
+        "objective": "novidade",
+        "price": null,
+        "price_label": null,
+        "product_name": "Coca Cola 600ml",
+        "audience": "geral",
+        "product_positioning": "medio"
+      },
+      "signature": {
+        "id": "11111111-1111-1111-1111-111111111111",
+        "primary_color": "#111111",
+        "secondary_color": "#ff0000",
+        "logo_url": null,
+        "store_name_typography": { "font": "Sora", "weight": "700" },
+        "signature_seed": "seed-01",
+        "intensity_level": "balanced",
+        "composition_rules": {},
+        "typography_rules": {},
+        "color_rules": {},
+        "context_type": "standard"
+      }
+    },
+    "expected": {
+      "directionType": "hero",
+      "mood": "clean",
+      "productTreatment": "framed",
+      "textDistribution": "center",
+      "priceEmphasis": "low",
+      "visualIntensity": "balanced"
+    }
+  },
+  {
+    "id": "02-solid-promocao",
+    "input": {
+      "image": {
+        "backgroundType": "solid",
+        "targetOccupancy": "medium",
+        "sceneType": "single_product",
+        "visibility": "clear",
+        "framing": "good",
+        "imageQuality": "good",
+        "matchType": "exact",
+        "targetPosition": "left",
+        "targetOrientation": "vertical"
+      },
+      "campaign": {
+        "content_type": "product",
+        "objective": "promocao",
+        "price": 9.99,
+        "price_label": "R$ 9,99",
+        "product_name": "Cafe Premium 500g",
+        "audience": "economico",
+        "product_positioning": "popular"
+      },
+      "signature": {
+        "id": "22222222-2222-2222-2222-222222222222",
+        "primary_color": "#222222",
+        "secondary_color": "#00ff00",
+        "logo_url": null,
+        "store_name_typography": { "font": "Sora", "weight": "700" },
+        "signature_seed": "seed-02",
+        "intensity_level": "strong",
+        "composition_rules": {},
+        "typography_rules": {},
+        "color_rules": {},
+        "context_type": "promotional"
+      }
+    },
+    "expected": {
+      "directionType": "split-dynamic",
+      "mood": "aggressive",
+      "productTreatment": "framed",
+      "textDistribution": "right",
+      "priceEmphasis": "high",
+      "visualIntensity": "strong"
+    }
+  },
+  {
+    "id": "03-complex-sazonal",
+    "input": {
+      "image": {
+        "backgroundType": "complex",
+        "targetOccupancy": "high",
+        "sceneType": "lifestyle_scene",
+        "visibility": "clear",
+        "framing": "good",
+        "imageQuality": "acceptable",
+        "matchType": "exact",
+        "targetPosition": "center",
+        "targetOrientation": "horizontal"
+      },
+      "campaign": {
+        "content_type": "product",
+        "objective": "sazonal",
+        "price": 29.9,
+        "price_label": null,
+        "product_name": "Panetone",
+        "audience": "familia",
+        "product_positioning": "familia"
+      },
+      "signature": {
+        "id": "33333333-3333-3333-3333-333333333333",
+        "primary_color": "#333333",
+        "secondary_color": "#ffaa00",
+        "logo_url": null,
+        "store_name_typography": { "font": "Sora", "weight": "700" },
+        "signature_seed": "seed-03",
+        "intensity_level": "balanced",
+        "composition_rules": {},
+        "typography_rules": {},
+        "color_rules": {},
+        "context_type": "seasonal"
+      }
+    },
+    "expected": {
+      "directionType": "overlay",
+      "mood": "playful",
+      "productTreatment": "background",
+      "textDistribution": "overlay",
+      "priceEmphasis": "medium",
+      "visualIntensity": "balanced"
+    }
+  },
+  {
+    "id": "04-unknown-full-queima",
+    "input": {
+      "image": {
+        "backgroundType": "unknown",
+        "targetOccupancy": "full",
+        "sceneType": "full_scene",
+        "visibility": "clear",
+        "framing": "tight",
+        "imageQuality": "acceptable",
+        "matchType": "exact",
+        "targetPosition": "center",
+        "targetOrientation": "mixed"
+      },
+      "campaign": {
+        "content_type": "product",
+        "objective": "queima",
+        "price": 5,
+        "price_label": null,
+        "product_name": "Ultimas Unidades",
+        "audience": "economico",
+        "product_positioning": "popular"
+      },
+      "signature": {
+        "id": "44444444-4444-4444-4444-444444444444",
+        "primary_color": "#444444",
+        "secondary_color": "#ff6600",
+        "logo_url": null,
+        "store_name_typography": { "font": "Sora", "weight": "700" },
+        "signature_seed": "seed-04",
+        "intensity_level": "strong",
+        "composition_rules": {},
+        "typography_rules": {},
+        "color_rules": {},
+        "context_type": "urgency"
+      }
+    },
+    "expected": {
+      "directionType": "frame",
+      "mood": "aggressive",
+      "productTreatment": "framed",
+      "textDistribution": "center",
+      "priceEmphasis": "high",
+      "visualIntensity": "strong"
+    }
+  },
+  {
+    "id": "05-transparent-full-institucional",
+    "input": {
+      "image": {
+        "backgroundType": "transparent",
+        "targetOccupancy": "full",
+        "sceneType": "single_product",
+        "visibility": "clear",
+        "framing": "good",
+        "imageQuality": "good",
+        "matchType": "exact",
+        "targetPosition": "center",
+        "targetOrientation": "vertical"
+      },
+      "campaign": {
+        "content_type": "product",
+        "objective": "institucional",
+        "price": null,
+        "price_label": null,
+        "product_name": "Marca da Loja",
+        "audience": "premium_exigente",
+        "product_positioning": "premium"
+      },
+      "signature": {
+        "id": "55555555-5555-5555-5555-555555555555",
+        "primary_color": "#555555",
+        "secondary_color": "#999999",
+        "logo_url": null,
+        "store_name_typography": { "font": "Sora", "weight": "700" },
+        "signature_seed": "seed-05",
+        "intensity_level": "minimal",
+        "composition_rules": {},
+        "typography_rules": {},
+        "color_rules": {},
+        "context_type": "premium"
+      }
+    },
+    "expected": {
+      "directionType": "frame",
+      "mood": "premium",
+      "productTreatment": "framed",
+      "textDistribution": "center",
+      "priceEmphasis": "low",
+      "visualIntensity": "minimal"
+    }
+  },
+  {
+    "id": "06-solid-combo",
+    "input": {
+      "image": {
+        "backgroundType": "solid",
+        "targetOccupancy": "low",
+        "sceneType": "multiple_products",
+        "visibility": "clear",
+        "framing": "good",
+        "imageQuality": "good",
+        "matchType": "exact",
+        "targetPosition": "right",
+        "targetOrientation": "horizontal"
+      },
+      "campaign": {
+        "content_type": "product",
+        "objective": "combo",
+        "price": 14.9,
+        "price_label": null,
+        "product_name": "Combo Lanche",
+        "audience": "jovens_festa",
+        "product_positioning": "jovem"
+      },
+      "signature": {
+        "id": "66666666-6666-6666-6666-666666666666",
+        "primary_color": "#666666",
+        "secondary_color": "#ff2200",
+        "logo_url": null,
+        "store_name_typography": { "font": "Sora", "weight": "700" },
+        "signature_seed": "seed-06",
+        "intensity_level": "strong",
+        "composition_rules": {},
+        "typography_rules": {},
+        "color_rules": {},
+        "context_type": "promotional"
+      }
+    },
+    "expected": {
+      "directionType": "frame",
+      "mood": "aggressive",
+      "productTreatment": "framed",
+      "textDistribution": "left",
+      "priceEmphasis": "high",
+      "visualIntensity": "strong"
+    }
+  },
+  {
+    "id": "07-complex-autoridade",
+    "input": {
+      "image": {
+        "backgroundType": "complex",
+        "targetOccupancy": "medium",
+        "sceneType": "lifestyle_scene",
+        "visibility": "clear",
+        "framing": "good",
+        "imageQuality": "good",
+        "matchType": "exact",
+        "targetPosition": "center",
+        "targetOrientation": "square"
+      },
+      "campaign": {
+        "content_type": "service",
+        "objective": "autoridade",
+        "price": null,
+        "price_label": null,
+        "product_name": "Especialidade da Loja",
+        "audience": "premium_exigente",
+        "product_positioning": "premium"
+      },
+      "signature": {
+        "id": "77777777-7777-7777-7777-777777777777",
+        "primary_color": "#777777",
+        "secondary_color": "#d4af37",
+        "logo_url": null,
+        "store_name_typography": { "font": "Sora", "weight": "700" },
+        "signature_seed": "seed-07",
+        "intensity_level": "minimal",
+        "composition_rules": {},
+        "typography_rules": {},
+        "color_rules": {},
+        "context_type": "premium"
+      }
+    },
+    "expected": {
+      "directionType": "frame",
+      "mood": "premium",
+      "productTreatment": "background",
+      "textDistribution": "center",
+      "priceEmphasis": "low",
+      "visualIntensity": "minimal"
+    }
+  },
+  {
+    "id": "08-transparent-informativo",
+    "input": {
+      "image": {
+        "backgroundType": "transparent",
+        "targetOccupancy": "low",
+        "sceneType": "single_product",
+        "visibility": "clear",
+        "framing": "good",
+        "imageQuality": "good",
+        "matchType": "exact",
+        "targetPosition": "center",
+        "targetOrientation": "square"
+      },
+      "campaign": {
+        "content_type": "product",
+        "objective": "informativo",
+        "price": null,
+        "price_label": null,
+        "product_name": "Dica da Loja",
+        "audience": "geral",
+        "product_positioning": null
+      },
+      "signature": {
+        "id": "88888888-8888-8888-8888-888888888888",
+        "primary_color": "#888888",
+        "secondary_color": "#0088ff",
+        "logo_url": null,
+        "store_name_typography": { "font": "Sora", "weight": "700" },
+        "signature_seed": "seed-08",
+        "intensity_level": "balanced",
+        "composition_rules": {},
+        "typography_rules": {},
+        "color_rules": {},
+        "context_type": "standard"
+      }
+    },
+    "expected": {
+      "directionType": "stacked",
+      "mood": "clean",
+      "productTreatment": "framed",
+      "textDistribution": "center",
+      "priceEmphasis": "low",
+      "visualIntensity": "balanced"
+    }
+  },
+  {
+    "id": "09-solid-reposicao-poor",
+    "input": {
+      "image": {
+        "backgroundType": "solid",
+        "targetOccupancy": "high",
+        "sceneType": "single_product",
+        "visibility": "partial",
+        "framing": "distant",
+        "imageQuality": "poor",
+        "matchType": "exact",
+        "targetPosition": "center",
+        "targetOrientation": "vertical"
+      },
+      "campaign": {
+        "content_type": "product",
+        "objective": "reposicao",
+        "price": 20,
+        "price_label": null,
+        "product_name": "Voltou ao Estoque",
+        "audience": "geral",
+        "product_positioning": "medio"
+      },
+      "signature": {
+        "id": "99999999-9999-9999-9999-999999999999",
+        "primary_color": "#999999",
+        "secondary_color": "#118833",
+        "logo_url": null,
+        "store_name_typography": { "font": "Sora", "weight": "700" },
+        "signature_seed": "seed-09",
+        "intensity_level": "balanced",
+        "composition_rules": {},
+        "typography_rules": {},
+        "color_rules": {},
+        "context_type": "standard"
+      }
+    },
+    "expected": {
+      "directionType": "hero",
+      "mood": "clean",
+      "productTreatment": "framed",
+      "textDistribution": "center",
+      "priceEmphasis": "medium",
+      "visualIntensity": "minimal"
+    }
+  },
+  {
+    "id": "10-complex-full-visitas",
+    "input": {
+      "image": {
+        "backgroundType": "complex",
+        "targetOccupancy": "full",
+        "sceneType": "full_scene",
+        "visibility": "clear",
+        "framing": "good",
+        "imageQuality": "acceptable",
+        "matchType": "exact",
+        "targetPosition": "center",
+        "targetOrientation": "mixed"
+      },
+      "campaign": {
+        "content_type": "product",
+        "objective": "visitas",
+        "price": 18,
+        "price_label": null,
+        "product_name": "Visite a Loja",
+        "audience": "familia",
+        "product_positioning": "familia"
+      },
+      "signature": {
+        "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "primary_color": "#aaaaaa",
+        "secondary_color": "#ff55aa",
+        "logo_url": null,
+        "store_name_typography": { "font": "Sora", "weight": "700" },
+        "signature_seed": "seed-10",
+        "intensity_level": "balanced",
+        "composition_rules": {},
+        "typography_rules": {},
+        "color_rules": {},
+        "context_type": "standard"
+      }
+    },
+    "expected": {
+      "directionType": "overlay",
+      "mood": "playful",
+      "productTreatment": "background",
+      "textDistribution": "overlay",
+      "priceEmphasis": "medium",
+      "visualIntensity": "balanced"
+    }
+  },
+  {
+    "id": "11-unknown-engajamento",
+    "input": {
+      "image": {
+        "backgroundType": "unknown",
+        "targetOccupancy": "low",
+        "sceneType": "unclear",
+        "visibility": "unknown",
+        "framing": "unknown",
+        "imageQuality": "acceptable",
+        "matchType": "category_only",
+        "targetPosition": "mixed",
+        "targetOrientation": "unknown"
+      },
+      "campaign": {
+        "content_type": "service",
+        "objective": "engajamento",
+        "price": null,
+        "price_label": null,
+        "product_name": "Pergunta do Dia",
+        "audience": "geral",
+        "product_positioning": null
+      },
+      "signature": {
+        "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        "primary_color": "#bbbbbb",
+        "secondary_color": "#44aaee",
+        "logo_url": null,
+        "store_name_typography": { "font": "Sora", "weight": "700" },
+        "signature_seed": "seed-11",
+        "intensity_level": "balanced",
+        "composition_rules": {},
+        "typography_rules": {},
+        "color_rules": {},
+        "context_type": "standard"
+      }
+    },
+    "expected": {
+      "directionType": "frame",
+      "mood": "clean",
+      "productTreatment": "framed",
+      "textDistribution": "center",
+      "priceEmphasis": "low",
+      "visualIntensity": "balanced"
+    }
+  },
+  {
+    "id": "12-message-gate",
+    "input": {
+      "image": {
+        "backgroundType": "transparent",
+        "targetOccupancy": "medium",
+        "sceneType": "single_product",
+        "visibility": "clear",
+        "framing": "good",
+        "imageQuality": "good",
+        "matchType": "exact",
+        "targetPosition": "center",
+        "targetOrientation": "vertical"
+      },
+      "campaign": {
+        "content_type": "message",
+        "objective": "informativo",
+        "price": null,
+        "price_label": null,
+        "product_name": "Aviso Importante",
+        "audience": "geral",
+        "product_positioning": null
+      },
+      "signature": {
+        "id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+        "primary_color": "#cccccc",
+        "secondary_color": "#333333",
+        "logo_url": null,
+        "store_name_typography": { "font": "Sora", "weight": "700" },
+        "signature_seed": "seed-12",
+        "intensity_level": "balanced",
+        "composition_rules": {},
+        "typography_rules": {},
+        "color_rules": {},
+        "context_type": "standard"
+      }
+    },
+    "expected": {
+      "directionType": "frame",
+      "mood": "clean",
+      "productTreatment": "framed",
+      "textDistribution": "center",
+      "priceEmphasis": "low",
+      "visualIntensity": "minimal"
+    }
+  }
+]
