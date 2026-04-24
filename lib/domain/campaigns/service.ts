@@ -12,6 +12,15 @@ import { mapDbCampaignToDomain } from "./mapper";
 import { CampaignAIOutput, GenerateCampaignVisualsOutput } from "./types";
 import { generateCampaignVisuals, readExistingVisualOutputs } from "./visual-pipeline";
 
+function readVisualV2State(domainInput: unknown) {
+  if (!domainInput || typeof domainInput !== "object" || !("visual_v2" in domainInput)) {
+    return null;
+  }
+
+  const visualV2 = (domainInput as { visual_v2?: unknown }).visual_v2;
+  return visualV2 && typeof visualV2 === "object" ? visualV2 : null;
+}
+
 export type GenerateCampaignInput = {
   campaign_id: string;
   storeId: string;
@@ -63,8 +72,11 @@ export async function generateCampaignContent(
 
   // Mapeamento de contexto técnico para a IA (mantemos para compatibilidade com prompts legados)
   const campaignCtx = mapDbCampaignToAIContext(rawCampaign, strategicTheme);
+  const visualV2State = readVisualV2State(campaign.domain_input);
   const existingVisualOutputs = readExistingVisualOutputs(
-    campaign.domain_input?.visual_v2?.visual_outputs
+    visualV2State && "visual_outputs" in visualV2State
+      ? (visualV2State as { visual_outputs?: unknown }).visual_outputs
+      : undefined
   );
   const shouldRunVisual = Boolean(
     MOTOR_V2_ENABLED &&
@@ -80,15 +92,39 @@ export async function generateCampaignContent(
       reused: true,
       visual_output: existingVisualOutputs.length > 0
         ? {
-            trace_id: String(campaign.domain_input?.visual_v2?.trace_id ?? ""),
+            trace_id: String(
+              visualV2State && "trace_id" in visualV2State
+                ? (visualV2State as { trace_id?: unknown }).trace_id ?? ""
+                : ""
+            ),
             campaign_id,
             visual_outputs: existingVisualOutputs,
             performance: {
-              motor1_ms: Number(campaign.domain_input?.visual_v2?.performance?.motor1_ms ?? 0),
-              motor2_ms: Number(campaign.domain_input?.visual_v2?.performance?.motor2_ms ?? 0),
-              motor3_ms: Number(campaign.domain_input?.visual_v2?.performance?.motor3_ms ?? 0),
-              motor4_ms: Number(campaign.domain_input?.visual_v2?.performance?.motor4_ms ?? 0),
-              total_ms: Number(campaign.domain_input?.visual_v2?.performance?.total_ms ?? 0),
+              motor1_ms: Number(
+                visualV2State && "performance" in visualV2State
+                  ? ((visualV2State as { performance?: { motor1_ms?: unknown } }).performance?.motor1_ms ?? 0)
+                  : 0
+              ),
+              motor2_ms: Number(
+                visualV2State && "performance" in visualV2State
+                  ? ((visualV2State as { performance?: { motor2_ms?: unknown } }).performance?.motor2_ms ?? 0)
+                  : 0
+              ),
+              motor3_ms: Number(
+                visualV2State && "performance" in visualV2State
+                  ? ((visualV2State as { performance?: { motor3_ms?: unknown } }).performance?.motor3_ms ?? 0)
+                  : 0
+              ),
+              motor4_ms: Number(
+                visualV2State && "performance" in visualV2State
+                  ? ((visualV2State as { performance?: { motor4_ms?: unknown } }).performance?.motor4_ms ?? 0)
+                  : 0
+              ),
+              total_ms: Number(
+                visualV2State && "performance" in visualV2State
+                  ? ((visualV2State as { performance?: { total_ms?: unknown } }).performance?.total_ms ?? 0)
+                  : 0
+              ),
             },
             reused: true,
           }
