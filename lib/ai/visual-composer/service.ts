@@ -54,17 +54,6 @@ export async function composeVariations(
     );
 
     const parsed = parseJsonFirstObject(raw);
-    
-    // TEMP DEBUG: Log raw GPT output structure for Story 4.5.2 investigation
-    console.log("[MOTOR-3][RAW-OUTPUT-DEBUG]", JSON.stringify({
-      hasDirection: !!parsed.direction,
-      directionType: typeof parsed.direction,
-      directionValue: typeof parsed.direction === 'object' ? 'object' : parsed.direction,
-      hasVariations: !!parsed.variations,
-      variationsCount: Array.isArray(parsed.variations) ? parsed.variations.length : 'not-array',
-      firstVariationKeys: parsed.variations?.[0] ? Object.keys(parsed.variations[0]).slice(0, 5) : 'no-variations',
-    }, null, 2));
-    
     const safe = CompositionVariantsSchema.safeParse(parsed);
     if (!safe.success) {
       console.error("[MOTOR-3][VALIDATION-FAIL] Unexpected validation failure", {
