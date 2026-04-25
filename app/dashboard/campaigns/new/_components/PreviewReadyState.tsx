@@ -58,6 +58,10 @@ export function PreviewReadyState({
     const [isEditingReels, setIsEditingReels] = useState(false);
     const [editData, setEditData] = useState(preview);
     const [activeLayout, setActiveLayout] = useState<"solid" | "floating" | "split">(preview.layout || "solid");
+    const selectedVariation = preview.visual_outputs?.find(
+        (item) => item.variation_index === preview.selected_variation_index
+    ) ?? preview.visual_outputs?.[0];
+    const isVisualV2 = Boolean(preview.use_generated_visuals && selectedVariation);
 
     useEffect(() => {
         setEditData(preview);
@@ -114,41 +118,47 @@ export function PreviewReadyState({
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <h2 className="text-sm font-semibold text-zinc-900">Preview do Post</h2>
-                                <div className="flex rounded-lg border border-zinc-100 bg-zinc-50 p-1">
-                                    <button
-                                        onClick={() => {
-                                            setActiveLayout("solid");
-                                            onUpdatePreview({ ...preview, layout: "solid" });
-                                        }}
-                                        className={`p-1 rounded-md transition-all ${activeLayout === "solid" ? "bg-white shadow text-emerald-600" : "text-zinc-400 hover:text-zinc-600"}`}
-                                        title="Rodapé Sólido"
-                                        type="button"
-                                    >
-                                        <Layout className="h-4 w-4" />
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            setActiveLayout("floating");
-                                            onUpdatePreview({ ...preview, layout: "floating" });
-                                        }}
-                                        className={`p-1 rounded-md transition-all ${activeLayout === "floating" ? "bg-white shadow text-emerald-600" : "text-zinc-400 hover:text-zinc-600"}`}
-                                        title="Card Flutuante"
-                                        type="button"
-                                    >
-                                        <Maximize2 className="h-4 w-4" />
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            setActiveLayout("split");
-                                            onUpdatePreview({ ...preview, layout: "split" });
-                                        }}
-                                        className={`p-1 rounded-md transition-all ${activeLayout === "split" ? "bg-white shadow text-emerald-600" : "text-zinc-400 hover:text-zinc-600"}`}
-                                        title="Divisão Vertical"
-                                        type="button"
-                                    >
-                                        <Columns className="h-4 w-4" />
-                                    </button>
-                                </div>
+                                {isVisualV2 ? (
+                                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+                                        {`${preview.visual_outputs?.length ?? 0} variações v2`}
+                                    </span>
+                                ) : (
+                                    <div className="flex rounded-lg border border-zinc-100 bg-zinc-50 p-1">
+                                        <button
+                                            onClick={() => {
+                                                setActiveLayout("solid");
+                                                onUpdatePreview({ ...preview, layout: "solid" });
+                                            }}
+                                            className={`p-1 rounded-md transition-all ${activeLayout === "solid" ? "bg-white shadow text-emerald-600" : "text-zinc-400 hover:text-zinc-600"}`}
+                                            title="Rodapé Sólido"
+                                            type="button"
+                                        >
+                                            <Layout className="h-4 w-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setActiveLayout("floating");
+                                                onUpdatePreview({ ...preview, layout: "floating" });
+                                            }}
+                                            className={`p-1 rounded-md transition-all ${activeLayout === "floating" ? "bg-white shadow text-emerald-600" : "text-zinc-400 hover:text-zinc-600"}`}
+                                            title="Card Flutuante"
+                                            type="button"
+                                        >
+                                            <Maximize2 className="h-4 w-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setActiveLayout("split");
+                                                onUpdatePreview({ ...preview, layout: "split" });
+                                            }}
+                                            className={`p-1 rounded-md transition-all ${activeLayout === "split" ? "bg-white shadow text-emerald-600" : "text-zinc-400 hover:text-zinc-600"}`}
+                                            title="Divisão Vertical"
+                                            type="button"
+                                        >
+                                            <Columns className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                )}
                             </div>
 
                             {isEditing && (
@@ -177,6 +187,13 @@ export function PreviewReadyState({
                                     <div className="flex h-full items-center justify-center text-sm text-zinc-500">
                                         Arte da campanha
                                     </div>
+                                ) : isVisualV2 ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
+                                        src={selectedVariation?.preview_url || preview.image_url}
+                                        alt={`Variação ${(selectedVariation?.variation_index ?? 0) + 1}`}
+                                        className="h-full w-full object-cover"
+                                    />
                                 ) : (
                                     <CampaignArtViewer
                                         layout={activeLayout}
@@ -204,6 +221,51 @@ export function PreviewReadyState({
                                 )}
                             </div>
                         </div>
+
+                        {preview.visual_outputs && preview.visual_outputs.length > 1 && (
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                                        Escolha a variação
+                                    </p>
+                                    <p className="text-xs text-zinc-500">
+                                        {selectedVariation ? `Selecionada: ${selectedVariation.variation_index + 1}` : ""}
+                                    </p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                                    {preview.visual_outputs.map((variation) => {
+                                        const isSelected = variation.variation_index === (preview.selected_variation_index ?? selectedVariation?.variation_index);
+                                        return (
+                                            <button
+                                                key={variation.variation_index}
+                                                type="button"
+                                                onClick={() => onUpdatePreview({
+                                                    ...preview,
+                                                    image_url: variation.preview_url,
+                                                    selected_variation_index: variation.variation_index,
+                                                })}
+                                                className={`overflow-hidden rounded-2xl border bg-white text-left transition ${isSelected ? "border-emerald-500 ring-2 ring-emerald-200" : "border-zinc-200 hover:border-zinc-300"}`}
+                                            >
+                                                <div className="aspect-[4/5] bg-zinc-100">
+                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                    <img
+                                                        src={variation.preview_url}
+                                                        alt={`Miniatura da variação ${variation.variation_index + 1}`}
+                                                        className="h-full w-full object-cover"
+                                                    />
+                                                </div>
+                                                <div className="flex items-center justify-between px-3 py-2">
+                                                    <span className="text-xs font-semibold text-zinc-800">
+                                                        Variação {variation.variation_index + 1}
+                                                    </span>
+                                                    {isSelected && <Check className="h-4 w-4 text-emerald-600" />}
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
 
                         <div className="space-y-4 pt-2">
                             {isEditing ? (

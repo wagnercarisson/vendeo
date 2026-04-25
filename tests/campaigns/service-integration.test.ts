@@ -137,7 +137,7 @@ describe("generateCampaignContent visual v2 integration", () => {
       visual_outputs: [
         {
           variation_index: 0,
-          url: "https://example.com/campaign-1/variation-0.png",
+          url: "campaigns/campaign-1/variation-0.png",
           metadata: { width: 1080, height: 1350, format: "png", size: 1234 },
         },
       ],

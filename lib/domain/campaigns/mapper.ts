@@ -13,6 +13,7 @@ import {
   CampaignListItem,
   CampaignReadableContentType,
   ProductPositioning,
+  VisualOutputItem,
 } from "./types";
 import type { CampaignObjective } from "@/lib/constants/strategy";
 import { StoreContext } from "@/lib/domain/stores/types";
@@ -233,13 +234,95 @@ export function mapDbCampaignToAIContext(data: unknown, theme?: string | null): 
   };
 }
 
+type VisualV2State = {
+  visual_outputs?: unknown;
+  selected_variation_index?: unknown;
+};
+
+export function readVisualV2State(domainInput: unknown): VisualV2State | null {
+  if (!domainInput || typeof domainInput !== "object" || Array.isArray(domainInput)) {
+    return null;
+  }
+
+  if (!("visual_v2" in domainInput)) {
+    return null;
+  }
+
+  const visualV2 = (domainInput as { visual_v2?: unknown }).visual_v2;
+  if (!visualV2 || typeof visualV2 !== "object" || Array.isArray(visualV2)) {
+    return null;
+  }
+
+  return visualV2 as VisualV2State;
+}
+
+export function readVisualOutputs(value: unknown): VisualOutputItem[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((item): item is VisualOutputItem => {
+    const metadata = (item as VisualOutputItem)?.metadata;
+    return Boolean(
+      item &&
+      typeof item === "object" &&
+      typeof (item as VisualOutputItem).variation_index === "number" &&
+      typeof (item as VisualOutputItem).url === "string" &&
+      metadata &&
+      typeof metadata === "object" &&
+      metadata.format === "png"
+    );
+  });
+}
+
+export function readSelectedVisualVariationIndex(
+  value: unknown,
+  visualOutputs?: VisualOutputItem[]
+): number | null {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+    return visualOutputs?.[0]?.variation_index ?? null;
+  }
+
+  if (!visualOutputs || visualOutputs.length === 0) {
+    return value;
+  }
+
+  const exists = visualOutputs.some((item) => item.variation_index === value);
+  return exists ? value : visualOutputs[0]?.variation_index ?? null;
+}
+
 export function mapCampaignToPreviewData(
   campaign: Campaign,
   store?: any
 ): any {
   const isApproved = campaign.status === "approved" || campaign.post_status === "approved";
+  const visualV2 = readVisualV2State(campaign.domain_input);
+  const visualOutputs = readVisualOutputs(visualV2?.visual_outputs).map((item) => {
+    const signedUrl =
+      typeof (item as VisualOutputItem & { signed_url?: unknown }).signed_url === "string"
+        ? (item as VisualOutputItem & { signed_url?: string }).signed_url
+        : item.url;
+
+    return {
+      variation_index: item.variation_index,
+      storage_path: item.url,
+      preview_url: signedUrl || item.url,
+      metadata: item.metadata,
+    };
+  });
+  const selectedVariationIndex = readSelectedVisualVariationIndex(
+    visualV2?.selected_variation_index,
+    visualOutputs
+  );
+  const selectedVariation = visualOutputs.find(
+    (item) => item.variation_index === selectedVariationIndex
+  ) ?? visualOutputs[0];
+
   return {
-    image_url: isApproved ? (campaign.image_url || campaign.product_image_url || "") : (campaign.product_image_url || ""),
+    image_url: selectedVariation?.preview_url || (isApproved ? (campaign.image_url || campaign.product_image_url || "") : (campaign.product_image_url || "")),
+    visual_outputs: visualOutputs,
+    selected_variation_index: selectedVariation?.variation_index ?? null,
+    use_generated_visuals: visualOutputs.length > 0,
     headline: campaign.headline || campaign.product_name || "",
     body_text: campaign.ai_text || "",
     cta: campaign.ai_cta || "",

@@ -88,7 +88,7 @@ describe("generateCampaignVisuals performance", () => {
       })),
     });
     renderVariationsMock.mockResolvedValue(new Array(4).fill(null).map((_, index) => ({
-      artUrl: `https://example.com/${index}.png`,
+      artUrl: `campaigns/campaign-perf/variation-${index}.png`,
       metadata: { width: 1080, height: 1350, format: "png", size: 1111, renderTime: 90 },
     })));
   });

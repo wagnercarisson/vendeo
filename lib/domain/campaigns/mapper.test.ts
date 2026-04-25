@@ -6,6 +6,10 @@ import {
   mapAiReelsToPreview,
   mapAiCampaignToDomain,
   mapDomainToCampaignDb,
+  mapCampaignToPreviewData,
+  readSelectedVisualVariationIndex,
+  readVisualOutputs,
+  readVisualV2State,
 } from "./mapper";
 import type { Campaign, CampaignContext } from "./types";
 import type { StoreContext } from "@/lib/domain/stores/types";
@@ -186,6 +190,75 @@ describe("mapAiReelsToPreview", () => {
     expect(result.reels_script).toBe("");
     expect(result.reels_shotlist).toEqual([]);
     expect(result.reels_duration_seconds).toBe(30); // Fallback
+  });
+});
+
+describe("visual v2 preview mapping", () => {
+  it("extracts visual outputs from domain_input.visual_v2", () => {
+    const outputs = readVisualOutputs([
+      {
+        variation_index: 0,
+        url: "campaigns/c-1/variation-0.png",
+        metadata: { width: 1080, height: 1350, format: "png", size: 1234 },
+      },
+    ]);
+
+    expect(outputs).toHaveLength(1);
+    expect(outputs[0]?.url).toBe("campaigns/c-1/variation-0.png");
+  });
+
+  it("selects the persisted variation when visual v2 is present", () => {
+    const campaign = mapDbCampaignToDomain({
+      ...REAL_DB_ROW,
+      domain_input: {
+        visual_v2: {
+          selected_variation_index: 1,
+          visual_outputs: [
+            {
+              variation_index: 0,
+              url: "campaigns/c-1/variation-0.png",
+              signed_url: "https://example.com/variation-0.png",
+              metadata: { width: 1080, height: 1350, format: "png", size: 1111 },
+            },
+            {
+              variation_index: 1,
+              url: "campaigns/c-1/variation-1.png",
+              signed_url: "https://example.com/variation-1.png",
+              metadata: { width: 1080, height: 1350, format: "png", size: 2222 },
+            },
+          ],
+        },
+      },
+      image_url: "campaigns/c-1/variation-0.png",
+    });
+
+    const preview = mapCampaignToPreviewData(campaign);
+
+    expect(preview.use_generated_visuals).toBe(true);
+    expect(preview.selected_variation_index).toBe(1);
+    expect(preview.image_url).toBe("https://example.com/variation-1.png");
+    expect(preview.visual_outputs).toHaveLength(2);
+  });
+
+  it("falls back to the first variation when the persisted index is invalid", () => {
+    const outputs = readVisualOutputs([
+      {
+        variation_index: 2,
+        url: "campaigns/c-1/variation-2.png",
+        metadata: { width: 1080, height: 1350, format: "png", size: 1234 },
+      },
+    ]);
+
+    const selected = readSelectedVisualVariationIndex(99, outputs);
+    const visualV2 = readVisualV2State({
+      visual_v2: {
+        selected_variation_index: 99,
+        visual_outputs: outputs,
+      },
+    });
+
+    expect(selected).toBe(2);
+    expect(visualV2?.selected_variation_index).toBe(99);
   });
 });
 

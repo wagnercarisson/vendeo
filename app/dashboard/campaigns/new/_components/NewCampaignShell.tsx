@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import {
     getSignedUrlAction,
+    getSignedUrlsAction,
     registerApprovedAssetAction,
 } from "@/lib/supabase/storage-actions";
 import { NewCampaignHeader } from "./NewCampaignHeader";
@@ -26,6 +27,9 @@ import { normalizeObjective } from "@/lib/formatters/strategyLabels";
 import {
     buildCampaignContentTypeWrite,
     normalizeCampaignContentType,
+    readSelectedVisualVariationIndex,
+    readVisualOutputs,
+    readVisualV2State,
 } from "@/lib/domain/campaigns/mapper";
 import { mapDbStoreToDomain } from "@/lib/domain/stores/mapper";
 import {
@@ -91,6 +95,35 @@ export function NewCampaignShell() {
     const [campaignId, setCampaignId] = useState<string | null>(null);
     const [storeId, setStoreId] = useState<string | null>(null);
     const [isRegenerating, setIsRegenerating] = useState(false);
+
+    async function buildDomainInputWithSelectedVariation(
+        currentId: string,
+        selectedVariationIndex: number | null | undefined
+    ) {
+        const { data } = await supabase
+            .from("campaigns")
+            .select("domain_input")
+            .eq("id", currentId)
+            .single();
+
+        const currentDomainInput = data?.domain_input && typeof data.domain_input === "object" && !Array.isArray(data.domain_input)
+            ? data.domain_input
+            : {};
+
+        if (selectedVariationIndex == null) {
+            return currentDomainInput;
+        }
+
+        const currentVisualV2 = readVisualV2State(currentDomainInput);
+
+        return {
+            ...currentDomainInput,
+            visual_v2: {
+                ...(currentVisualV2 || {}),
+                selected_variation_index: selectedVariationIndex,
+            },
+        };
+    }
 
     async function getPlanItemContext(planItemId: string) {
         const { data } = await supabase
@@ -329,15 +362,36 @@ export function NewCampaignShell() {
             .single();
 
         const fullStore = await getFullStore(storeId);
+        const visualV2 = readVisualV2State(finalCampaign.domain_input);
+        const visualOutputs = readVisualOutputs(visualV2?.visual_outputs);
 
         const nextImageUrl = finalCampaign.product_image_url || "";
-                const [signedImg, signedLogo] = await Promise.all([
-                    getSignedUrlAction(nextImageUrl),
-                    getSignedUrlAction(fullStore?.logo_url)
-                ]);
+        const [signedImg, signedLogo, signedVisualUrls] = await Promise.all([
+            getSignedUrlAction(nextImageUrl),
+            getSignedUrlAction(fullStore?.logo_url),
+            visualOutputs.length > 0
+                ? getSignedUrlsAction(visualOutputs.map((item) => item.url))
+                : Promise.resolve([]),
+        ]);
+        const previewVisualOutputs = visualOutputs.map((item, index) => ({
+            variation_index: item.variation_index,
+            storage_path: item.url,
+            preview_url: signedVisualUrls[index] || item.url,
+            metadata: item.metadata,
+        }));
+        const selectedVariationIndex = readSelectedVisualVariationIndex(
+            visualV2?.selected_variation_index,
+            visualOutputs
+        );
+        const selectedVariation = previewVisualOutputs.find(
+            (item) => item.variation_index === selectedVariationIndex
+        ) ?? previewVisualOutputs[0];
 
         setArtPreview({
-                        image_url: signedImg || "",
+            image_url: selectedVariation?.preview_url || signedImg || "",
+            visual_outputs: previewVisualOutputs,
+            selected_variation_index: selectedVariation?.variation_index ?? null,
+            use_generated_visuals: previewVisualOutputs.length > 0,
             headline: finalCampaign.headline || finalCampaign.product_name || "",
             body_text: finalCampaign.ai_text || "",
             cta: finalCampaign.ai_cta || "",
@@ -671,41 +725,53 @@ export function NewCampaignShell() {
             setIsSaving(true);
             setGenerationState("generating");
 
+            const selectedVariation = artPreview.visual_outputs?.find(
+                (item) => item.variation_index === artPreview.selected_variation_index
+            ) ?? artPreview.visual_outputs?.[0];
+            const selectedVariationIndex = selectedVariation?.variation_index ?? null;
+            const nextDomainInput = await buildDomainInputWithSelectedVariation(
+                campaignId,
+                selectedVariationIndex
+            );
+
             if (strategy.generate_post) {
-                // UNIFICAÇÃO: Usando renderização via Canvas no navegador (idêntico à Edição)
-                // Evita problemas de segurança/fetch no Edge Runtime do servidor.
-                const imageBlob = await renderGraphicToBlob({
-                    layout: artPreview.layout || "solid",
-                    image_url: artPreview.image_url || "",
-                    headline: artPreview.headline,
-                    body_text: artPreview.body_text,
-                    cta: artPreview.cta,
-                    price: artPreview.price,
-                    price_label: artPreview.price_label,
-                    store: artPreview.store
-                });
-
                 const finalStoreId = artPreview.store?.id || storeId;
-                const fileName = `stores/${finalStoreId}/campaigns/${campaignId}/art-${Date.now()}.png`;
+                let fileName = selectedVariation?.storage_path || "";
+                let publicUrlLegacy: string | null = null;
 
-                const { error: uploadErr } = await supabase.storage
-                    .from("campaign-images")
-                    .upload(fileName, imageBlob, {
-                        contentType: "image/png",
-                        upsert: true,
+                if (!selectedVariation) {
+                    const imageBlob = await renderGraphicToBlob({
+                        layout: artPreview.layout || "solid",
+                        image_url: artPreview.image_url || "",
+                        headline: artPreview.headline,
+                        body_text: artPreview.body_text,
+                        cta: artPreview.cta,
+                        price: artPreview.price,
+                        price_label: artPreview.price_label,
+                        store: artPreview.store
                     });
 
-                if (uploadErr) {
-                    throw new Error(
-                        "Não conseguimos salvar a arte final. Código: VND-NC-UP-01"
-                    );
+                    fileName = `stores/${finalStoreId}/campaigns/${campaignId}/art-${Date.now()}.png`;
+
+                    const { error: uploadErr } = await supabase.storage
+                        .from("campaign-images")
+                        .upload(fileName, imageBlob, {
+                            contentType: "image/png",
+                            upsert: true,
+                        });
+
+                    if (uploadErr) {
+                        throw new Error(
+                            "Não conseguimos salvar a arte final. Código: VND-NC-UP-01"
+                        );
+                    }
+
+                    const { data: publicUrlData } = supabase.storage
+                        .from("campaign-images")
+                        .getPublicUrl(fileName);
+
+                    publicUrlLegacy = publicUrlData.publicUrl || null;
                 }
-
-                const { data: publicUrlData } = supabase.storage
-                    .from("campaign-images")
-                    .getPublicUrl(fileName);
-
-                const publicUrlLegacy = publicUrlData.publicUrl || null;
 
                 const { error } = await supabase
                     .from("campaigns")
@@ -716,6 +782,7 @@ export function NewCampaignShell() {
                         ai_caption: artPreview.caption,
                         ai_hashtags: artPreview.hashtags,
                         image_url: fileName,
+                        domain_input: nextDomainInput,
                         status: "approved",
                         post_status: "approved",
                         reels_status: strategy.generate_reels ? "approved" : "none",
@@ -742,7 +809,7 @@ export function NewCampaignShell() {
                     storageBucket: "campaign-images",
                     storagePath: fileName,
                     publicUrlLegacy,
-                    generationSource: "campaign_approval",
+                    generationSource: selectedVariation ? "visual_v2_selection" : "campaign_approval",
                     visualSnapshot: {
                         layout: artPreview.layout || "solid",
                         headline: artPreview.headline,
@@ -752,6 +819,7 @@ export function NewCampaignShell() {
                         hashtags: artPreview.hashtags,
                         price: artPreview.price,
                         price_label: artPreview.price_label,
+                        selected_variation_index: selectedVariationIndex,
                     },
                 });
             } else {
@@ -802,6 +870,10 @@ export function NewCampaignShell() {
         try {
             setIsSaving(true);
             setGenerationState("generating");
+            const nextDomainInput = await buildDomainInputWithSelectedVariation(
+                campaignId,
+                artPreview.selected_variation_index
+            );
 
             const { error } = await supabase
                 .from("campaigns")
@@ -826,6 +898,7 @@ export function NewCampaignShell() {
                     reels_cta: artPreview.reels_cta,
                     reels_hashtags: artPreview.reels_hashtags,
                     status: "ready",
+                    domain_input: nextDomainInput,
                     image_url: null, // Limpa arte obsoleta ao salvar rascunho de edição
                 })
                 .eq("id", campaignId);

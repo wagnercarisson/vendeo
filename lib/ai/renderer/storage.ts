@@ -44,6 +44,5 @@ export async function uploadRenderedArt(args: {
     throw error;
   }
 
-  const { data } = client.storage.from(RENDERER_OUTPUT_BUCKET).getPublicUrl(args.path);
-  return data.publicUrl || args.path;
+  return args.path;
 }

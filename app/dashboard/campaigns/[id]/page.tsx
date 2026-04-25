@@ -3,7 +3,11 @@ import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getUserStoreIdOrThrow } from "@/lib/store/getUserStoreId";
 import { CampaignPreviewClient } from "./_components/CampaignPreviewClient";
-import { mapDbCampaignToDomain } from "@/lib/domain/campaigns/mapper";
+import {
+    mapDbCampaignToDomain,
+    readVisualOutputs,
+    readVisualV2State,
+} from "@/lib/domain/campaigns/mapper";
 import { mapDbStoreToDomain } from "@/lib/domain/stores/mapper";
 import {
     getApprovedCampaignAssetSignedUrl,
@@ -53,10 +57,29 @@ export default async function CampaignPreviewPage({
         getSignedImageUrl(resolvedStore?.logo_url || null),
     ]);
 
+    const baseCampaign = mapDbCampaignToDomain(campaign);
+    const visualV2 = readVisualV2State(baseCampaign.domain_input);
+    const visualOutputs = readVisualOutputs(visualV2?.visual_outputs);
+    const signedVisualOutputs = await Promise.all(
+        visualOutputs.map(async (item) => ({
+            ...item,
+            signed_url: await getSignedImageUrl(item.url),
+        }))
+    );
+
     const normalizedCampaign = {
-        ...mapDbCampaignToDomain(campaign),
+        ...baseCampaign,
         image_url: signedImageUrl,
         product_image_url: signedProductImageUrl,
+        domain_input: visualV2
+            ? {
+                ...baseCampaign.domain_input,
+                visual_v2: {
+                    ...visualV2,
+                    visual_outputs: signedVisualOutputs,
+                },
+            }
+            : baseCampaign.domain_input,
         stores: resolvedStore ? {
             ...resolvedStore,
             logo_url: signedLogoUrl,

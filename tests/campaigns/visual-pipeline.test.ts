@@ -9,6 +9,7 @@ const {
   composeVariationsMock,
   renderVariationsMock,
   getSignedImageUrlMock,
+  downloadStorageAssetMock,
 } = vi.hoisted(() => ({
   readVisualTargetMock: vi.fn(),
   getVisualSignatureProfileMock: vi.fn(),
@@ -16,6 +17,7 @@ const {
   composeVariationsMock: vi.fn(),
   renderVariationsMock: vi.fn(),
   getSignedImageUrlMock: vi.fn(),
+  downloadStorageAssetMock: vi.fn(),
 }));
 
 vi.mock("@/lib/ai/visual-reader/service", () => ({
@@ -37,6 +39,10 @@ vi.mock("@/lib/ai/renderer/service", () => ({
 
 vi.mock("@/lib/supabase/storage-server", () => ({
   getSignedImageUrl: getSignedImageUrlMock,
+}));
+
+vi.mock("@/lib/storage/download", () => ({
+  downloadStorageAsset: downloadStorageAssetMock,
 }));
 
 describe("generateCampaignVisuals", () => {
@@ -104,7 +110,7 @@ describe("generateCampaignVisuals", () => {
       })),
     });
     renderVariationsMock.mockResolvedValue([0, 1, 2, 3].map((index) => ({
-      artUrl: `https://example.com/campaigns/c-1/variation-${index}.png`,
+      artUrl: `campaigns/c-1/variation-${index}.png`,
       metadata: { width: 1080, height: 1350, format: "png", size: 123456, renderTime: 120 },
     })));
   });
@@ -136,6 +142,7 @@ describe("generateCampaignVisuals", () => {
     expect(renderVariationsMock).toHaveBeenCalledOnce();
     expect(result.visual_outputs).toHaveLength(4);
     expect(result.trace_id).toBeTruthy();
+    expect(result.visual_outputs[0]?.url).toBe("campaigns/c-1/variation-0.png");
   });
 
   it("reuses existing visual outputs when force is false", async () => {

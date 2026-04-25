@@ -29,10 +29,14 @@ import {
     mapAiArtToPreview,
     mapAiReelsToPreview,
     buildCampaignContentTypeWrite,
+    readSelectedVisualVariationIndex,
+    readVisualOutputs,
+    readVisualV2State,
 } from "@/lib/domain/campaigns/mapper";
 import * as selectors from "@/lib/domain/campaigns/selectors";
 import {
     getSignedUrlAction,
+    getSignedUrlsAction,
     registerApprovedAssetAction,
 } from "@/lib/supabase/storage-actions";
 
@@ -43,6 +47,9 @@ export type Campaign = CampaignModel & {
 type ArtVariationSnapshot = Pick<
     CampaignPreviewData,
     | "image_url"
+    | "visual_outputs"
+    | "selected_variation_index"
+    | "use_generated_visuals"
     | "headline"
     | "body_text"
     | "cta"
@@ -74,6 +81,9 @@ function pickArtVariationSnapshot(
 
     return {
         image_url: preview.image_url,
+        visual_outputs: preview.visual_outputs,
+        selected_variation_index: preview.selected_variation_index,
+        use_generated_visuals: preview.use_generated_visuals,
         headline: preview.headline,
         body_text: preview.body_text,
         cta: preview.cta,
@@ -381,6 +391,38 @@ export function CampaignPreviewClient({
         return signedUrl || fallbackUrl || "";
     }
 
+    async function buildVisualPreviewData(
+        visualOutput: { visual_outputs?: Array<{ variation_index: number; url: string; metadata: { width: number; height: number; format: "png"; size: number; renderTime?: number; }; }>; } | undefined,
+        basePreview: CampaignPreviewData,
+        storeSnapshot: CampaignPreviewData["store"]
+    ): Promise<CampaignPreviewData | null> {
+        const outputs = readVisualOutputs(visualOutput?.visual_outputs);
+        if (outputs.length === 0) {
+            return null;
+        }
+
+        const signedUrls = await getSignedUrlsAction(outputs.map((item) => item.url));
+        const previewOutputs = outputs.map((item, index) => ({
+            variation_index: item.variation_index,
+            storage_path: item.url,
+            preview_url: signedUrls[index] || item.url,
+            metadata: item.metadata,
+        }));
+        const selectedVariationIndex = readSelectedVisualVariationIndex(undefined, outputs);
+        const selectedVariation = previewOutputs.find(
+            (item) => item.variation_index === selectedVariationIndex
+        ) ?? previewOutputs[0];
+
+        return {
+            ...basePreview,
+            image_url: selectedVariation?.preview_url || basePreview.image_url,
+            visual_outputs: previewOutputs,
+            selected_variation_index: selectedVariation?.variation_index ?? null,
+            use_generated_visuals: true,
+            store: storeSnapshot,
+        };
+    }
+
     async function executeSaveBaseFields(data: CampaignSavePayload, shouldRegenerate: boolean = false) {
         try {
             setErrorMsg(null);
@@ -589,8 +631,15 @@ export function CampaignPreviewClient({
                 layout: "solid",
                 store: artStoreSnapshot,
             };
-            setPreviewData((prev) => applyArtVariationSnapshot(prev, newArtVariation));
-            setArtVariations((prev) => [...prev, newArtVariation]);
+
+            const visualPreview = await buildVisualPreviewData(genData.visual_output, {
+                ...(previewData ?? {}),
+                ...newArtVariation,
+            }, artStoreSnapshot);
+            const nextArtVariation = visualPreview ?? newArtVariation;
+
+            setPreviewData((prev) => applyArtVariationSnapshot(prev, nextArtVariation));
+            setArtVariations((prev) => [...prev, nextArtVariation]);
             setArtVariationIndex((prev) => prev + 1);
 
             setIsCloning(false);
@@ -613,6 +662,20 @@ export function CampaignPreviewClient({
         try {
             setIsSaving(true);
             let finalImageUrl = previewData.image_url;
+            const selectedVariation = previewData.visual_outputs?.find(
+                (item) => item.variation_index === previewData.selected_variation_index
+            ) ?? previewData.visual_outputs?.[0];
+            const selectedVariationIndex = selectedVariation?.variation_index ?? null;
+            const currentVisualV2 = readVisualV2State(campaign.domain_input);
+            const nextDomainInput = selectedVariationIndex == null
+                ? campaign.domain_input
+                : {
+                    ...(campaign.domain_input || {}),
+                    visual_v2: {
+                        ...(currentVisualV2 || {}),
+                        selected_variation_index: selectedVariationIndex,
+                    },
+                };
 
             if (activeTab === "art") {
                 // Função helper para capturar a posição de layout real (ignora transforms de rotação)
@@ -670,120 +733,112 @@ export function CampaignPreviewClient({
                 // Medimos o tamanho real do ícone no layout (offsetWidth é unscaled se for o layout)
                 const measuredIconSize = previewWaIconRef.current?.offsetWidth || 12;
 
-                const blob = await renderGraphicToBlob({
-                    layout: previewData.layout || "solid",
-                    image_url: previewData.image_url?.split("#")[0] || "",
-                    headline: previewData.headline || "",
-                    body_text: previewData.body_text || "",
-                    cta: previewData.cta || "",
-                    price: previewData.price,
-                    price_label: previewData.price_label,
-                    store: {
-                        name: previewData.store?.name || "",
-                        whatsapp: previewData.store?.whatsapp,
-                        address: previewData.store?.address,
-                        primary_color: previewData.store?.primary_color,
-                        logo_url: previewData.store?.logo_url,
-                    },
-                    // Medição em Tempo Real para Fator Dinâmico de Captura
-                    measuredWidth: previewContainerRef.current?.offsetWidth,
-                    measuredCardWidth: previewCardRef.current?.offsetWidth,
-                    measuredCardHeight: previewCardRef.current?.offsetHeight,
+                let publicUrlLegacy: string | null = null;
 
-                    // Medição do Badge de Preço (Layout Puro)
-                    measuredBadgeW: previewBadgeRef.current?.offsetWidth,
-                    measuredBadgeH: previewBadgeRef.current?.offsetHeight,
-                    measuredBadgeX: badgeOffset.left,
-                    measuredBadgeY: badgeOffset.top,
-                    // Medição do WhatsApp (Ícone do WhatsApp Apenas)
-                    measuredWhatsappX: waIconRelative.left,
-                    measuredWhatsappY: waIconRelative.top,
-                    measuredWhatsappIconSize: measuredIconSize,
-                    measuredWhatsappTextX: waTextRelative.left,
-                    measuredWhatsappTextY: waTextRelative.top,
-                    measuredWhatsappFontSize: previewWaTextRef.current
-                        ? parseFloat(window.getComputedStyle(previewWaTextRef.current).fontSize)
-                        : undefined,
-                    measuredPriceFontSize: previewBadgePriceRef.current
-                        ? parseFloat(window.getComputedStyle(previewBadgePriceRef.current).fontSize)
-                        : undefined,
-                    measuredLabelFontSize: previewBadgeLabelRef.current
-                        ? parseFloat(window.getComputedStyle(previewBadgeLabelRef.current).fontSize)
-                        : undefined,
-
-                    // Medição do Pill da Loja (Nome do Loja)
-                    measuredStorePillW: previewStorePillRef.current?.offsetWidth,
-                    measuredStorePillH: previewStorePillRef.current?.offsetHeight,
-                    measuredStorePillX: storePillPos.left,
-                    measuredStorePillY: storePillPos.top,
-                    measuredStorePillFontSize: previewStorePillRef.current
-                        ? parseFloat(window.getComputedStyle(previewStorePillRef.current).fontSize)
-                        : undefined,
-
-                    // Medição da Headline
-                    measuredHeadlineW: previewHeadlineRef.current?.offsetWidth,
-                    measuredHeadlineH: previewHeadlineRef.current?.offsetHeight,
-                    measuredHeadlineX: headlinePos.left,
-                    measuredHeadlineY: headlinePos.top,
-                    measuredHeadlineFontSize: previewHeadlineRef.current
-                        ? parseFloat(window.getComputedStyle(previewHeadlineRef.current).fontSize)
-                        : undefined,
-                    measuredHeadlineLineHeight: previewHeadlineRef.current
-                        ? parseFloat(window.getComputedStyle(previewHeadlineRef.current).lineHeight)
-                        : undefined,
-
-                    // Medição do Subtítulo (Body Text)
-                    measuredBodyW: previewBodyTextRef.current?.offsetWidth,
-                    measuredBodyH: previewBodyTextRef.current?.offsetHeight,
-                    measuredBodyX: previewBodyTextRef.current && previewContainerRef.current
-                        ? (previewBodyTextRef.current.getBoundingClientRect().left - previewContainerRef.current.getBoundingClientRect().left)
-                        : undefined,
-                    measuredBodyY: previewBodyTextRef.current && previewContainerRef.current
-                        ? (previewBodyTextRef.current.getBoundingClientRect().top - previewContainerRef.current.getBoundingClientRect().top)
-                        : undefined,
-                    measuredBodyFontSize: previewBodyTextRef.current
-                        ? parseFloat(window.getComputedStyle(previewBodyTextRef.current).fontSize)
-                        : undefined,
-                    measuredBodyLineHeight: previewBodyTextRef.current
-                        ? parseFloat(window.getComputedStyle(previewBodyTextRef.current).lineHeight)
-                        : undefined,
-
-                    // Medição do CTA
-                    measuredCTAW: previewCTARef.current?.offsetWidth,
-                    measuredCTAH: previewCTARef.current?.offsetHeight,
-                    measuredCTAX: ctaRelative.left,
-                    measuredCTAY: ctaRelative.top,
-                    measuredCTAFontSize: previewCTARef.current
-                        ? parseFloat(window.getComputedStyle(previewCTARef.current).fontSize)
-                        : undefined,
-
-                    measuredAddressW: previewAddressRef.current?.offsetWidth,
-                    measuredAddressX: addressRelative.left,
-                    measuredAddressY: addressRelative.top,
-                    measuredAddressFontSize: previewAddressRef.current
-                        ? parseFloat(window.getComputedStyle(previewAddressRef.current).fontSize)
-                        : undefined,
-                });
-
-                const path = `stores/${campaign.store_id}/campaigns/${campaign.id}/art-${Date.now()}.png`;
-
-                const { error: upErr } = await supabase.storage
-                    .from("campaign-images")
-                    .upload(path, blob, {
-                        contentType: "image/png",
-                        upsert: true,
+                if (selectedVariation) {
+                    finalImageUrl = selectedVariation.storage_path;
+                } else {
+                    const blob = await renderGraphicToBlob({
+                        layout: previewData.layout || "solid",
+                        image_url: previewData.image_url?.split("#")[0] || "",
+                        headline: previewData.headline || "",
+                        body_text: previewData.body_text || "",
+                        cta: previewData.cta || "",
+                        price: previewData.price,
+                        price_label: previewData.price_label,
+                        store: {
+                            name: previewData.store?.name || "",
+                            whatsapp: previewData.store?.whatsapp,
+                            address: previewData.store?.address,
+                            primary_color: previewData.store?.primary_color,
+                            logo_url: previewData.store?.logo_url,
+                        },
+                        measuredWidth: previewContainerRef.current?.offsetWidth,
+                        measuredCardWidth: previewCardRef.current?.offsetWidth,
+                        measuredCardHeight: previewCardRef.current?.offsetHeight,
+                        measuredBadgeW: previewBadgeRef.current?.offsetWidth,
+                        measuredBadgeH: previewBadgeRef.current?.offsetHeight,
+                        measuredBadgeX: badgeOffset.left,
+                        measuredBadgeY: badgeOffset.top,
+                        measuredWhatsappX: waIconRelative.left,
+                        measuredWhatsappY: waIconRelative.top,
+                        measuredWhatsappIconSize: measuredIconSize,
+                        measuredWhatsappTextX: waTextRelative.left,
+                        measuredWhatsappTextY: waTextRelative.top,
+                        measuredWhatsappFontSize: previewWaTextRef.current
+                            ? parseFloat(window.getComputedStyle(previewWaTextRef.current).fontSize)
+                            : undefined,
+                        measuredPriceFontSize: previewBadgePriceRef.current
+                            ? parseFloat(window.getComputedStyle(previewBadgePriceRef.current).fontSize)
+                            : undefined,
+                        measuredLabelFontSize: previewBadgeLabelRef.current
+                            ? parseFloat(window.getComputedStyle(previewBadgeLabelRef.current).fontSize)
+                            : undefined,
+                        measuredStorePillW: previewStorePillRef.current?.offsetWidth,
+                        measuredStorePillH: previewStorePillRef.current?.offsetHeight,
+                        measuredStorePillX: storePillPos.left,
+                        measuredStorePillY: storePillPos.top,
+                        measuredStorePillFontSize: previewStorePillRef.current
+                            ? parseFloat(window.getComputedStyle(previewStorePillRef.current).fontSize)
+                            : undefined,
+                        measuredHeadlineW: previewHeadlineRef.current?.offsetWidth,
+                        measuredHeadlineH: previewHeadlineRef.current?.offsetHeight,
+                        measuredHeadlineX: headlinePos.left,
+                        measuredHeadlineY: headlinePos.top,
+                        measuredHeadlineFontSize: previewHeadlineRef.current
+                            ? parseFloat(window.getComputedStyle(previewHeadlineRef.current).fontSize)
+                            : undefined,
+                        measuredHeadlineLineHeight: previewHeadlineRef.current
+                            ? parseFloat(window.getComputedStyle(previewHeadlineRef.current).lineHeight)
+                            : undefined,
+                        measuredBodyW: previewBodyTextRef.current?.offsetWidth,
+                        measuredBodyH: previewBodyTextRef.current?.offsetHeight,
+                        measuredBodyX: previewBodyTextRef.current && previewContainerRef.current
+                            ? (previewBodyTextRef.current.getBoundingClientRect().left - previewContainerRef.current.getBoundingClientRect().left)
+                            : undefined,
+                        measuredBodyY: previewBodyTextRef.current && previewContainerRef.current
+                            ? (previewBodyTextRef.current.getBoundingClientRect().top - previewContainerRef.current.getBoundingClientRect().top)
+                            : undefined,
+                        measuredBodyFontSize: previewBodyTextRef.current
+                            ? parseFloat(window.getComputedStyle(previewBodyTextRef.current).fontSize)
+                            : undefined,
+                        measuredBodyLineHeight: previewBodyTextRef.current
+                            ? parseFloat(window.getComputedStyle(previewBodyTextRef.current).lineHeight)
+                            : undefined,
+                        measuredCTAW: previewCTARef.current?.offsetWidth,
+                        measuredCTAH: previewCTARef.current?.offsetHeight,
+                        measuredCTAX: ctaRelative.left,
+                        measuredCTAY: ctaRelative.top,
+                        measuredCTAFontSize: previewCTARef.current
+                            ? parseFloat(window.getComputedStyle(previewCTARef.current).fontSize)
+                            : undefined,
+                        measuredAddressW: previewAddressRef.current?.offsetWidth,
+                        measuredAddressX: addressRelative.left,
+                        measuredAddressY: addressRelative.top,
+                        measuredAddressFontSize: previewAddressRef.current
+                            ? parseFloat(window.getComputedStyle(previewAddressRef.current).fontSize)
+                            : undefined,
                     });
 
-                if (upErr) throw upErr;
+                    const path = `stores/${campaign.store_id}/campaigns/${campaign.id}/art-${Date.now()}.png`;
 
-                // Persistimos o path do storage; a assinatura deve ser gerada sob demanda.
-                finalImageUrl = path;
+                    const { error: upErr } = await supabase.storage
+                        .from("campaign-images")
+                        .upload(path, blob, {
+                            contentType: "image/png",
+                            upsert: true,
+                        });
 
-                const { data: publicUrlData } = supabase.storage
-                    .from("campaign-images")
-                    .getPublicUrl(path);
+                    if (upErr) throw upErr;
 
-                const publicUrlLegacy = publicUrlData.publicUrl || null;
+                    finalImageUrl = path;
+
+                    const { data: publicUrlData } = supabase.storage
+                        .from("campaign-images")
+                        .getPublicUrl(path);
+
+                    publicUrlLegacy = publicUrlData.publicUrl || null;
+                }
 
                 const artData = {
                     price:
@@ -801,6 +856,7 @@ export function CampaignPreviewClient({
                     ai_caption: previewData.caption,
                     ai_hashtags: previewData.hashtags,
                     image_url: finalImageUrl,
+                    domain_input: nextDomainInput,
                     ai_generated_at: new Date().toISOString(),
                     status: "approved" as const,
                     post_status: "approved" as const,
@@ -826,14 +882,15 @@ export function CampaignPreviewClient({
                     storeId: campaign.store_id,
                     assetKind: "post_image",
                     storageBucket: "campaign-images",
-                    storagePath: path,
+                    storagePath: finalImageUrl,
                     publicUrlLegacy,
-                    generationSource: "campaign_approval",
+                    generationSource: selectedVariation ? "visual_v2_selection" : "campaign_approval",
                     visualSnapshot: {
                         layout_preference: previewData.layout || null,
                         badge_tolerance: previewData.price_label ? "high" : "low",
                         hierarchy_preference: null, // Não temos essa informação na interface
                         message_focus: null, // Será inferido pelo processor
+                        selected_variation_index: selectedVariationIndex,
                     },
                 });
 
@@ -910,6 +967,15 @@ export function CampaignPreviewClient({
                 reels_cta: previewData.reels_cta,
                 reels_hashtags: previewData.reels_hashtags,
                 status: "ready" as const,
+                domain_input: previewData.selected_variation_index == null
+                    ? campaign.domain_input
+                    : {
+                        ...(campaign.domain_input || {}),
+                        visual_v2: {
+                            ...(readVisualV2State(campaign.domain_input) || {}),
+                            selected_variation_index: previewData.selected_variation_index,
+                        },
+                    },
                 image_url: null, // Limpeza sistemática ao salvar rascunho de conteúdo
             };
 

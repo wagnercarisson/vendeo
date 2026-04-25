@@ -1,6 +1,7 @@
 import sharp from "sharp";
 
 import type { PixelArea } from "@/lib/ai/visual-composer/contracts";
+import { downloadStorageAsset } from "@/lib/storage/download";
 
 import {
   PreparedProductImageSchema,
@@ -26,6 +27,12 @@ export async function loadAssetBuffer(url: string): Promise<Buffer> {
     return decodeDataUrl(url);
   }
 
+  // If it's a relative path (Supabase Storage), use SDK
+  if (!url.startsWith("http")) {
+    return downloadStorageAsset(url);
+  }
+
+  // If it's an external URL, use fetch
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to load asset: ${url}`);

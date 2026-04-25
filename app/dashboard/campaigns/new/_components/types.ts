@@ -3,6 +3,19 @@ import type { CampaignCanonicalContentType } from "@/lib/domain/campaigns/types"
 
 export type CampaignContentType = CampaignCanonicalContentType;
 
+export type CampaignPreviewVisualOutput = {
+    variation_index: number;
+    storage_path: string;
+    preview_url: string;
+    metadata?: {
+        width: number;
+        height: number;
+        format: "png";
+        size: number;
+        renderTime?: number;
+    };
+};
+
 export type CampaignFormData = {
     type: CampaignContentType;
     product_name: string;
@@ -24,6 +37,9 @@ export type StrategyData = {
 
 export type CampaignPreviewData = {
     image_url?: string;
+    visual_outputs?: CampaignPreviewVisualOutput[];
+    selected_variation_index?: number | null;
+    use_generated_visuals?: boolean;
     headline?: string;
     body_text?: string;
     cta?: string;
