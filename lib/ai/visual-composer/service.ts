@@ -56,12 +56,14 @@ export async function composeVariations(
     const parsed = parseJsonFirstObject(raw);
     const safe = CompositionVariantsSchema.safeParse(parsed);
     if (!safe.success) {
-      console.error("[visual-composer] AI output validation failed", {
-        issues: safe.error.issues,
-        parsed,
+      console.error("[MOTOR-3][VALIDATION-FAIL] Unexpected validation failure", {
+        errors: safe.error.issues.length,
+        firstError: safe.error.issues[0],
       });
       return generateFallbackVariations(validatedInput.data);
     }
+
+    console.log(`[MOTOR-3][VALIDATION] All outputs valid (${safe.data.variations.length} variations)`);
 
     if (
       !validateCompositionVariants(safe.data, validatedInput.data) ||

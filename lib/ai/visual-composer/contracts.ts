@@ -24,14 +24,24 @@ const PixelAreaSchema = z
   })
   .strict();
 
-const FontWeightSchema = z.enum(["400", "600", "700", "900"]);
+export const FontWeightSchema = z.enum(["400", "600", "700", "900"]);
 
-const TypographySpecSchema = z
-  .object({
-    fontSize: z.number().int().positive(),
-    fontWeight: FontWeightSchema,
-  })
-  .strict();
+/**
+ * Typography specification for text elements in composition.
+ *
+ * @property fontSize Base font size in pixels.
+ * @property fontWeight Font weight token. Accepts number or string and coerces to a string enum.
+ * @property fontFamily Optional font family name returned by GPT for renderer consumption.
+ * @property color Optional hex color in #RRGGBB format.
+ * @property lineHeight Optional line-height multiplier for richer text spacing.
+ */
+export const TypographySpecSchema = z.object({
+  fontSize: z.number().int().positive(),
+  fontWeight: z.coerce.string().pipe(FontWeightSchema),
+  fontFamily: z.string().min(1).optional(),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  lineHeight: z.number().positive().optional(),
+});
 
 const LayoutElementSchema = z.enum(["product", "price", "text"]);
 const DirectionTypeSchema = z.enum([
@@ -154,6 +164,7 @@ export const CompositionSpecSchema = z
   .object({
     id: z.string().uuid(),
     seed: z.string().min(1),
+    productName: z.string().min(1).optional(),
     layout: z
       .object({
         productArea: PixelAreaSchema,
@@ -233,7 +244,6 @@ export const CompositionSpecSchema = z
       })
       .strict(),
   })
-  .strict()
   .superRefine((spec, ctx) => {
     const elements = [spec.hierarchy.primary, spec.hierarchy.secondary, spec.hierarchy.tertiary];
     if (new Set(elements).size !== 3) {

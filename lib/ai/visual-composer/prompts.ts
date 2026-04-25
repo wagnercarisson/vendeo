@@ -65,6 +65,10 @@ If image.targetBox is null, center productArea conservatively and keep all 4 out
 If direction.priceEmphasis is high, typography.price.fontSize must be greater than or equal to typography.productName.fontSize.
 premium mood favors lighter weights and calmer spacing.
 aggressive mood favors heavier weights and tighter spacing.
+Always include fontFamily in typography objects when choosing a font.
+Always include color in typography objects using #RRGGBB hex format.
+Always include lineHeight in typography objects using a value between 1.0 and 1.6 when text spans multiple lines.
+fontWeight may be returned as a number or string token, but it must represent one of 400, 600, 700, or 900.
 </typography_rules>
 
 <decorative_rules>
@@ -72,6 +76,14 @@ Always include storeIdentity.
 Include priceBadge only when campaign.price is not null.
 Include promotionalTitle only when campaign objective or signature context is promotional, urgency, seasonal, combo, or queima.
 </decorative_rules>
+
+<excluded_fields>
+Do not include promotion.
+Do not include renderingHints.
+Do not include debugMetadata.
+Do not include targetConstraints.
+Do not include any field not explicitly requested in the output contract.
+</excluded_fields>
 
 <distinctness_rules>
 The 4 variations must belong to the same creative family but differ materially.
@@ -120,6 +132,8 @@ export function buildVisualComposerUserPrompt(payload: {
   return [
     "Generate exactly 4 valid layout variations using the structured context below.",
     "Return only one valid CompositionVariants JSON object.",
+    "Include useful typography fields: fontFamily, color, and lineHeight.",
+    "Do not include promotion, renderingHints, debugMetadata, targetConstraints, or any other noise fields.",
     JSON.stringify(payload, null, 2),
   ].join("\n\n");
 }
