@@ -174,6 +174,7 @@ describe("generateCampaignVisuals", () => {
 
   it("resolves relative paths to signed URLs before fetching (v2 support)", async () => {
     const relativePath = "stores/283410f0-39a0-44ea-b9d1-2a3a8ddcb3d3/products/product.webp";
+    const resolvedUrl = `https://example.com/storage/v1/object/sign/campaign-images/${relativePath}?token=mock-token`;
     
     const result = await generateCampaignVisuals({
       campaign_id: "c-1",
@@ -192,6 +193,15 @@ describe("generateCampaignVisuals", () => {
 
     // Verifica que getSignedImageUrl foi chamado para resolver path
     expect(getSignedImageUrlMock).toHaveBeenCalledWith(relativePath);
+
+    // Motor 1 deve receber a URL resolvida, não o path relativo bruto
+    expect(readVisualTargetMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        imageUrl: resolvedUrl,
+        productName: "Coca-Cola 2L",
+        content_type: "product",
+      })
+    );
     
     // Verifica que fetch recebeu URL resolvida (não path)
     const fetchMock = vi.mocked(fetch);

@@ -35,7 +35,7 @@ function isDataUrl(url: string): boolean {
 
 async function assertImageReachable(imageUrl: string, trace_id: string) {
   if (isDataUrl(imageUrl)) {
-    return;
+    return imageUrl;
   }
 
   // Resolve path relativo → URL assinada (healing logic)
@@ -65,6 +65,7 @@ async function assertImageReachable(imageUrl: string, trace_id: string) {
     if (!response.ok) {
       throw new Error(`HTTP_${response.status}`);
     }
+    return resolvedUrl;
   } catch (error) {
     throw buildPipelineError(
       {
@@ -125,17 +126,18 @@ export async function generateCampaignVisuals(
     timestamp: startedAt,
   });
 
-  await assertImageReachable(input.product_image_url, trace_id);
+  const visualReaderImageUrl = await assertImageReachable(input.product_image_url, trace_id);
 
   const motor1Start = now();
   pipelineLog("[MOTOR-1][INPUT]", {
     trace_id,
-    imageUrl: input.product_image_url,
+    imageUrl: visualReaderImageUrl,
+    originalInput: input.product_image_url,
     productName: input.campaign_data.product_name,
     content_type: input.campaign_data.content_type,
   });
   const imageProfile = await readVisualTarget({
-    imageUrl: input.product_image_url,
+    imageUrl: visualReaderImageUrl,
     productName: input.campaign_data.product_name,
     content_type: input.campaign_data.content_type,
   });
