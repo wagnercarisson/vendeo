@@ -9,6 +9,7 @@ import {
   renderVariations,
 } from "@/lib/ai/renderer/service";
 import { readVisualTarget } from "@/lib/ai/visual-reader/service";
+import { getSignedImageUrl } from "@/lib/supabase/storage-server";
 
 import type {
   GenerateCampaignVisualsInput,
@@ -37,8 +38,30 @@ async function assertImageReachable(imageUrl: string, trace_id: string) {
     return;
   }
 
+  // Resolve path relativo → URL assinada (healing logic)
+  // Suporta paths (v2: "stores/.../file.webp") e URLs (v1: "https://...")
+  const resolvedUrl = await getSignedImageUrl(imageUrl);
+  
+  if (!resolvedUrl) {
+    throw buildPipelineError(
+      {
+        motor: "visual-reader",
+        code: "IMAGE_URL_RESOLUTION_FAILED",
+        message: "Erro ao resolver URL da imagem. Verifique se a imagem existe.",
+        details: `Failed to resolve image URL from: ${imageUrl}`,
+      },
+      trace_id
+    );
+  }
+
+  pipelineLog("[PIPELINE][URL_RESOLVED]", {
+    trace_id,
+    originalInput: imageUrl,
+    resolvedUrl: resolvedUrl.substring(0, 100) + "...", // Log truncado para segurança
+  });
+
   try {
-    const response = await fetch(imageUrl, { method: "GET" });
+    const response = await fetch(resolvedUrl, { method: "GET" });
     if (!response.ok) {
       throw new Error(`HTTP_${response.status}`);
     }

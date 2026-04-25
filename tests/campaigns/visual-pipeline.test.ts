@@ -8,12 +8,14 @@ const {
   resolveIntentMock,
   composeVariationsMock,
   renderVariationsMock,
+  getSignedImageUrlMock,
 } = vi.hoisted(() => ({
   readVisualTargetMock: vi.fn(),
   getVisualSignatureProfileMock: vi.fn(),
   resolveIntentMock: vi.fn(),
   composeVariationsMock: vi.fn(),
   renderVariationsMock: vi.fn(),
+  getSignedImageUrlMock: vi.fn(),
 }));
 
 vi.mock("@/lib/ai/visual-reader/service", () => ({
@@ -33,10 +35,24 @@ vi.mock("@/lib/ai/renderer/service", () => ({
   renderVariations: renderVariationsMock,
 }));
 
+vi.mock("@/lib/supabase/storage-server", () => ({
+  getSignedImageUrl: getSignedImageUrlMock,
+}));
+
 describe("generateCampaignVisuals", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true })));
+
+    // Mock storage URL resolution (healing logic)
+    getSignedImageUrlMock.mockImplementation(async (input: string) => {
+      // Simula healing: path → signed URL
+      if (!input.startsWith("http")) {
+        return `https://example.com/storage/v1/object/sign/campaign-images/${input}?token=mock-token`;
+      }
+      // URL já completa → retorna como está
+      return input;
+    });
 
     readVisualTargetMock.mockResolvedValue({
       targetBox: { x: 0.1, y: 0.1, width: 0.8, height: 0.8 },
@@ -149,6 +165,39 @@ describe("generateCampaignVisuals", () => {
     expect(readVisualTargetMock).not.toHaveBeenCalled();
   });
 
+  it("resolves relative paths to signed URLs before fetching (v2 support)", async () => {
+    const relativePath = "stores/283410f0-39a0-44ea-b9d1-2a3a8ddcb3d3/products/product.webp";
+    
+    const result = await generateCampaignVisuals({
+      campaign_id: "c-1",
+      store_id: "s-1",
+      product_image_url: relativePath,
+      campaign_data: {
+        product_name: "Coca-Cola 2L",
+        objective: "promocao",
+        audience: "geral",
+        content_type: "product",
+      },
+      visual_signature: {
+        store_name: "Mercado Teste",
+      },
+    });
+
+    // Verifica que getSignedImageUrl foi chamado para resolver path
+    expect(getSignedImageUrlMock).toHaveBeenCalledWith(relativePath);
+    
+    // Verifica que fetch recebeu URL resolvida (não path)
+    const fetchMock = vi.mocked(fetch);
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("https://"),
+      { method: "GET" }
+    );
+    
+    // Pipeline deve executar normalmente
+    expect(result.visual_outputs).toHaveLength(4);
+    expect(result.trace_id).toBeTruthy();
+  });
+
   it("returns a visual-reader pipeline error when the image is unreachable", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, status: 404 })));
 
@@ -168,6 +217,28 @@ describe("generateCampaignVisuals", () => {
     })).rejects.toMatchObject({
       motor: "visual-reader",
       code: "IMAGE_LOAD_FAILED",
+    });
+  });
+
+  it("returns a pipeline error when URL resolution fails", async () => {
+    getSignedImageUrlMock.mockResolvedValue(null); // Simula falha na resolução
+
+    await expect(generateCampaignVisuals({
+      campaign_id: "c-1",
+      store_id: "s-1",
+      product_image_url: "stores/invalid/path.webp",
+      campaign_data: {
+        product_name: "Coca-Cola 2L",
+        objective: "promocao",
+        audience: "geral",
+        content_type: "product",
+      },
+      visual_signature: {
+        store_name: "Mercado Teste",
+      },
+    })).rejects.toMatchObject({
+      motor: "visual-reader",
+      code: "IMAGE_URL_RESOLUTION_FAILED",
     });
   });
 });
