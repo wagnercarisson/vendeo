@@ -297,7 +297,12 @@ export function mapCampaignToPreviewData(
 ): any {
   const isApproved = campaign.status === "approved" || campaign.post_status === "approved";
   const visualV2 = readVisualV2State(campaign.domain_input);
-  const visualOutputs = readVisualOutputs(visualV2?.visual_outputs).map((item) => {
+  const rawVisualOutputs = readVisualOutputs(visualV2?.visual_outputs);
+  const selectedVariationIndex = readSelectedVisualVariationIndex(
+    visualV2?.selected_variation_index,
+    rawVisualOutputs
+  );
+  const visualOutputs = rawVisualOutputs.map((item) => {
     const signedUrl =
       typeof (item as VisualOutputItem & { signed_url?: unknown }).signed_url === "string"
         ? (item as VisualOutputItem & { signed_url?: string }).signed_url
@@ -310,10 +315,6 @@ export function mapCampaignToPreviewData(
       metadata: item.metadata,
     };
   });
-  const selectedVariationIndex = readSelectedVisualVariationIndex(
-    visualV2?.selected_variation_index,
-    visualOutputs
-  );
   const selectedVariation = visualOutputs.find(
     (item) => item.variation_index === selectedVariationIndex
   ) ?? visualOutputs[0];
