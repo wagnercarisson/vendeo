@@ -4,6 +4,9 @@ const getSupabaseAdminMock = vi.fn();
 const fetchStoreContextMock = vi.fn();
 const callAIWithRetryMock = vi.fn();
 const generateCampaignVisualsMock = vi.fn();
+const fetchMock = vi.fn();
+
+vi.stubGlobal("fetch", fetchMock);
 
 vi.mock("@/lib/supabase/admin", () => ({
   getSupabaseAdmin: getSupabaseAdminMock,
@@ -29,6 +32,15 @@ describe("generateCampaignContent visual v2 integration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.NEXT_PUBLIC_MOTOR_V2_ENABLED = "true";
+
+    const campaignUpdateEqMock = vi.fn().mockResolvedValue({ error: null });
+    const campaignUpdateMock = vi.fn(() => ({
+      eq: campaignUpdateEqMock,
+    }));
+    const storageUploadMock = vi.fn().mockResolvedValue({ error: null });
+    const storageFromMock = vi.fn(() => ({
+      upload: storageUploadMock,
+    }));
 
     const campaignSelectChain = {
       eq: vi.fn(),
@@ -82,10 +94,6 @@ describe("generateCampaignContent visual v2 integration", () => {
       })
       .mockResolvedValueOnce({ data: null, error: null });
 
-    const campaignUpdateChain = {
-      eq: vi.fn().mockResolvedValue({ error: null }),
-    };
-
     getSupabaseAdminMock.mockReturnValue({
       from: vi.fn((table: string) => {
         if (table === "weekly_plan_items") {
@@ -98,9 +106,12 @@ describe("generateCampaignContent visual v2 integration", () => {
 
         return {
           select: vi.fn(() => campaignSelectChain),
-          update: vi.fn(() => campaignUpdateChain),
+          update: campaignUpdateMock,
         };
       }),
+      storage: {
+        from: storageFromMock,
+      },
     });
 
     fetchStoreContextMock.mockResolvedValue({
@@ -149,6 +160,15 @@ describe("generateCampaignContent visual v2 integration", () => {
         total_ms: 1000,
       },
     });
+
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: {
+        get: vi.fn((name: string) => (name.toLowerCase() === "content-type" ? "image/png" : null)),
+      },
+      arrayBuffer: vi.fn().mockResolvedValue(Uint8Array.from([1, 2, 3, 4]).buffer),
+    });
   });
 
   it("calls the visual pipeline when feature flag is enabled and image exists", async () => {
@@ -161,6 +181,114 @@ describe("generateCampaignContent visual v2 integration", () => {
 
     expect(result.ok).toBe(true);
     expect(generateCampaignVisualsMock).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledWith("https://example.com/product.png");
+    expect(getSupabaseAdminMock().storage.from).toHaveBeenCalledWith("campaign-images");
+    expect(getSupabaseAdminMock().storage.from().upload).toHaveBeenCalledWith(
+      "stores/store-1/products/campaign-1/source.png",
+      expect.any(Buffer),
+      expect.objectContaining({
+        contentType: "image/png",
+        upsert: true,
+      })
+    );
+    expect(generateCampaignVisualsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        product_image_url: "stores/store-1/products/campaign-1/source.png",
+      })
+    );
+  });
+
+  it("skips internalization when product image is already a storage path", async () => {
+    const supabaseAdmin = getSupabaseAdminMock();
+    const campaignsTable = supabaseAdmin.from("campaigns");
+    const campaignSelectChain = campaignsTable.select();
+
+    campaignSelectChain.single.mockReset();
+    campaignSelectChain.single.mockResolvedValueOnce({
+      data: {
+        id: "campaign-1",
+        store_id: "store-1",
+        product_name: "Coca-Cola 2L",
+        price: 9.99,
+        price_label: null,
+        audience: "geral",
+        objective: "promocao",
+        product_positioning: "popular",
+        status: "draft",
+        campaign_type: "post",
+        content_type: "product",
+        legacy_content_type: null,
+        domain_input: {},
+        domain_input_version: 1,
+        post_status: "draft",
+        reels_status: "none",
+        origin: "manual",
+        weekly_plan_item_id: null,
+        image_url: null,
+        product_image_url: "stores/store-1/products/campaign-1/source.png",
+        headline: null,
+        body_text: null,
+        cta: null,
+        ai_caption: null,
+        ai_text: null,
+        ai_cta: null,
+        ai_hashtags: null,
+        ai_generated_at: null,
+        reels_hook: null,
+        reels_script: null,
+        reels_shotlist: null,
+        reels_on_screen_text: null,
+        reels_audio_suggestion: null,
+        reels_duration_seconds: null,
+        reels_caption: null,
+        reels_cta: null,
+        reels_hashtags: null,
+        reels_generated_at: null,
+        created_at: new Date().toISOString(),
+      },
+      error: null,
+    });
+
+    vi.resetModules();
+    const { generateCampaignContent } = await import("@/lib/domain/campaigns/service");
+    const result = await generateCampaignContent({
+      campaign_id: "campaign-1",
+      storeId: "store-1",
+      persist: true,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(supabaseAdmin.storage.from().upload).not.toHaveBeenCalled();
+    expect(generateCampaignVisualsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        product_image_url: "stores/store-1/products/campaign-1/source.png",
+      })
+    );
+  });
+
+  it("continues with the external URL when internalization fails", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      headers: { get: vi.fn(() => "image/png") },
+      arrayBuffer: vi.fn(),
+    });
+
+    vi.resetModules();
+    const { generateCampaignContent } = await import("@/lib/domain/campaigns/service");
+    const result = await generateCampaignContent({
+      campaign_id: "campaign-1",
+      storeId: "store-1",
+      persist: true,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(generateCampaignVisualsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        product_image_url: "https://example.com/product.png",
+      })
+    );
   });
 
   it("skips the visual pipeline when feature flag is disabled", async () => {

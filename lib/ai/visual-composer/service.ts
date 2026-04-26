@@ -9,9 +9,9 @@ import {
 } from "./contracts";
 import { generateFallbackVariations } from "./fallback";
 import {
-  buildVisualComposerUserPrompt,
-  VISUAL_COMPOSER_SYSTEM_PROMPT,
-} from "./prompts";
+  buildVisualComposerUserPromptV4,
+  VISUAL_COMPOSER_SYSTEM_PROMPT_V4,
+} from "./prompts-v4";
 import { validateCompositionVariants, validateDistinctness } from "./validation";
 
 export function buildVisualComposerPayload(input: CompositionInput) {
@@ -38,16 +38,16 @@ export async function composeVariations(
   try {
     const raw = await callAI(
       [
-        { role: "system", content: VISUAL_COMPOSER_SYSTEM_PROMPT },
+        { role: "system", content: VISUAL_COMPOSER_SYSTEM_PROMPT_V4 },
         {
           role: "user",
-          content: buildVisualComposerUserPrompt(
+          content: buildVisualComposerUserPromptV4(
             buildVisualComposerPayload(validatedInput.data)
           ),
         },
       ],
       {
-        model: "gpt-5.4",
+        model: "gpt-4.1",
         temperature: 0.4,
         timeoutMs: 25000,
       }
@@ -72,7 +72,10 @@ export async function composeVariations(
       return generateFallbackVariations(validatedInput.data);
     }
 
-    return safe.data;
+    return {
+      ...safe.data,
+      generated_at: safe.data.generated_at || new Date().toISOString(),
+    };
   } catch (error) {
     console.error("[visual-composer] AI call failed", error);
     return generateFallbackVariations(validatedInput.data);

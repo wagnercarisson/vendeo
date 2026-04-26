@@ -213,7 +213,9 @@ export const CompositionSpecSchema = z
               "diamond",
               "oval",
               "tag",
-            ]),
+              "burst",
+              "circle",
+            ]).catch("rounded-rect"),
             position: z.object({ x: z.number(), y: z.number() }).strict(),
             size: z.object({ width: z.number().positive(), height: z.number().positive() }).strict(),
             rotation: z.number().min(0).max(360).optional(),
@@ -231,6 +233,10 @@ export const CompositionSpecSchema = z
               "bottom-right",
             ]),
             size: z.object({ width: z.number().positive(), height: z.number().positive() }).strict(),
+            fontFamily: z.string().min(1).optional(),
+            fontWeight: z.coerce.string().pipe(FontWeightSchema).optional(),
+            color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+            lineHeight: z.number().positive().optional(),
           })
           .strict(),
         promotionalTitle: z
@@ -278,7 +284,7 @@ export const CompositionVariantsSchema = z
         height: z.literal(VISUAL_COMPOSER_CANVAS.height),
       })
       .strict(),
-    generated_at: z.string().datetime(),
+    generated_at: z.string().datetime().optional(),
   })
   .strict();
 

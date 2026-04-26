@@ -12,6 +12,82 @@ import { mapDbCampaignToDomain } from "./mapper";
 import { CampaignAIOutput, GenerateCampaignVisualsOutput } from "./types";
 import { generateCampaignVisuals, readExistingVisualOutputs } from "./visual-pipeline";
 
+function isExternalHttpUrl(value: string) {
+  return value.startsWith("http://") || value.startsWith("https://");
+}
+
+function getInternalizedImageTarget(response: Response, fallbackUrl: string) {
+  const contentTypeHeader = response.headers.get("content-type") || "image/webp";
+  const contentType = contentTypeHeader.split(";")[0].trim().toLowerCase();
+
+  const extensionByType: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/jpg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "image/gif": "gif",
+    "image/avif": "avif",
+  };
+
+  const urlPath = (() => {
+    try {
+      return new URL(fallbackUrl).pathname.toLowerCase();
+    } catch {
+      return "";
+    }
+  })();
+
+  const fallbackExtension = urlPath.match(/\.([a-z0-9]+)$/i)?.[1]?.toLowerCase() || "webp";
+
+  return {
+    contentType,
+    extension: extensionByType[contentType] || fallbackExtension,
+  };
+}
+
+/**
+ * Internalizes external product image URLs to Supabase Storage.
+ * If URL is already a Storage path, returns as-is.
+ * Downloads external image, uploads to Storage, returns Storage path.
+ */
+async function internalizeProductImage(
+  imageUrl: string,
+  campaignId: string,
+  storeId: string
+): Promise<string> {
+  if (!isExternalHttpUrl(imageUrl)) {
+    return imageUrl;
+  }
+
+  console.log(`[INTERNALIZE] Downloading external image: ${imageUrl.substring(0, 80)}...`);
+
+  const response = await fetch(imageUrl);
+  if (!response.ok) {
+    throw new Error(`IMAGE_DOWNLOAD_FAILED: HTTP ${response.status}`);
+  }
+
+  const { contentType, extension } = getInternalizedImageTarget(response, imageUrl);
+  const arrayBuffer = await response.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+  const path = `stores/${storeId}/products/${campaignId}/source.${extension}`;
+  const supabaseAdmin = getSupabaseAdmin();
+
+  const { error } = await supabaseAdmin.storage
+    .from("campaign-images")
+    .upload(path, buffer, {
+      contentType,
+      upsert: true,
+    });
+
+  if (error) {
+    console.error("[INTERNALIZE] Storage upload failed:", error);
+    throw new Error(`STORAGE_UPLOAD_FAILED: ${error.message}`);
+  }
+
+  console.log(`[INTERNALIZE] Saved to Storage: ${path}`);
+  return path;
+}
+
 function readVisualV2State(domainInput: unknown) {
   if (!domainInput || typeof domainInput !== "object" || !("visual_v2" in domainInput)) {
     return null;
@@ -130,6 +206,33 @@ export async function generateCampaignContent(
           }
         : undefined,
     };
+  }
+
+  // 2.5) Internalize external product image URL to Storage before running the visual pipeline.
+  if (campaign.product_image_url) {
+    try {
+      const previousProductImageUrl = campaign.product_image_url;
+      const internalPath = await internalizeProductImage(
+        previousProductImageUrl,
+        campaign_id,
+        storeId
+      );
+
+      if (internalPath !== previousProductImageUrl) {
+        const { error: updateErr } = await supabaseAdmin
+          .from("campaigns")
+          .update({ product_image_url: internalPath })
+          .eq("id", campaign_id);
+
+        if (updateErr) {
+          console.error("[INTERNALIZE] DB update failed:", updateErr);
+        }
+
+        campaign.product_image_url = internalPath;
+      }
+    } catch (error) {
+      console.error("[INTERNALIZE] Failed to internalize image:", error);
+    }
   }
 
   // 3) Validação mínima dos dados da campanha

@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "benchmark:motor3-v2": "tsx scripts/benchmark-motor3-v2.ts"
   },
   "dependencies": {
     "@google/genai": "^1.49.0",

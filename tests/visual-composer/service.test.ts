@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { VISUAL_COMPOSER_SYSTEM_PROMPT_V4 } from "@/lib/ai/visual-composer/prompts-v4";
+
 const { callAIMock } = vi.hoisted(() => ({
   callAIMock: vi.fn(),
 }));
@@ -52,5 +54,30 @@ describe("composeVariations", () => {
     const result = await composeVariations(visualComposerFixtures[0].input);
     expect(result.variations).toHaveLength(4);
     expect(new Set(result.variations.map((variation) => variation.seed)).size).toBe(4);
+  });
+
+  it("uses Prompt V4 for AI generation", async () => {
+    const valid = generateFallbackVariations(visualComposerFixtures[0].input);
+    callAIMock.mockResolvedValueOnce(JSON.stringify(valid));
+
+    await composeVariations(visualComposerFixtures[0].input);
+
+    expect(callAIMock).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          role: "system",
+          content: VISUAL_COMPOSER_SYSTEM_PROMPT_V4,
+        }),
+        expect.objectContaining({
+          role: "user",
+          content: expect.stringContaining("Generate exactly 4 distinct layout variations."),
+        }),
+      ]),
+      expect.objectContaining({
+        model: "gpt-4.1",
+        temperature: 0.4,
+        timeoutMs: 25000,
+      })
+    );
   });
 });
