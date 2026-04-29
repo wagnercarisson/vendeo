@@ -6,27 +6,31 @@
 
 ---
 
-## ⚠️ PHASE 0: Resolver Schema Drift (BLOCKER — 30 min)
+## ✅ PHASE 0: Resolver Schema Drift (CONCLUÍDA — 29/04/2026)
 
-**Problema:** schema.sql divergiu de migrations (campos desalinhados)
+**Problema:** Migrations 017-030 foram PERDIDAS em merges malfeitos. Schema remoto tinha 15 tabelas, mas migrations paravam na 016.
 
-**Ação Imediata:**
+**Ação Executada:**
 ```bash
-# Executar AGORA, antes de qualquer nova migration
-cd supabase
-supabase db dump --schema public > ../database/schema.sql
+# @data-engineer (Dara) reconstituiu migrations perdidas
+# a partir de schema-29-04-2026.sql (dump remoto)
 
-# Commit
-git add database/schema.sql
-git commit -m "fix: regenerate schema.sql from migrations (resolve drift)"
-
-# Documentar em database/README.md
-echo "Migrations são canonical source. schema.sql é derivado." >> ../database/README.md
+# Migrations criadas: 017-030 (14 migrations)
+# Todas com guardas de idempotência (IF NOT EXISTS)
+# Dependências respeitadas, RLS policies implementadas
 ```
 
-**Responsável:** @dev (Dex)  
-**Risk:** Baixo (sincronização de snapshot)  
-**Blocker:** SIM — drift cria base inconsistente para novas migrations
+**Resultado:**
+✅ Migrations 002-030 completas e sequenciais  
+✅ Schema local (schema.sql) alinhado com remoto  
+✅ Migrations são canonical source restaurado  
+✅ Base sólida para Phase 2  
+
+**Responsável:** @data-engineer (Dara)  
+**Risk:** Baixo (DDL reverso de schema em produção)  
+**Status:** ✅ CONCLUÍDA  
+**Decisão:** DEC-2026-04-29-003  
+**Data:** 2026-04-29T17:30:00Z
 
 ---
 

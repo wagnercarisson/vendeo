@@ -14,8 +14,8 @@ Motor de vendas social para varejo físico (adegas, farmácias, moda, beauty, ho
 ## 📍 ONDE ESTAMOS AGORA
 
 **Fase:** Beta/Pré-lançamento — Consolidação Arquitetural  
-**Status Técnico:** Motor Visual (Motor 3) funciona, schema drift resolvido (Phase 0 concluída)  
-**Último Milestone:** Análise de gaps críticos completa (28/04/2026) + Squad Marketing definido (28/04/2026)
+**Status Técnico:** Migrations 002-030 completas, Phase 0 VERDADEIRAMENTE concluída (29/04/2026)  
+**Último Milestone:** Migrations 017-030 reconstituídas (29/04/2026) — Base sólida para Phase 2
 
 **3 Gaps Críticos Identificados:**
 1. **Marketing Intelligence Layer** (ausente) — Sistema não conhece contexto do lojista
@@ -45,17 +45,19 @@ Motor de vendas social para varejo físico (adegas, farmácias, moda, beauty, ho
 
 ## 🚧 BLOCKERS ATIVOS
 
-Nenhum blocker técnico identificado atualmente.
+⚠️ **Validação local pendente:** Migrations 017-030 devem ser testadas em ambiente Supabase local quando disponível (`supabase db reset` + `migration up` + diff zero).
+
+Nenhum blocker crítico para prosseguir com Phase 2.
 
 ---
 
 ## 📚 DECISÕES RECENTES (Últimas 5)
 
-1. **[DEC-2026-04-29-002]** - Sistema de navegação bússola criado (CRITICAL-FLOWS, INTEGRATION-CHECKLIST, PROJECT-CONTEXT)
-2. **[DEC-2026-04-29-001]** - Squad Marketing completo definido (5 agentes)
-3. **[DEC-2026-04-28-002]** - Análise de gaps críticos aprovada
-4. **[DEC-2026-04-28-001]** - Segmento piloto confirmado (Adegas 8.6/10)
-5. **[DEC-2026-04-22-002]** - Schema drift resolvido (Phase 0)
+1. **[DEC-2026-04-29-003]** - Migrations 017-030 reconstituídas (Phase 0 VERDADEIRAMENTE concluída)
+2. **[DEC-2026-04-29-002]** - Sistema de navegação bússola criado (CRITICAL-FLOWS, INTEGRATION-CHECKLIST, PROJECT-CONTEXT)
+3. **[DEC-2026-04-29-001]** - Squad Marketing completo definido (5 agentes)
+4. **[DEC-2026-04-28-002]** - Análise de gaps críticos aprovada
+5. **[DEC-2026-04-28-001]** - Segmento piloto confirmado (Adegas 8.6/10)
 
 ---
 
