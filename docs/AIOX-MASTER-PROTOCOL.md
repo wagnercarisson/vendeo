@@ -21,7 +21,39 @@ Execute este protocolo ANTES de:
 
 ---
 
-## 📋 PROTOCOLO PRE-FLIGHT (5 FASES)
+## � FASE 0: PROJECT CONTEXT (2 minutos) — SEMPRE EXECUTAR PRIMEIRO
+
+**Objetivo:** Carregar contexto completo do projeto antes de qualquer decisão.
+
+**Checklist:**
+- [ ] Li `docs/PROJECT-CONTEXT.md` completo
+- [ ] Entendi o que é o Vendeo e seu objetivo
+- [ ] Identifiquei fase atual do projeto
+- [ ] Revisei últimas 2-3 decisões tomadas
+- [ ] Identifiquei blockers ativos (se houver)
+- [ ] Entendi para onde estamos indo (próximos passos)
+
+**GATE 0:** 
+```yaml
+IF PROJECT-CONTEXT.md não lido:
+  ❌ BLOCK decisão
+  ACTION: Ler PROJECT-CONTEXT.md primeiro
+
+IF PROJECT-CONTEXT.md desatualizado (>14 dias):
+  ⚠️ WARN usuário: "Context pode estar desatualizado, validar antes de decidir"
+```
+
+**Entrega desta fase:**
+Confirmar verbalmente ao usuário:
+- ✅ "Li o protocolo e entendo as diretrizes que regem os agentes"
+- ✅ "Entendi que estamos na fase [FASE_ATUAL]"
+- ✅ "Último ponto trabalhado: [CONTEXTO]"
+- ✅ "Pendência (se houver): [PENDENCIA ou 'Nenhuma']"
+- ✅ "Próximo passo: [PROXIMO_PASSO com detalhes]"
+
+---
+
+## �📋 PROTOCOLO PRE-FLIGHT (5 FASES)
 
 ### FASE 1: CONTEXTO (5 minutos)
 
@@ -576,9 +608,53 @@ docs/integration-checklists/
 
 ---
 
-**Última atualização:** 2026-04-22  
+**Última atualização:** 2026-04-29  
 **Responsável:** @aiox-master  
 **Auditável por:** Product Owner (humano)
+
+---
+
+## 📢 PROTOCOLO DE SESSÃO (OBRIGATÓRIO A CADA INÍCIO)
+
+**Quando executar:** SEMPRE no início de cada nova sessão com @aiox-master
+
+**Ação obrigatória:**
+1. Ler `docs/PROJECT-CONTEXT.md` completo
+2. Retornar ao usuário com:
+
+```
+✅ **Protocolo Lido e Compreendido**
+
+📍 **Fase Atual:** [Nome da fase do projeto]
+
+🔙 **Ponto Anterior:** [Onde paramos na última sessão]
+
+⏸️ **Pendências:** [O que ficou pendente, se houver, ou "Nenhuma"]
+
+➡️ **Próximo Passo:** [Ação específica com detalhes do que fazer]
+   - Detalhamento: [Explicação do que envolve este passo]
+   - Responsável: [Qual agente deve executar]
+   - Impacto: [Por que este passo é importante agora]
+```
+
+**Exemplo de retorno:**
+
+```
+✅ **Protocolo Lido e Compreendido**
+
+📍 **Fase Atual:** Beta/Pré-lançamento — Consolidação Arquitetural
+
+🔙 **Ponto Anterior:** Squad Marketing definido (5 agentes: @commerce-strategist, @brand-designer, @content-copy, @prompt-eng, @ux-design-expert)
+
+⏸️ **Pendências:** Implementação do Marketing Intelligence Layer ainda não iniciada
+
+➡️ **Próximo Passo:** Criar questionário de onboarding inteligente (5 minutos)
+   - Detalhamento: Coletar perfil do lojista (tipo de loja, produto destaque, cliente ideal, competidores, desafios) para alimentar Layer 1 da solução proposta
+   - Responsável: @ux-design-expert (Uma) para UX + @commerce-strategist para definir perguntas comerciais
+   - Impacto: Sem este contexto, campanhas continuam genéricas e conversão permanece baixa (2-3%). Com context, sobe para 8-12% (+300%).
+```
+
+**CRÍTICO:** Nunca pule esta confirmação. É o meu "handshake" com você a cada sessão.
 
 ---
 
