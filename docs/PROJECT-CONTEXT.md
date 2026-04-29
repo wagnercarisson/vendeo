@@ -51,11 +51,11 @@ Nenhum blocker técnico identificado atualmente.
 
 ## 📚 DECISÕES RECENTES (Últimas 5)
 
-1. **[DEC-2026-04-29-001]** - Squad Marketing completo definido (5 agentes)
-2. **[DEC-2026-04-28-002]** - Análise de gaps críticos aprovada
-3. **[DEC-2026-04-28-001]** - Segmento piloto confirmado (Adegas 8.6/10)
-4. **[DEC-2026-04-22-002]** - Schema drift resolvido (Phase 0)
-5. **[DEC-2026-04-22-001]** - Protocolo AIOX-MASTER-PROTOCOL.md criado
+1. **[DEC-2026-04-29-002]** - Sistema de navegação bússola criado (CRITICAL-FLOWS, INTEGRATION-CHECKLIST, PROJECT-CONTEXT)
+2. **[DEC-2026-04-29-001]** - Squad Marketing completo definido (5 agentes)
+3. **[DEC-2026-04-28-002]** - Análise de gaps críticos aprovada
+4. **[DEC-2026-04-28-001]** - Segmento piloto confirmado (Adegas 8.6/10)
+5. **[DEC-2026-04-22-002]** - Schema drift resolvido (Phase 0)
 
 ---
 
@@ -79,6 +79,6 @@ Nenhum blocker técnico identificado atualmente.
 - `docs/PROJECT-CONSTITUTION.md` — Regras inegociáveis do projeto
 
 **Capabilities (Bússola):**
-- `docs/CAPABILITIES-INVENTORY.md` — Inventário técnico completo
 - `docs/CRITICAL-FLOWS.md` — Fluxos que NÃO PODEM regredir
 - `docs/INTEGRATION-CHECKLIST.md` — Checklist mandatório de integração
+- `docs/CAPABILITIES-INVENTORY.md` — (Pendente) Inventário técnico completo
