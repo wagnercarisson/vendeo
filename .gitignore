@@ -44,3 +44,7 @@ Thumbs.db
 .antigravity/
 .gemini/
 .husky/
+
+# Supabase temp files (contain credentials)
+.temp
+**/.temp
