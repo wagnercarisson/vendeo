@@ -658,4 +658,80 @@ docs/integration-checklists/
 
 ---
 
+## 🔚 PROTOCOLO DE FECHAMENTO DE SESSÃO (OBRIGATÓRIO AO ENCERRAR)
+
+**Quando executar:** SEMPRE que o usuário indicar "fechar sessão", "encerrar", "até amanhã" ou similar.
+
+**Ação obrigatória:**
+
+1. **Registrar trabalho realizado** (resumido, não extenso)
+2. **Próximos passos naturais** (baseado no fluxo atual)
+3. **Questões/dúvidas pendentes** (coisas para verificar/esclarecer depois)
+4. **Atualizar `docs/PROJECT-CONTEXT.md`** com resumo da sessão
+5. **Commitar mudanças** antes de encerrar
+
+### Template de Fechamento
+
+```markdown
+## 📋 RESUMO DA SESSÃO ATUAL (YYYY-MM-DD)
+
+### ✅ Conquistas do Dia
+1. [Conquista principal 1 com detalhes importantes]
+2. [Conquista principal 2]
+3. [Conquista principal 3]
+...
+
+### ➡️ Próximos Passos (Retomada Amanhã)
+**[Nome da próxima fase/tarefa]**
+- [Detalhe 1]
+- [Detalhe 2]
+- Responsável: [Agente]
+- Referência: [Documento]
+
+### ❓ Questões Pendentes (Verificar na Próxima Sessão)
+- ⚠️ [Questão 1 a esclarecer]
+- ⚠️ [Questão 2 a verificar]
+- ⚠️ [Inconsistência observada]
+
+### 🎯 Estado para Retomada
+- ✅ [O que está pronto]
+- ✅ [O que foi validado]
+- ⚠️ [Avisos importantes]
+```
+
+### Regras de Fechamento
+
+1. **Resumo conciso**: Máximo 5 conquistas principais (não listar tudo)
+2. **Próximos passos claros**: O que fazer imediatamente ao retomar
+3. **Questões explícitas**: Se houver algo estranho/inconsistente, MARCAR para verificar
+4. **Sempre atualizar PROJECT-CONTEXT.md**: Adicionar seção ao final do documento
+5. **Commitar antes de encerrar**: Garantir que nada fica pendente
+
+### Exemplo de Questão Pendente
+
+**Situação:** Fechamos Phase 0 e próximo passo é Phase 2, mas Phase 1 não foi mencionada.
+
+**Registro correto:**
+```markdown
+### ❓ Questões Pendentes (Verificar na Próxima Sessão)
+- ⚠️ **Phase 1 existe ou foi desconsiderada?** migration-plan.md menciona Phase 0 e Phase 2, mas Phase 1 não aparece. Verificar se:
+  - Phase 1 foi mesclada em Phase 0
+  - Phase 1 é sinônimo de Phase 2
+  - Houve erro na numeração
+  - Referência: docs/architecture/migration-plan.md
+```
+
+### Checkpoint Final
+
+Antes de encerrar, confirmar:
+- [ ] PROJECT-CONTEXT.md atualizado com resumo da sessão
+- [ ] Questões pendentes registradas (se houver)
+- [ ] Próximos passos claros
+- [ ] Working tree commitado (git status limpo)
+- [ ] Confirmação verbal ao usuário: "Sessão encerrada, resumo registrado"
+
+**CRÍTICO:** Este registro é essencial para retomada eficiente na próxima sessão.
+
+---
+
 *Este protocolo é meu FREIO. Sem ele, eu causo retrabalho.*

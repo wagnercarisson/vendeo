@@ -64,7 +64,7 @@ Nenhum blocker crítico para prosseguir com Phase 2.
 ## 🔗 NAVEGAÇÃO RÁPIDA
 
 **Arquitetura:**
-- `docs/architecture/arquitetura-alvo-vendeo-v2.md` — Bounded contexts, contratos
+- `docs/architecture/arquitetura-alvo-vendeo-v2.md` — Bounded contexts, contratos (versão antiga, somente para referência até que seja criada uma versão atulizada)
 - `docs/architecture/design-decisions.md` — Decisões técnicas (marketing intelligence)
 
 **Análises Estratégicas:**
@@ -83,4 +83,71 @@ Nenhum blocker crítico para prosseguir com Phase 2.
 **Capabilities (Bússola):**
 - `docs/CRITICAL-FLOWS.md` — Fluxos que NÃO PODEM regredir
 - `docs/INTEGRATION-CHECKLIST.md` — Checklist mandatório de integração
-- `docs/CAPABILITIES-INVENTORY.md` — (Pendente) Inventário técnico completo
+- `docs/CAPABILITIES-INVENTORY.md` — Inventário técnico completo por bounded context
+
+---
+
+## 📋 RESUMO DA SESSÃO ATUAL (29/04/2026)
+
+### ✅ Conquistas do Dia
+1. **Phase 0 VERDADEIRAMENTE Concluída**
+   - 14 migrations reconstituídas (017-030) por @data-engineer (Dara)
+   - 959 linhas de DDL validadas
+   - 100% guardas de idempotência + BEGIN/COMMIT
+   - 8 tabelas criadas + 5 campos em campaigns
+   - Migrations = canonical source restaurado
+
+2. **Capabilities Inventory Criado** por @architect (Aria)
+   - 15 tabelas mapeadas por bounded context
+   - Status: Implementadas, Planejadas, Gaps
+   - Schema drift watchlist
+   - 3 gaps críticos identificados
+
+3. **Validação Completa Executada**
+   - Script de validação: 73 guardas totais
+   - Sequência 002-030 completa sem gaps
+   - Schema local = Schema remoto (15 tabelas)
+
+4. **Documentação Atualizada**
+   - DEC-2026-04-29-003 registrada
+   - migration-plan.md (Phase 0 ✅)
+   - Sistema bússola completo
+
+5. **Git Sincronizado** por @devops (Gage)
+   - 4 commits pushed para origin/main
+   - Commit final: `a7e1fe6`
+   - Working tree limpo
+
+### ➡️ Próximos Passos (Retomada Amanhã)
+
+**Phase 2: Additive Changes** (1 dia, baixo risk)
+- Migration 031: `store_intelligence` table
+- Migration 032: `campaign_events` table
+- Migration 033: `weekly_plans.intelligence_snapshot` (campo opcional)
+- Responsável: @data-engineer (Dara)
+- Referência: `docs/architecture/schema-proposal.md`
+
+**Onboarding 5min** (Gap #1 — Marketing Intelligence)
+- Questionário inteligente (5 minutos)
+- Agentes: @ux-design-expert, @commerce-strategist, @prompt-eng
+- Objetivo: Coletar contexto do lojista (best_days, audience, differentiation)
+
+**Visual Reader** (Gap #3 — Crítico)
+- Implementar do zero: `lib/engines/visual-reader/`
+- Contrato F: 18 campos estruturados
+- Integrar em F2 (Geração de Campanha)
+- Desbloqueia F4 (Validação Produto vs Imagem)
+
+### ❓ Questões Pendentes (Verificar na Próxima Sessão)
+- ⚠️ **Phase 1 existe ou foi desconsiderada?** migration-plan.md menciona Phase 0 (concluída) e Phase 2 (próxima), mas Phase 1 não aparece. Verificar se:
+  - Phase 1 foi mesclada em Phase 0
+  - Phase 1 = Phase 2 (erro de numeração)
+  - Phase 1 foi descartada no planejamento
+  - Referência: `docs/architecture/migration-plan.md`
+
+### 🎯 Estado para Retomada
+- ✅ Migrations 002-030 no repositório remoto
+- ✅ CAPABILITIES-INVENTORY.md = bússola anti-duplicação
+- ✅ AIOX-MASTER-PROTOCOL.md = guia de decisões (+ protocolo de fechamento adicionado)
+- ✅ Phase 2 com decisões aprovadas (design-decisions.md)
+- ⚠️ Arquitetura-alvo v2 desatualizada (usar com cautela)
