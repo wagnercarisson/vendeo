@@ -14,8 +14,8 @@ Motor de vendas social para varejo físico (adegas, farmácias, moda, beauty, ho
 ## 📍 ONDE ESTAMOS AGORA
 
 **Fase:** Beta/Pré-lançamento — Consolidação Arquitetural  
-**Status Técnico:** Phase 0 + Phase 1 concluídas, Phase 2.0 DEPLOYED ✅ (30/04/2026)  
-**Último Milestone:** Marketing Intelligence Layer MVP em produção — 5 campos críticos deployados
+**Status Técnico:** Phase 0 + Phase 1 + Phase 2.0 + Phase 2.1 DEPLOYED ✅ (30/04/2026)  
+**Último Milestone:** Marketing Intelligence Layer expandida — 15 campos críticos + importantes deployados
 
 **3 Gaps Críticos Identificados:**
 1. **Marketing Intelligence Layer** (em implementação) — Phase 2 Híbrida aprovada
@@ -35,11 +35,11 @@ Motor de vendas social para varejo físico (adegas, farmácias, moda, beauty, ho
 
 ## 🎯 PARA ONDE VAMOS
 
-**Próximo Objetivo:** Phase 2.1 — 10 Campos Importantes (+1 semana)  
-**Prioridade 1:** @ux-design-expert entrega designs de modais de onboarding  
-**Prioridade 2:** @data-engineer implementa migrations 034-035 (Phase 2.1)  
-**Prioridade 3:** Backend integration (Phase 4) — integrar store_intelligence no prompt  
-**Meta de Impacto:** LTV +200-300% (de R$ 200-300 para R$ 900-1.200) progressivamente via intelligence
+**Próximo Objetivo:** Phase 2.2 — Governança + Agregações (+2 semanas)  
+**Prioridade 1:** @ux-design-expert entrega designs de modais de onboarding progressivo  
+**Prioridade 2:** @data-engineer implementa migrations 036-039 (JSON Schema validation, agregações)  
+**Prioridade 3:** Backend integration (Phase 4) — integrar store_intelligence.context nos prompts  
+**Meta de Impacto:** LTV +200-300% (de R$ 200-300 para R$ 900-1.200) via intelligence-driven campaigns
 
 **Abordagem:** Phase 2 Híbrida (Opção C)
 - **Phase 2.0 (1 dia):** 5 campos críticos mínimos
@@ -58,9 +58,10 @@ Nenhum blocker ativo. Pronto para Phase 2.
 
 ## 📚 DECISÕES RECENTES (Últimas 5)
 
-1. **[DEC-2026-04-30-003]** - Phase 2.0 deployada com sucesso (migrations 031-033, 11/11 validações OK)
-2. **[DEC-2026-04-30-002]** - Phase 2 Híbrida aprovada (Opção C: 2.0 → 2.1 → 2.2 incremental) ✅ EXECUTED
-3. **[DEC-2026-04-30-001]** - Phase 1 documentada como concluída (reconciliação schema.sql executada em 29/04)
+1. **[DEC-2026-04-30-004]** - Phase 2.1 deployada com sucesso (migrations 034-035, 9/9 validações OK)
+2. **[DEC-2026-04-30-003]** - Phase 2.0 deployada com sucesso (migrations 031-033, 11/11 validações OK)
+3. **[DEC-2026-04-30-002]** - Phase 2 Híbrida aprovada (Opção C: 2.0 → 2.1 → 2.2 incremental) ✅ EXECUTED
+4. **[DEC-2026-04-30-001]** - Phase 1 documentada como concluída (reconciliação schema.sql executada em 29/04)
 3. **[DEC-2026-04-29-003]** - Migrations 017-030 reconstituídas (Phase 0 VERDADEIRAMENTE concluída)
 4. **[DEC-2026-04-29-002]** - Sistema de navegação bússola criado (CRITICAL-FLOWS, INTEGRATION-CHECKLIST, PROJECT-CONTEXT)
 5. **[DEC-2026-04-29-001]** - Squad Marketing completo definido (5 agentes)

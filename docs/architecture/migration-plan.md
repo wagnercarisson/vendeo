@@ -107,15 +107,15 @@ Total Phase 0-4: 12-16 dias distribuído
 
 ---
 
-### **Phase 2.1: Campos Importantes (+10 campos)** — SEMANA 2
+### **Phase 2.1: Campos Importantes (+10 campos)** — ✅ CONCLUÍDA (30/04/2026)
 
 Expandir contexto comercial + aprendizado
 
-**Migrations:**
-- 034: Adicionar 10 campos em `store_intelligence.context`
-- 035: Adicionar 5 campos em `campaign_events`
+**Migrations Deployadas:**
+- ✅ 034: Documentar estrutura v2.1 de `store_intelligence.context` (10 campos JSONB)
+- ✅ 035: Adicionar 9 colunas em `campaign_events` (weather, feedback, edit tracking, performance)
 
-**10 Campos Importantes (Phase 2.1):**
+**10 Campos Importantes Deployados (Phase 2.1):**
 - `customer_pain_points` — Superar objeções
 - `conversion_triggers` (urgency_preference, scarcity_comfortable) — Calibrar urgência
 - `successful_past_ctas` — Aprender CTAs que funcionam
@@ -129,8 +129,17 @@ Expandir contexto comercial + aprendizado
 
 **Onboarding:** Modais contextuais continuam coletando dados progressivamente
 
+**Validação:**
+- 9/9 queries validadas com sucesso (COMMENTs, colunas, constraints, indexes)
+- 6 constraints deployados (incluindo 2 extras: weather_condition enum + token checks)
+- 3 partial indexes otimizados (WHERE clauses para eficiência)
+- 4 testes negativos passaram (constraints rejeitaram dados inválidos)
+
+**Responsável:** @data-engineer (Dara)  
 **Risk:** Baixo-Médio (mais campos, mais complexidade)  
-**ETA:** 2 dias (1 dia migrations + 1 dia validação)
+**Status:** ✅ DEPLOYED  
+**Decisão:** DEC-2026-04-30-004  
+**Deployment:** 2026-04-30
 
 ---
 

@@ -8,6 +8,7 @@
 
 | ID | Data | Contexto | Ação | Status |
 |----|------|----------|------|--------|
+| DEC-2026-04-30-004 | 2026-04-30 | Expansão Marketing Intelligence Layer | Deploy Phase 2.1 (migrations 034-035) | ✅ EXECUTED |
 | DEC-2026-04-30-003 | 2026-04-30 | Deployment Marketing Intelligence MVP | Deploy Phase 2.0 (migrations 031-033) | ✅ EXECUTED |
 | DEC-2026-04-30-002 | 2026-04-30 | Validação campos Marketing Intelligence | Phase 2 Híbrida (Opção C) | ✅ EXECUTED |
 | DEC-2026-04-30-001 | 2026-04-30 | Documentação Phase 1 | Marcar Phase 1 como concluída | ✅ Executado |
