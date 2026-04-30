@@ -270,7 +270,15 @@ timeline: 9.5 days (with parallel work)
 
 **Decision:** ✅ **PROCEED TO FASE 3**
 
-**Action Required:** @pm or @po must approve Story 2 split before implementation starts
+**Action Required:** ~~@pm or @po must approve Story 2 split before implementation starts~~
+
+**@pm DECISION (2026-04-30):** ✅ **SPLIT APROVADO** — Ver [PM-STORY2-SPLIT-DECISION.md](./PM-STORY2-SPLIT-DECISION.md)
+
+**Condições de execução:**
+1. ACs 1-10 → Story 2A | ACs 11-20 → Story 2B (AC boundary confirmar)
+2. Badges (AC7) ficam em Story 2A — NÃO mover para 2B
+3. Story 2B blocked by Story 2A (adicionar no header)
+4. Se 1 dev: execução sequencial 2A → 2B (não paralelo)
 
 **Validation Report:** [GATE-2-VALIDATION.md](./GATE-2-VALIDATION.md)
 
@@ -347,26 +355,53 @@ timeline: 9.5 days (with parallel work)
 
 ---
 
-#### Story 2: Frontend Intelligence Page (DIA 4-9)
+#### Story 2: Frontend Intelligence Page → SPLIT APROVADO por @pm
+
+**@pm Decision (2026-04-30):** Story 2 (5 pts) dividida em Story 2A + Story 2B
+
+##### Story 2A: Intelligence Page Core (DIA 4-6) — 3 pts
 
 ```bash
-@dev *develop STORY-2-frontend-intelligence-page.md
+@dev *develop STORY-2A-frontend-core.md
 ```
+
+**Scope:** ACs 1-10 (desktop, auto-save, 4 tabs, progress, score, badges)
 
 **Deliverables:**
 - [ ] 4 abas funcionais (Público & Tom, Posicionamento, Conversão, Avançado)
-- [ ] Auto-save com debounce 500ms
-- [ ] Progress indicator + score + badges
-- [ ] Mobile swipe horizontal
-- [ ] Testes unitários + E2E
+- [ ] 15 campos com validações inline
+- [ ] Auto-save com debounce 500ms + SaveIndicator
+- [ ] Progress bar + score (0-100) + badges (🥉🥈🥇) — AC7 em 2A
+- [ ] Desktop responsive only
+- [ ] Form state preservado entre abas
 
 **CodeRabbit:** Self-healing (max 2 iterações)
 
-**Timeline:** 6 dias (5 pontos) - MAIOR COMPLEXIDADE
+**Timeline:** 2.5 dias (3 pontos)
 
-**Split Option (se necessário):**
-- Story 2A: Desktop (3 pts) - DIA 4-6
-- Story 2B: Mobile swipe (2 pts) - DIA 7-8
+---
+
+##### Story 2B: Mobile + Advanced UI (DIA 7-9) — 3 pts
+
+**Blocked by:** Story 2A COMPLETA
+
+```bash
+@dev *develop STORY-2B-mobile-ui.md
+```
+
+**Scope:** ACs 11-20 (mobile, retry, A11Y, performance)
+
+**Deliverables:**
+- [ ] Mobile: Swipe horizontal entre abas
+- [ ] Responsive (3 breakpoints: desktop/tablet/mobile)
+- [ ] Offline banner + retry automático (max 3x)
+- [ ] Accessibility: keyboard navigation (Tab, Shift+Tab, Enter)
+- [ ] Performance: renderização < 200ms (lazy load abas)
+- [ ] Testes E2E mobile
+
+**CodeRabbit:** Self-healing (max 2 iterações)
+
+**Timeline:** 2.5 dias (3 pontos)
 
 ---
 

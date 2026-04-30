@@ -43,15 +43,14 @@
   - 4 tabs structure + navigation
   - 15 fields (basic inputs)
   - Auto-save with 500ms debounce
-  - Progress indicator
+  - Progress indicator + Score + Badges (🥉🥈🥇)
   - Desktop responsive only
   - Form state preservation
   - ACs 1-10
 
 - **Story 2B: Mobile + Advanced UI** (3 points)
   - Swipe horizontal gestures
-  - Badge system (🥉🥈🥇)
-  - Responsive design (3 breakpoints)
+  - Mobile responsive design (3 breakpoints)
   - Error handling + retry logic
   - Accessibility (keyboard navigation)
   - Performance optimization

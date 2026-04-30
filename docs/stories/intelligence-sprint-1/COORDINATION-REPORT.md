@@ -3,22 +3,161 @@
 **Coordinator:** @squad-creator  
 **Date:** 2026-04-30  
 **Sprint:** Intelligence Calibration Sprint 1  
-**Status:** 🟢 FASE 1 COMPLETE - READY FOR FASE 2
+**Status:** 🟢 FASE 2 COMPLETE - READY FOR FASE 3
 
 ---
 
 ## 📋 Executive Summary
 
-**FASE 1 COMPLETE - All quality gates passed with excellence.**
+**FASE 1 & FASE 2 COMPLETE - All quality gates passed with excellence.**
 
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| **PO Validation Score** | >= 7/10 | 9.5/10 | ✅ EXCELLENT |
-| **Prompt Quality Score** | >= 7/10 | 9.5/10 | ✅ EXCELLENT |
-| **Timeline** | DIA 1-2 | DIA 1 | ✅ AHEAD |
-| **Gate 1 Status** | PASS | CLOSED | ✅ COMPLETE |
+| Phase | Status | Quality | Timeline |
+|-------|--------|---------|----------|
+| **FASE 1** | ✅ COMPLETE | 9.5/10 | DIA 1 (ahead) |
+| **FASE 2** | ✅ COMPLETE | 9.3/10 | DIA 2-3 (on time) |
+| **GATE 1** | ✅ CLOSED | ALL PASS | DIA 1 |
+| **GATE 2** | ✅ CLOSED | ALL PASS | DIA 3 |
 
-**Next Step:** Activate FASE 2 (Estimativa + Test Planning)
+**Next Step:** Activate FASE 3 (Implementation - DIA 3-10)
+
+---
+
+## ✅ FASE 2 Deliverables (COMPLETE)
+
+### 1. @dev Estimation ✅
+
+**Agent:** @dev (Dex)  
+**Status:** ✅ COMPLETE  
+**Quality:** 9/10
+
+**Output:** Inline estimation analysis (comprehensive)
+
+**Estimation Results:**
+
+| Story | Original | @dev Assessment | Final Decision |
+|-------|----------|-----------------|----------------|
+| Story 1: Backend API | 3 pts | ✅ 3 pts | CONFIRMED |
+| Story 2: Frontend Page | 5 pts | ⚠️ SPLIT RECOMMENDED | **SPLIT APPROVED** by @pm |
+| Story 3: Logo IA | 3 pts | ✅ 3 pts | CONFIRMED |
+| Story 4: Tests | 2 pts | ✅ 2 pts | CONFIRMED |
+
+**Split Decision (@pm Morgan):**
+- **Story 2A: Intelligence Page Core** (3 pts) - Desktop, auto-save, badges
+- **Story 2B: Mobile + Advanced UI** (3 pts) - Swipe, retry, A11Y, performance
+
+**Revised Total:** 15 points (was 13)
+
+**Timeline:** 9.5 days with parallel work (fits 1-2 week sprint) ✅
+
+**Technical Feasibility:** ✅ VALIDATED (no red flags)
+
+**Split Rationale:**
+1. ✅ Risk reduction (auto-save critical vs mobile experimental)
+2. ✅ Parallel work enabled (2A unblocks QA while 2B in progress)
+3. ✅ Clear boundary (desktop-first vs mobile enhancements)
+4. ✅ Fibonacci compliance (3+3 cleaner than 5)
+
+---
+
+### 2. @qa Test Plan ✅
+
+**Agent:** @qa (Quinn)  
+**Status:** ✅ COMPLETE  
+**Quality:** 9.5/10
+
+**Output:** [qa/test-plan-sprint-1.md](./qa/test-plan-sprint-1.md)
+
+**Test Coverage:**
+
+| Story | Unit | Integration | E2E | Total |
+|-------|------|-------------|-----|-------|
+| Story 1 | 15 | 5 | - | **20** |
+| Story 2 | 8 | - | 15 | **23** |
+| Story 3 | 5 | 2 | 7 | **14** |
+| Story 4 | 3 | - | 2 | **5** |
+| **TOTAL** | **31** | **7** | **24** | **62** |
+
+**Additional Suites:**
+- 🔒 Security: 8 scenarios (SQL injection, XSS, RLS, rate limiting)
+- 📱 Mobile: 5 scenarios (swipe gestures, responsive design)
+- ♿ Accessibility: 6 scenarios (keyboard nav, WCAG AA)
+- ⚡ Performance: 4 scenarios (load time, render time)
+
+**Target:** 50+ scenarios → **Delivered:** 62 scenarios (24% above target) ✅
+
+**Test Execution Strategy:** 4.5 days (DIA 5-9), 5 sequential phases
+
+**High-Risk Areas Covered:**
+- Auto-save reliability (4 E2E tests + localStorage fallback)
+- RLS security (5 integration + 8 security tests)
+- DALL-E cost runaway (rate limit + monitoring)
+- Mobile swipe unreliable (5 mobile tests + fallback)
+
+---
+
+### 3. @pm Story 2 Split Decision ✅
+
+**Agent:** @pm (Morgan)  
+**Status:** ✅ APPROVED  
+**Date:** 2026-04-30
+
+**Output:** [PM-STORY2-SPLIT-DECISION.md](./PM-STORY2-SPLIT-DECISION.md)
+
+**Decision:** ✅ **SPLIT APPROVED**
+
+**Analysis by Dimension:**
+
+| Dimension | Result | Summary |
+|-----------|--------|---------|
+| **Product Value** | ✅ PRESERVED | 2A delivers complete desktop experience |
+| **User Experience** | ✅ ACCEPTABLE | Only degradation: retry deferred to 2B |
+| **Timeline** | ✅ JUSTIFIED | +2 pts overhead vs -2.5 days calendar time |
+| **Risk** | ✅ REDUCED | Auto-save critical isolated from swipe experimental |
+| **Team Capacity** | ⚠️ ATTENTION | With 1 dev: sequential 2A → 2B, not parallel |
+
+**Correction Identified:** AC7 (badges 🥉🥈🥇) belongs to Story 2A (ACs 1-10), not 2B.
+
+**Mandatory Conditions:**
+1. ✅ AC boundary: ACs 1-10 → Story 2A | ACs 11-20 → Story 2B
+2. ✅ Badges in 2A (corrected from GATE-2-VALIDATION.md)
+3. ✅ Story 2B: "Blocked by: Story 2A COMPLETA"
+4. ✅ Timeline: Sequential if 1 dev (not parallel)
+5. ✅ GATE-2 correction applied
+
+---
+
+### 4. @squad-creator Story Files Created ✅
+
+**Agent:** @squad-creator (Craft)  
+**Status:** ✅ COMPLETE  
+**Date:** 2026-04-30
+
+**Deliverables:**
+- ✅ [STORY-2A-frontend-core.md](./STORY-2A-frontend-core.md) - ACs 1-10, 3 pts
+- ✅ [STORY-2B-mobile-ui.md](./STORY-2B-mobile-ui.md) - ACs 11-20, 3 pts, blocked by 2A
+
+**Corrections Applied:**
+- ✅ Badges (AC7) correctly placed in Story 2A
+- ✅ Story 2B explicitly blocked by Story 2A COMPLETA
+- ✅ Clear scope boundaries documented
+- ✅ All @pm conditions implemented
+
+---
+
+## 🚦 GATE 2 Status: ✅ CLOSED
+
+**Decision:** ✅ ALL CONDITIONS MET - PROCEED TO FASE 3
+
+| Condition | Target | Actual | Status |
+|-----------|--------|--------|--------|
+| @dev confirmed story points | 13 pts | 15 pts (with split) | ✅ PASS |
+| @qa created test plan | 50+ scenarios | 62 scenarios | ✅ PASS |
+| Technical feasibility validated | Yes | Yes (no red flags) | ✅ PASS |
+| No blocking dependencies | Yes | Yes (all clear) | ✅ PASS |
+
+**Gate Closed:** 2026-04-30 (DIA 3 - on schedule)
+
+**Validation Report:** [GATE-2-VALIDATION.md](./GATE-2-VALIDATION.md)
 
 ---
 
@@ -250,15 +389,163 @@
 | [PROMPT-REFINEMENT-REPORT.md](./PROMPT-REFINEMENT-REPORT.md) | @prompt-eng | ✅ | Refinements |
 | [COMMERCE-STRATEGIST-REVALIDATION.md](./COMMERCE-STRATEGIST-REVALIDATION.md) | @commerce-strategist | ✅ | 9.5/10 |
 | [STORY-1-backend-intelligence-api.md](./STORY-1-backend-intelligence-api.md) | @sm | ✅ | 3 pts |
-| [STORY-2-frontend-intelligence-page.md](./STORY-2-frontend-intelligence-page.md) | @sm | ✅ | 5 pts |
+| [STORY-2-frontend-intelligence-page.md](./STORY-2-frontend-intelligence-page.md) | @sm | ✅ | 5 pts (original) |
 | [STORY-3-logo-ai-dalle3.md](./STORY-3-logo-ai-dalle3.md) | @sm | ✅ | 3 pts |
 | [STORY-4-testes-validacoes.md](./STORY-4-testes-validacoes.md) | @sm | ✅ | 2 pts |
 
-### FASE 2 Documents (Pending)
+### FASE 2 Documents (Complete)
 
-| Document | Agent | Status | ETA |
-|----------|-------|--------|-----|
-| estimation-report.md | @dev | ⏳ | DIA 2-3 |
+| Document | Agent | Status | Quality |
+|----------|-------|--------|---------|
+| [PM-STORY2-SPLIT-DECISION.md](./PM-STORY2-SPLIT-DECISION.md) | @pm | ✅ | Split approved |
+| [GATE-2-VALIDATION.md](./GATE-2-VALIDATION.md) | @squad-creator | ✅ | Gate closed |
+| [STORY-2A-frontend-core.md](./STORY-2A-frontend-core.md) | @squad-creator | ✅ | 3 pts |
+| [STORY-2B-mobile-ui.md](./STORY-2B-mobile-ui.md) | @squad-creator | ✅ | 3 pts |
+| [qa/test-plan-sprint-1.md](./qa/test-plan-sprint-1.md) | @qa | ✅ | 9.5/10, 62 scenarios |
+
+---
+
+## 📊 Overall Quality Metrics
+
+| Phase | Average Score | Status |
+|-------|--------------|--------|
+| **FASE 1** | 9.5/10 | ✅ EXCELLENT |
+| **FASE 2** | 9.3/10 | ✅ EXCELLENT |
+| **Overall Sprint** | 9.4/10 | ✅ A+ |
+
+---
+
+## 🎯 Próximos Passos - FASE 3 (Implementation)
+
+### Timeline: DIA 3-10 (Sequential with 1 dev)
+
+**Phase 3A: Backend + Logo IA (DIA 3-4.5)**
+
+```bash
+@dev *develop STORY-1-backend-intelligence-api.md --mode=interactive
+@dev *develop STORY-3-logo-ai-dalle3.md --mode=interactive
+```
+
+**Deliverables:**
+- `app/api/store/intelligence/route.ts` (PATCH endpoint)
+- `app/api/ai/generate-logo/route.ts` (DALL-E 3 integration)
+- Score calculation logic
+- RLS validation
+
+**Duration:** 1.5 days each (sequential or parallel if 2 devs available)
+
+---
+
+**Phase 3B: Frontend Core (DIA 5-7.5)**
+
+```bash
+@dev *develop STORY-2A-frontend-core.md --mode=interactive
+```
+
+**Deliverables:**
+- `app/dashboard/store/intelligence/page.tsx`
+- 4 tabs components
+- Auto-save with 500ms debounce
+- Progress indicator + score + badges
+- Desktop responsive
+
+**Duration:** 2.5 days
+
+---
+
+**Phase 3C: Mobile UI (DIA 7.5-10)**
+
+```bash
+@dev *develop STORY-2B-mobile-ui.md --mode=interactive
+```
+
+**Deliverables:**
+- Swipe gestures
+- Retry logic + localStorage fallback
+- Offline detection
+- Keyboard navigation (A11Y)
+- Performance optimization
+
+**Duration:** 2.5 days
+
+---
+
+**Phase 3D: Tests (DIA 8-9.5)**
+
+```bash
+@dev *develop STORY-4-testes-validacoes.md --mode=interactive
+```
+
+**Deliverables:**
+- 31 unit tests
+- 7 integration tests
+- 24 E2E tests
+- Security, mobile, A11Y, performance suites
+
+**Duration:** 2 days
+
+---
+
+### Critical Path
+
+```
+Story 1 (Backend) → Story 2A (Frontend Core) → Story 4 (Tests)
+                                            ↘ Story 2B (Mobile UI) → Story 5 (Tests Mobile)
+Story 3 (Logo IA) → Story 4 (Tests Logo)
+```
+
+---
+
+### @qa Test Environment Setup (DIA 3)
+
+**Actions:**
+1. Configure Playwright (browsers, viewports)
+2. Setup Supabase local (Docker)
+3. Prepare test data factories
+4. Initialize test scaffolding
+
+**Duration:** 2 hours
+
+---
+
+### Success Criteria for GATE 3
+
+**Mandatory (BLOCKING):**
+1. ✅ All stories implemented and merged
+2. ✅ CodeRabbit review passed (max 2 iterations per story)
+3. ✅ Unit tests: Backend 100%, Frontend 90%
+4. ✅ Integration tests: RLS 100%
+5. ✅ E2E tests: 100% AC coverage
+6. ✅ No critical or high security vulnerabilities
+
+**Advisory (NON-BLOCKING):**
+1. 🟡 Accessibility: WCAG AA compliance
+2. 🟡 Performance: Load < 2s, render < 200ms
+3. 🟡 Mobile: Real device testing on iOS Safari + Android Chrome
+
+---
+
+## ✅ Coordination Sign-Off (FASE 2)
+
+**Coordinator:** @squad-creator (Craft)  
+**Date:** 2026-04-30  
+**Status:** FASE 2 COMPLETE - READY FOR FASE 3  
+**Confidence Level:** 9/10 (HIGH)
+
+**Key Achievements:**
+- ✅ Story 2 split approved by @pm (quality preserved)
+- ✅ 2 new story files created with clear boundaries
+- ✅ GATE 2 validation completed (all conditions met)
+- ✅ Test plan exceeds target by 24% (62 scenarios)
+- ✅ Timeline validated: 9.5 days with sequential execution
+
+**Next Gate:** GATE 3 (End of FASE 3, DIA 10)
+
+---
+
+**Report Complete - Ready for FASE 3 Implementation**
+
+— Craft, sempre estruturando 🏗️
 | qa/test-plan-sprint-1.md | @qa | ⏳ | DIA 3 |
 
 ---
