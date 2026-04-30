@@ -74,13 +74,13 @@ const LOGO_PROMPT_TEMPLATES: Record<Segment, LogoPromptTemplate> = {
 
   "Loja de bebidas": {
     basePrompt:
-      'A minimalist, professional logo for "{storeName}", a beverage store specializing in drinks. Style: sophisticated and inviting. Design: Simple geometric shapes representing a wine glass, bottle, or grape cluster, maximum 2-3 colors (burgundy, amber, or dark green), no text, flat design suitable for social media, white background, high contrast. The logo should evoke quality, sophistication, and social enjoyment.',
+      'A minimalist, professional logo for "{storeName}", a beverage store. Style: sophisticated and inviting. Design: Simple geometric shapes representing a bottle, glass, or refreshment symbol, maximum 2-3 colors (burgundy, amber, or dark green), no text, flat design suitable for social media, white background, high contrast. The logo should evoke quality, refreshment, and social enjoyment.',
     visualStyle: "sophisticated and inviting",
     colorSuggestions: ["#8B0000", "#D4AF37", "#2E7D32"],
     iconicElements: [
-      "wine glass silhouette",
-      "bottle outline",
-      "grape cluster",
+      "bottle silhouette",
+      "glass outline",
+      "droplet or wave",
       "barrel icon",
     ],
     avoidElements: [
@@ -169,9 +169,9 @@ const LOGO_PROMPT_TEMPLATES: Record<Segment, LogoPromptTemplate> = {
 
   "Materiais de construção": {
     basePrompt:
-      'A minimalist, professional logo for "{storeName}", a construction materials store. Style: solid and reliable. Design: Simple geometric shapes representing construction elements like a house frame, hammer, or brick pattern, maximum 2-3 colors (gray, orange, or blue), no text, flat design suitable for social media, white background, high contrast. The logo should evoke strength, reliability, and quality materials.',
+      'A minimalist, professional logo for "{storeName}", a construction materials store. Style: solid and reliable. Design: Simple geometric shapes representing construction elements like a house frame, hammer, or brick pattern, maximum 2-3 colors (orange, gray, or terracotta), no text, flat design suitable for social media, white background, high contrast. The logo should evoke strength, reliability, and quality materials.',
     visualStyle: "solid and reliable",
-    colorSuggestions: ["#607D8B", "#FF6F00", "#1976D2"],
+    colorSuggestions: ["#FF6F00", "#607D8B", "#D84315"],
     iconicElements: [
       "house frame",
       "hammer icon",
@@ -228,7 +228,7 @@ const LOGO_PROMPT_TEMPLATES: Record<Segment, LogoPromptTemplate> = {
     basePrompt:
       'A minimalist, professional logo for "{storeName}", a home decor store. Style: cozy and stylish. Design: Simple geometric shapes representing home elements like a house outline, furniture silhouette, or decorative pattern, maximum 2-3 colors (brown, teal, or coral), no text, flat design suitable for social media, white background, high contrast. The logo should evoke comfort, style, and home warmth.',
     visualStyle: "cozy and stylish",
-    colorSuggestions: ["#795548", "#009688", "#FF7043"],
+    colorSuggestions: ["#795548", "#80CBC4", "#FF7043"],
     iconicElements: [
       "house outline",
       "furniture silhouette (chair, lamp)",
