@@ -1,6 +1,6 @@
 # Vendeo — Project Context (Session Bootstrap)
 
-**Última Atualização:** 2026-04-29 por @aiox-master  
+**Última Atualização:** 2026-04-30 por @aiox-master  
 **Propósito:** Contexto obrigatório para @aiox-master no início de cada sessão
 
 ---
@@ -14,13 +14,13 @@ Motor de vendas social para varejo físico (adegas, farmácias, moda, beauty, ho
 ## 📍 ONDE ESTAMOS AGORA
 
 **Fase:** Beta/Pré-lançamento — Consolidação Arquitetural  
-**Status Técnico:** Migrations 002-030 completas, Phase 0 VERDADEIRAMENTE concluída (29/04/2026)  
-**Último Milestone:** Migrations 017-030 reconstituídas (29/04/2026) — Base sólida para Phase 2
+**Status Técnico:** Phase 0 + Phase 1 concluídas, Phase 2.0 DEPLOYED ✅ (30/04/2026)  
+**Último Milestone:** Marketing Intelligence Layer MVP em produção — 5 campos críticos deployados
 
 **3 Gaps Críticos Identificados:**
-1. **Marketing Intelligence Layer** (ausente) — Sistema não conhece contexto do lojista
-2. **Conversion Science / Agency Principles** (ausente) — Campanhas bonitas mas não convertem
-3. **Conteúdo Unidimensional** (sem contexto semanal) — Todas campanhas parecem iguais
+1. **Marketing Intelligence Layer** (em implementação) — Phase 2 Híbrida aprovada
+2. **Conversion Science / Agency Principles** (planejado) — Após Phase 2.0
+3. **Conteúdo Unidimensional** (planejado) — Weekly Plan contextualizado
 
 **Squad Marketing Completo:** 5 agentes especializados criados
 - @commerce-strategist (Especialista em Varejo) — Contexto comercial, sazonalidade
@@ -29,37 +29,41 @@ Motor de vendas social para varejo físico (adegas, farmácias, moda, beauty, ho
 - @prompt-eng (Wordsmith) — Otimização de prompts IA
 - @ux-design-expert (Uma) — UX para lojista (tempo até campanha ≤5 min)
 
+**Validação de Campos:** Squad Marketing revisou e validou 31 campos críticos/importantes para Phase 2
+
 ---
 
 ## 🎯 PARA ONDE VAMOS
 
-**Próximo Objetivo:** Implementar Marketing Intelligence Layer (Onboarding 5min)  
-**Prioridade 1:** Questionário onboarding inteligente (coleta perfil lojista)  
-**Prioridade 2:** Agency Principles (8 templates de conversão por contexto)  
-**Prioridade 3:** Integração agentes marketing no fluxo de validação  
-**Meta de Impacto:** Aumentar LTV +200-300% (de R$ 200-300 para R$ 900-1.200)
+**Próximo Objetivo:** Phase 2.1 — 10 Campos Importantes (+1 semana)  
+**Prioridade 1:** @ux-design-expert entrega designs de modais de onboarding  
+**Prioridade 2:** @data-engineer implementa migrations 034-035 (Phase 2.1)  
+**Prioridade 3:** Backend integration (Phase 4) — integrar store_intelligence no prompt  
+**Meta de Impacto:** LTV +200-300% (de R$ 200-300 para R$ 900-1.200) progressivamente via intelligence
 
-**Razão:** Lojistas churnam em 2-3 semanas porque campanhas não geram vendas. Com intelligence + conversion science, taxa de conversão sobe de 2-3% para 8-12%.
+**Abordagem:** Phase 2 Híbrida (Opção C)
+- **Phase 2.0 (1 dia):** 5 campos críticos mínimos
+- **Phase 2.1 (+1 semana):** 10 campos importantes
+- **Phase 2.2 (+2 semanas):** Governança + otimização
+
+**Razão:** Deploy rápido + validação iterativa + risco distribuído. Lojistas churnam em 2-3 semanas porque campanhas não geram vendas. Com intelligence + conversion science incremental, taxa de conversão sobe de 2-3% para 8-12% progressivamente.
 
 ---
 
 ## 🚧 BLOCKERS ATIVOS
 
-⚠️ **Validação local pendente:** Migrations 017-030 devem ser testadas em ambiente Supabase local quando disponível (`supabase db reset` + `migration up` + diff zero).
-
-Nenhum blocker crítico para prosseguir com Phase 2.
+Nenhum blocker ativo. Pronto para Phase 2.
 
 ---
 
 ## 📚 DECISÕES RECENTES (Últimas 5)
 
-1. **[DEC-2026-04-29-003]** - Migrations 017-030 reconstituídas (Phase 0 VERDADEIRAMENTE concluída)
-2. **[DEC-2026-04-29-002]** - Sistema de navegação bússola criado (CRITICAL-FLOWS, INTEGRATION-CHECKLIST, PROJECT-CONTEXT)
-3. **[DEC-2026-04-29-001]** - Squad Marketing completo definido (5 agentes)
-4. **[DEC-2026-04-28-002]** - Análise de gaps críticos aprovada
-5. **[DEC-2026-04-28-001]** - Segmento piloto confirmado (Adegas 8.6/10)
-
----
+1. **[DEC-2026-04-30-003]** - Phase 2.0 deployada com sucesso (migrations 031-033, 11/11 validações OK)
+2. **[DEC-2026-04-30-002]** - Phase 2 Híbrida aprovada (Opção C: 2.0 → 2.1 → 2.2 incremental) ✅ EXECUTED
+3. **[DEC-2026-04-30-001]** - Phase 1 documentada como concluída (reconciliação schema.sql executada em 29/04)
+3. **[DEC-2026-04-29-003]** - Migrations 017-030 reconstituídas (Phase 0 VERDADEIRAMENTE concluída)
+4. **[DEC-2026-04-29-002]** - Sistema de navegação bússola criado (CRITICAL-FLOWS, INTEGRATION-CHECKLIST, PROJECT-CONTEXT)
+5. **[DEC-2026-04-29-001]** - Squad Marketing completo definido (5 agentes)
 
 ## 🔗 NAVEGAÇÃO RÁPIDA
 
@@ -141,11 +145,8 @@ Nenhum blocker crítico para prosseguir com Phase 2.
 ### ❓ Questões Pendentes (Verificar na Próxima Sessão)
 - ⚠️ **Phase 1 existe ou foi desconsiderada?** migration-plan.md menciona Phase 0 (concluída) e Phase 2 (próxima), mas Phase 1 não aparece. Verificar se:
   - Phase 1 foi mesclada em Phase 0
-  - Phase 1 = Phase 2 (erro de numeração)
-  - Phase 1 foi descartada no planejamento
-  - Referência: `docs/architecture/migration-plan.md`
 
-### 🎯 Estado para Retomada
+Nenhuma questão pendente.
 - ✅ Migrations 002-030 no repositório remoto
 - ✅ CAPABILITIES-INVENTORY.md = bússola anti-duplicação
 - ✅ AIOX-MASTER-PROTOCOL.md = guia de decisões (+ protocolo de fechamento adicionado)
