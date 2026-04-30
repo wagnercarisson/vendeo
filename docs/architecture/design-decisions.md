@@ -1,11 +1,35 @@
 # Design Decisions (Marketing Intelligence)
 
 **Status:** ✅ APROVADO — 29 Abril 2026  
+**Última Atualização:** 30 Abril 2026 — Decisão Phase 2 Híbrida  
 **Decisões finais documentadas abaixo**
 
 ---
 
-## 🎯 DECISÕES FINAIS (Aprovadas)
+## 🎯 DECISÃO CRÍTICA: Phase 2 Híbrida (30 Abril 2026)
+
+**Contexto:** Squad Marketing (@commerce-strategist, @content-copy, @prompt-eng) revisou campos propostos e identificou 31 campos críticos/importantes ausentes.
+
+**Decisão:** Implementar Phase 2 em 3 sub-phases incrementais (Opção C)
+
+**Rationale:**
+- Deploy rápido (Phase 2.0 em 1 dia) vs esperar implementação completa (4 dias)
+- Validação iterativa com Squad Marketing (cada phase validada antes da próxima)
+- Risco distribuído (falha em 2.1 não bloqueia 2.0)
+- Onboarding progressivo via modais (não questionário único de 10 min)
+
+**Fases:**
+- **Phase 2.0 (1 dia):** 5 campos críticos mínimos (brand_voice, seasonal_peaks, prompt_version, approval_rating, schema_version)
+- **Phase 2.1 (+1 semana):** 10 campos importantes (customer_pain_points, conversion_triggers, weather_context, commercial_result_feedback, etc)
+- **Phase 2.2 (+2 semanas):** Governança JSONB + agregações mensais + indexes ML
+
+**Aprovado por:** Product Owner (Wagner)  
+**Executado por:** @data-engineer (Dara)  
+**Documento de referência:** `docs/architecture/intelligence-fields-consolidation.md`
+
+---
+
+## 🎯 DECISÕES FINAIS (Aprovadas 29 Abril 2026)
 
 ### DECISÃO 1: Schema Drift
 **Escolha:** Migrations são canonical source  
