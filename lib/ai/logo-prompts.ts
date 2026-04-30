@@ -31,7 +31,7 @@ export type ToneOfVoice =
   | "Premium"
   | "Divertido"
   | "Técnico"
-  | "Próximo / "de bairro""
+  | "Próximo / \"de bairro\""
   | "Outro…";
 
 interface LogoPromptTemplate {
@@ -294,7 +294,7 @@ const TONE_STYLE_ADJUSTMENTS: Record<ToneOfVoice, string> = {
   Premium: "elegant and sophisticated",
   Divertido: "playful and energetic",
   Técnico: "professional and precise",
-  "Próximo / "de bairro"": "warm and community-focused",
+  "Próximo / \"de bairro\"": "warm and community-focused",
   "Outro…": "", // No adjustment, use base style
 };
 

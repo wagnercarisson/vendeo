@@ -83,7 +83,7 @@ describe("lib/ai/logo-prompts", () => {
         "Premium",
         "Divertido",
         "Técnico",
-        "Próximo / "de bairro"",
+        "Próximo / \"de bairro\"",
         "Outro…",
       ];
 
@@ -259,7 +259,7 @@ describe("lib/ai/logo-prompts", () => {
         "Premium",
         "Divertido",
         "Técnico",
-        "Próximo / "de bairro"",
+        "Próximo / \"de bairro\"",
         "Outro…",
       ];
 
