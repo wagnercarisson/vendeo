@@ -21,10 +21,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Permite acesso a arquivos estáticos
+  // Permite acesso a arquivos estáticos e imagens otimizadas
   if (
     pathname.startsWith("/_next") ||
-    pathname.match(/\.(ico|png|jpg|jpeg|svg|css|js|woff|woff2|ttf)$/)
+    pathname.match(/\.(ico|png|jpg|jpeg|svg|css|js|woff|woff2|ttf|webp)$/)
   ) {
     return NextResponse.next();
   }
