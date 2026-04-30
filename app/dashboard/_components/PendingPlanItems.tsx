@@ -14,7 +14,7 @@ export async function PendingPlanItems({
 }: {
   storeId: string;
 }) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   // Buscar o primeiro plano (qualquer data) que tenha itens pendentes
   const { data: firstPlanWithPending } = await supabase

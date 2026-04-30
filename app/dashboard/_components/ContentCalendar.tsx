@@ -62,7 +62,7 @@ function getWeekStartMondayISO(today = new Date()) {
 }
 
 export async function ContentCalendar({ storeId }: { storeId: string }) {
-    const supabase = createSupabaseServerClient();
+    const supabase = await createSupabaseServerClient();
     const currentWeekStart = getWeekStartMondayISO();
 
     // Fetch active plan for this week

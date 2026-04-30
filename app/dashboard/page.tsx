@@ -83,7 +83,7 @@ function getStartOfWeekBrazilISO() {
 }
 
 export default async function DashboardPage() {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   const {
     data: { user },

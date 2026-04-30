@@ -31,7 +31,7 @@ function getRelativeTime(dateStr: string) {
 }
 
 export async function ActivityFeed({ storeId }: { storeId: string }) {
-    const supabase = createSupabaseServerClient();
+    const supabase = await createSupabaseServerClient();
     
     // Fetch last 5 campaigns
     const { data: recentCampaigns } = await supabase

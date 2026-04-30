@@ -10,7 +10,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
  * @param storeId ID da loja (se estiver editando)
  */
 export async function saveStoreAction(payload: any, storeId?: string) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   
   let error;
   if (storeId) {

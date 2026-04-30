@@ -9,9 +9,10 @@ import { getSignedImageUrl } from "@/lib/supabase/storage-server";
 export default async function CampaignPreviewPage({
     params,
 }: {
-    params: { id: string };
+    params: Promise<{ id: string }>;
 }) {
-    const supabase = createSupabaseServerClient();
+    const { id } = await params;
+    const supabase = await createSupabaseServerClient();
     const { storeId } = await getUserStoreIdOrThrow();
 
     const { data: campaign, error } = await supabase
@@ -25,7 +26,7 @@ export default async function CampaignPreviewPage({
               primary_color, secondary_color, logo_url
             )
         `)
-        .eq("id", params.id)
+        .eq("id", id)
         .eq("store_id", storeId)
         .maybeSingle();
 
