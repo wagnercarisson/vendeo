@@ -15,7 +15,7 @@ import {
   isValidSegment,
   type Segment,
   type ToneOfVoice,
-} from "../logo-prompts";
+} from "./logo-prompts.ts";
 
 describe("lib/ai/logo-prompts", () => {
   describe("getLogoPromptBySegment", () => {
