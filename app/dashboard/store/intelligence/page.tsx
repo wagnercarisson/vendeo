@@ -68,7 +68,6 @@ export default function IntelligencePage() {
       errors={validationErrors}
       updateField={updateField}
       toggleArrayValue={toggleArrayValue}
-      setStringList={setStringList}
     />,
     <Tab3Conversao
       key="tab-3"

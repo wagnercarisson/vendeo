@@ -49,6 +49,7 @@ export function TextInput({
   type = "text",
   min,
   max,
+  maxLength,
 }: {
   value: string | number | undefined | null;
   onChange: (value: string) => void;
@@ -56,6 +57,7 @@ export function TextInput({
   type?: "text" | "number";
   min?: number;
   max?: number;
+  maxLength?: number;
 }) {
   return (
     <input
@@ -63,6 +65,7 @@ export function TextInput({
       value={value ?? ""}
       min={min}
       max={max}
+      maxLength={maxLength}
       placeholder={placeholder}
       onChange={(event) => onChange(event.target.value)}
       className={inputClassName}
@@ -75,16 +78,19 @@ export function TextArea({
   onChange,
   placeholder,
   rows = 4,
+  maxLength,
 }: {
   value: string | undefined;
   onChange: (value: string) => void;
   placeholder?: string;
   rows?: number;
+  maxLength?: number;
 }) {
   return (
     <textarea
       value={value ?? ""}
       rows={rows}
+      maxLength={maxLength}
       placeholder={placeholder}
       onChange={(event) => onChange(event.target.value)}
       className={cx(inputClassName, "resize-none")}
@@ -157,26 +163,32 @@ export function MultiSelectChips({
   options,
   values,
   onToggle,
+  maxSelections,
 }: {
   options: Array<{ label: string; value: string }>;
   values: string[];
   onToggle: (value: string) => void;
+  maxSelections?: number;
 }) {
   return (
     <div className="mt-3 flex flex-wrap gap-2">
       {options.map((option) => {
         const active = values.includes(option.value);
+        const disabled = !active && maxSelections !== undefined && values.length >= maxSelections;
 
         return (
           <button
             key={option.value}
             type="button"
+            disabled={disabled}
             onClick={() => onToggle(option.value)}
             className={cx(
               "rounded-full border px-3 py-2 text-sm font-medium transition",
               active
                 ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
+                : disabled
+                  ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-400"
+                  : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
             )}
           >
             {option.label}
@@ -192,23 +204,37 @@ export function CheckboxRow({
   onChange,
   label,
   description,
+  disabled,
 }: {
   checked: boolean;
   onChange: (checked: boolean) => void;
   label: string;
   description?: string;
+  disabled?: boolean;
 }) {
   return (
-    <label className="mt-3 flex items-start gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
+    <label
+      className={cx(
+        "mt-3 flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm",
+        disabled
+          ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-400"
+          : "border-zinc-200 bg-zinc-50 text-zinc-700"
+      )}
+    >
       <input
         type="checkbox"
         checked={checked}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
         className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
       />
       <span>
-        <span className="block font-medium text-zinc-900">{label}</span>
-        {description ? <span className="mt-1 block text-xs leading-5 text-zinc-500">{description}</span> : null}
+        <span className={cx("block font-medium", disabled ? "text-zinc-500" : "text-zinc-900")}>{label}</span>
+        {description ? (
+          <span className={cx("mt-1 block text-xs leading-5", disabled ? "text-zinc-400" : "text-zinc-500")}>
+            {description}
+          </span>
+        ) : null}
       </span>
     </label>
   );
@@ -339,7 +365,6 @@ export function CTAListField({
       {
         cta: "",
         context: "",
-        approval_speed_seconds: null,
       },
     ]);
   }
@@ -348,39 +373,34 @@ export function CTAListField({
     <div className="mt-3 space-y-3">
       {items.map((item, index) => (
         <div key={`cta-${index}`} className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-          <div className="grid gap-3 lg:grid-cols-[1.2fr_1.2fr_0.7fr_auto]">
-            <input
-              value={item.cta}
-              onChange={(event) => updateItem(index, { cta: event.target.value })}
-              placeholder="Ex: Passe aqui hoje"
-              className={inputClassName}
-            />
-            <input
-              value={item.context}
-              onChange={(event) => updateItem(index, { context: event.target.value })}
-              placeholder="Ex: promoção relâmpago"
-              className={inputClassName}
-            />
-            <input
-              type="number"
-              min={0}
-              value={item.approval_speed_seconds ?? ""}
-              onChange={(event) =>
-                updateItem(index, {
-                  approval_speed_seconds:
-                    event.target.value === "" ? null : Number(event.target.value),
-                })
-              }
-              placeholder="Segundos"
-              className={inputClassName}
-            />
-            <button
-              type="button"
-              onClick={() => removeItem(index)}
-              className="mt-2 rounded-2xl border border-zinc-200 px-4 py-3 text-sm font-medium text-zinc-600 transition hover:bg-white hover:text-zinc-900"
-            >
-              Remover
-            </button>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-zinc-700">Chamada (CTA)</label>
+              <input
+                value={item.cta}
+                onChange={(event) => updateItem(index, { cta: event.target.value })}
+                placeholder="Ex: Passe aqui hoje"
+                className={inputClassName}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-zinc-700">Contexto da campanha</label>
+              <input
+                value={item.context}
+                onChange={(event) => updateItem(index, { context: event.target.value })}
+                placeholder="Ex: promoção relâmpago, queima de estoque"
+                className={inputClassName}
+              />
+            </div>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => removeItem(index)}
+                className="rounded-2xl border border-zinc-200 px-4 py-3 text-sm font-medium text-zinc-600 transition hover:bg-white hover:text-zinc-900"
+              >
+                Remover
+              </button>
+            </div>
           </div>
         </div>
       ))}

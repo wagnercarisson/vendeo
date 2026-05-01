@@ -8,25 +8,46 @@ import { useScoreCalculation } from "./useScoreCalculation";
 export type IntelligenceSuccessfulPastCta = {
   cta: string;
   context: string;
-  approval_speed_seconds?: number | null;
 };
 
 export type IntelligenceContext = {
   schema_version?: string;
   brand_voice?: "formal" | "informal" | "technical" | "playful" | null;
   target_audience?: string;
+  target_audience_preset?:
+    | "families"
+    | "young_adults"
+    | "professionals"
+    | "seniors"
+    | "students"
+    | "parents"
+    | "mixed_age"
+    | "custom";
   seasonal_peaks?: string[];
+  seasonal_peaks_custom?: string;
   main_differentiation?: string;
+  main_differentiation_preset?:
+    | "price"
+    | "quality"
+    | "service"
+    | "variety"
+    | "convenience"
+    | "expertise"
+    | "speed"
+    | "trust"
+    | "custom";
   top_products?: string[];
   price_positioning?: "economic" | "medium" | "premium" | "luxury" | null;
   average_ticket_brl?: number | null;
   competitors?: string[];
+  competitor_type?: "local" | "regional" | "national" | "online";
   unique_selling_proposition?: {
     primary_usp?: string;
     supporting_points?: string[];
     proof_elements?: string[];
   };
   customer_pain_points?: string[];
+  customer_pain_points_custom?: string;
   conversion_triggers?: {
     urgency_preference?: number;
     scarcity_comfortable?: number;
@@ -54,6 +75,11 @@ export type IntelligenceContext = {
 };
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
+
+type PersistChangesOptions = {
+  keepalive?: boolean;
+  skipStatusUpdate?: boolean;
+};
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -99,12 +125,32 @@ export function validateIntelligenceContext(context: IntelligenceContext) {
     errors.target_audience = "Máximo 200 caracteres";
   }
 
+  if ((context.seasonal_peaks_custom ?? "").length > 100) {
+    errors.seasonal_peaks_custom = "Máximo 100 caracteres";
+  }
+
+  if ((context.seasonal_peaks ?? []).length > 5) {
+    errors.seasonal_peaks = "Selecione no máximo 5 picos sazonais";
+  }
+
   if ((context.main_differentiation ?? "").length > 300) {
     errors.main_differentiation = "Máximo 300 caracteres";
   }
 
+  if ((context.competitors ?? []).length > 5) {
+    errors.competitors = "Liste no máximo 5 concorrentes";
+  }
+
   if ((context.unique_selling_proposition?.primary_usp ?? "").length > 200) {
     errors["unique_selling_proposition.primary_usp"] = "Máximo 200 caracteres";
+  }
+
+  if ((context.customer_pain_points_custom ?? "").length > 100) {
+    errors.customer_pain_points_custom = "Máximo 100 caracteres";
+  }
+
+  if ((context.customer_pain_points ?? []).length > 4) {
+    errors.customer_pain_points = "Selecione no máximo 4 problemas";
   }
 
   if ((context.average_ticket_brl ?? 0) < 0) {
@@ -132,9 +178,12 @@ export function validateIntelligenceContext(context: IntelligenceContext) {
   for (let index = 0; index < successfulPastCtas.length; index += 1) {
     const item = successfulPastCtas[index];
 
-    if ((item.approval_speed_seconds ?? 0) < 0) {
-      errors[`successful_past_ctas.${index}.approval_speed_seconds`] =
-        "O valor deve ser maior ou igual a 0";
+    if ((item.cta ?? "").length > 120) {
+      errors[`successful_past_ctas.${index}.cta`] = "Máximo 120 caracteres";
+    }
+
+    if ((item.context ?? "").length > 160) {
+      errors[`successful_past_ctas.${index}.context`] = "Máximo 160 caracteres";
     }
   }
 
@@ -167,6 +216,13 @@ export function useIntelligenceForm() {
     signatureRef.current = createSignature(context);
     filledFieldsRef.current = scoreSummary.filledFields;
   }, [context, scoreSummary.filledFields]);
+
+  function hasPendingChanges(signature = signatureRef.current) {
+    const emptyAndNeverSaved =
+      filledFieldsRef.current === 0 && lastSavedSignatureRef.current === createSignature({});
+
+    return Boolean(storeId) && signature !== lastSavedSignatureRef.current && !emptyAndNeverSaved;
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -243,14 +299,21 @@ export function useIntelligenceForm() {
     };
   }, [router]);
 
-  async function saveChanges(snapshot?: IntelligenceContext, signature?: string) {
-    const payload = snapshot ?? contextRef.current;
-    const payloadSignature = signature ?? createSignature(payload);
+  async function persistChanges(
+    snapshot: IntelligenceContext,
+    signature: string,
+    options: PersistChangesOptions = {}
+  ) {
+    const { keepalive = false, skipStatusUpdate = false } = options;
+    const payload = snapshot;
+    const payloadSignature = signature;
     const payloadErrors = validateIntelligenceContext(payload);
 
     if (Object.keys(payloadErrors).length > 0) {
-      setSaveStatus("error");
-      setSaveMessage("Revise os campos destacados antes de salvar.");
+      if (!skipStatusUpdate) {
+        setSaveStatus("error");
+        setSaveMessage("Revise os campos destacados antes de salvar.");
+      }
       return false;
     }
 
@@ -258,9 +321,11 @@ export function useIntelligenceForm() {
       return false;
     }
 
-    setSaving(true);
-    setSaveStatus("saving");
-    setSaveMessage("💾 Salvando...");
+    if (!skipStatusUpdate) {
+      setSaving(true);
+      setSaveStatus("saving");
+      setSaveMessage("💾 Salvando...");
+    }
 
     try {
       const response = await fetch("/api/store/intelligence", {
@@ -268,6 +333,7 @@ export function useIntelligenceForm() {
         headers: {
           "Content-Type": "application/json",
         },
+        keepalive,
         body: JSON.stringify({
           store_id: storeId,
           context: payload,
@@ -282,20 +348,34 @@ export function useIntelligenceForm() {
 
       lastSavedSignatureRef.current = payloadSignature;
 
-      if (signatureRef.current === payloadSignature && result?.data?.context) {
+      if (!skipStatusUpdate && signatureRef.current === payloadSignature && result?.data?.context) {
         setContext(normalizeLoadedContext(result.data.context));
       }
 
-      setSaveStatus("saved");
-      setSaveMessage("✅ Salvo automaticamente");
+      if (!skipStatusUpdate) {
+        setSaveStatus("saved");
+        setSaveMessage("✅ Salvo automaticamente");
+      }
+
       return true;
     } catch (error: any) {
-      setSaveStatus("error");
-      setSaveMessage(error?.message || "Falha ao salvar automaticamente.");
+      if (!skipStatusUpdate) {
+        setSaveStatus("error");
+        setSaveMessage(error?.message || "Falha ao salvar automaticamente.");
+      }
       return false;
     } finally {
-      setSaving(false);
+      if (!skipStatusUpdate) {
+        setSaving(false);
+      }
     }
+  }
+
+  async function saveChanges(snapshot?: IntelligenceContext, signature?: string) {
+    const payload = snapshot ?? contextRef.current;
+    const payloadSignature = signature ?? createSignature(payload);
+
+    return persistChanges(payload, payloadSignature);
   }
 
   useEffect(() => {
@@ -305,11 +385,7 @@ export function useIntelligenceForm() {
     }
 
     const currentSignature = signatureRef.current;
-    const isDirty = currentSignature !== lastSavedSignatureRef.current;
-    const emptyAndNeverSaved =
-      filledFieldsRef.current === 0 && lastSavedSignatureRef.current === createSignature({});
-
-    if (!storeId || !isDirty || emptyAndNeverSaved) {
+    if (!hasPendingChanges(currentSignature)) {
       return;
     }
 
@@ -320,10 +396,44 @@ export function useIntelligenceForm() {
     return () => window.clearTimeout(timer);
   }, [activeTab, storeId]);
 
+  useEffect(() => {
+    async function flushPendingChanges() {
+      const currentSignature = signatureRef.current;
+
+      if (!hasPendingChanges(currentSignature)) {
+        return;
+      }
+
+      await persistChanges(contextRef.current, currentSignature, {
+        keepalive: true,
+        skipStatusUpdate: true,
+      });
+    }
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === "hidden") {
+        void flushPendingChanges();
+      }
+    }
+
+    function handleBeforeUnload() {
+      void flushPendingChanges();
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      void flushPendingChanges();
+    };
+  }, [storeId]);
+
   function updateField(path: string, value: unknown) {
     setContext((current) => setNestedValue(current, path, value));
     setSaveStatus("idle");
-    setSaveMessage("Alterações pendentes. Troque de aba para salvar.");
+    setSaveMessage("Alterações pendentes. Troque de aba ou saia da página para salvar.");
   }
 
   function toggleArrayValue(path: string, value: string) {
@@ -348,14 +458,7 @@ export function useIntelligenceForm() {
   }
 
   function setSuccessfulPastCtas(items: IntelligenceSuccessfulPastCta[]) {
-    updateField(
-      "successful_past_ctas",
-      items.map((item) => ({
-        ...item,
-        cta: item.cta.trim(),
-        context: item.context.trim(),
-      }))
-    );
+    updateField("successful_past_ctas", items);
   }
 
   return {

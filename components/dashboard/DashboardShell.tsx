@@ -34,6 +34,7 @@ type NavItem = {
   requiresStore: boolean;
   icon: React.ElementType;
   badge?: string;
+  matchSubroutes?: boolean;
 };
 
 function cx(...classes: Array<string | false | null | undefined>) {
@@ -187,7 +188,14 @@ export function DashboardShell({
       { href: "/dashboard", label: "Dashboard", requiresStore: false, icon: LayoutDashboard },
       { href: "/dashboard/store", label: "Loja", requiresStore: false, icon: Store },
       { href: "/dashboard/store/intelligence", label: "Inteligência", requiresStore: true, icon: Brain },
-      { href: "/dashboard/campaigns", label: "Campanhas", requiresStore: true, icon: Megaphone, badge: "Novo" },
+      {
+        href: "/dashboard/campaigns",
+        label: "Campanhas",
+        requiresStore: true,
+        icon: Megaphone,
+        badge: "Novo",
+        matchSubroutes: true,
+      },
       { href: "/dashboard/plans", label: "Planos semanais", requiresStore: true, icon: CalendarRange },
     ],
     []
@@ -343,7 +351,8 @@ export function DashboardShell({
           <div className={cx("space-y-1", sidebarCollapsed && "space-y-2")}>
             {menu.map((item) => {
               const isExactMatch = pathname === item.href;
-              const isChildRoute = item.href !== "/dashboard" && pathname?.startsWith(item.href);
+              const isChildRoute =
+                item.matchSubroutes === true && pathname?.startsWith(`${item.href}/`);
               
               // Se estamos no fluxo de nova campanha (/dashboard/campaigns/new), o link principal de Campanhas NÃO deve ficar aceso.
               const isCreatingNewCampaign = pathname?.startsWith("/dashboard/campaigns/new");
