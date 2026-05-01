@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useScoreCalculation } from "./useScoreCalculation";
+import { getRetryDelay } from "../utils/saveRetry";
 
 export type IntelligenceSuccessfulPastCta = {
   cta: string;
@@ -79,7 +80,56 @@ type SaveStatus = "idle" | "saving" | "saved" | "error";
 type PersistChangesOptions = {
   keepalive?: boolean;
   skipStatusUpdate?: boolean;
+  maxRetries?: number;
 };
+
+type PendingIntelligenceSnapshot = {
+  context: IntelligenceContext;
+  savedAt: string;
+};
+
+export function getPendingIntelligenceStorageKey(storeId: string) {
+  return `vendeo:intelligence:pending:${storeId}`;
+}
+
+function readPendingSnapshot(storeId: string): IntelligenceContext | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const rawValue = window.localStorage.getItem(getPendingIntelligenceStorageKey(storeId));
+  if (!rawValue) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue) as PendingIntelligenceSnapshot;
+    return normalizeLoadedContext(parsed.context);
+  } catch {
+    return null;
+  }
+}
+
+function savePendingSnapshot(storeId: string, context: IntelligenceContext) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const payload: PendingIntelligenceSnapshot = {
+    context,
+    savedAt: new Date().toISOString(),
+  };
+
+  window.localStorage.setItem(getPendingIntelligenceStorageKey(storeId), JSON.stringify(payload));
+}
+
+function clearPendingSnapshot(storeId: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(getPendingIntelligenceStorageKey(storeId));
+}
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -199,6 +249,7 @@ export function useIntelligenceForm() {
   const [context, setContext] = useState<IntelligenceContext>({});
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState(
     "Preencha os campos e troque de aba para salvar automaticamente."
   );
@@ -284,6 +335,7 @@ export function useIntelligenceForm() {
       setContext(nextContext);
       lastSavedSignatureRef.current = createSignature(nextContext);
       setSaveStatus("idle");
+      setSaveError(null);
       setSaveMessage(
         Object.keys(nextContext).length > 0
           ? "Dados carregados. Troque de aba para salvar novas alterações."
@@ -304,13 +356,14 @@ export function useIntelligenceForm() {
     signature: string,
     options: PersistChangesOptions = {}
   ) {
-    const { keepalive = false, skipStatusUpdate = false } = options;
+    const { keepalive = false, skipStatusUpdate = false, maxRetries = 3 } = options;
     const payload = snapshot;
     const payloadSignature = signature;
     const payloadErrors = validateIntelligenceContext(payload);
 
     if (Object.keys(payloadErrors).length > 0) {
       if (!skipStatusUpdate) {
+        setSaveError("Revise os campos destacados antes de salvar.");
         setSaveStatus("error");
         setSaveMessage("Revise os campos destacados antes de salvar.");
       }
@@ -321,48 +374,79 @@ export function useIntelligenceForm() {
       return false;
     }
 
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      savePendingSnapshot(storeId, payload);
+
+      if (!skipStatusUpdate) {
+        setSaveError(null);
+        setSaveStatus("error");
+        setSaveMessage("Offline: guardamos uma cópia local e vamos sincronizar quando a conexão voltar.");
+      }
+
+      return false;
+    }
+
     if (!skipStatusUpdate) {
       setSaving(true);
+      setSaveError(null);
       setSaveStatus("saving");
       setSaveMessage("💾 Salvando...");
     }
 
+    let lastErrorMessage = "Falha ao salvar automaticamente.";
+
     try {
-      const response = await fetch("/api/store/intelligence", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        keepalive,
-        body: JSON.stringify({
-          store_id: storeId,
-          context: payload,
-        }),
-      });
+      for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
+        try {
+          const response = await fetch("/api/store/intelligence", {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            keepalive,
+            body: JSON.stringify({
+              store_id: storeId,
+              context: payload,
+            }),
+          });
 
-      const result = await response.json().catch(() => null);
+          const result = await response.json().catch(() => null);
 
-      if (!response.ok || !result?.success) {
-        throw new Error(result?.details || result?.error || "save_failed");
+          if (!response.ok || !result?.success) {
+            throw new Error(result?.details || result?.error || "save_failed");
+          }
+
+          clearPendingSnapshot(storeId);
+          lastSavedSignatureRef.current = payloadSignature;
+
+          if (!skipStatusUpdate && signatureRef.current === payloadSignature && result?.data?.context) {
+            setContext(normalizeLoadedContext(result.data.context));
+          }
+
+          if (!skipStatusUpdate) {
+            setSaveStatus("saved");
+            setSaveMessage("✅ Salvo automaticamente");
+          }
+
+          return true;
+        } catch (error: any) {
+          lastErrorMessage = error?.message || "Falha ao salvar automaticamente.";
+
+          if (attempt < maxRetries) {
+            await new Promise((resolve) => window.setTimeout(resolve, getRetryDelay(attempt)));
+            continue;
+          }
+        }
       }
 
-      lastSavedSignatureRef.current = payloadSignature;
-
-      if (!skipStatusUpdate && signatureRef.current === payloadSignature && result?.data?.context) {
-        setContext(normalizeLoadedContext(result.data.context));
-      }
+      savePendingSnapshot(storeId, payload);
 
       if (!skipStatusUpdate) {
-        setSaveStatus("saved");
-        setSaveMessage("✅ Salvo automaticamente");
-      }
-
-      return true;
-    } catch (error: any) {
-      if (!skipStatusUpdate) {
+        setSaveError(lastErrorMessage);
         setSaveStatus("error");
-        setSaveMessage(error?.message || "Falha ao salvar automaticamente.");
+        setSaveMessage("Não foi possível salvar agora. Mantivemos uma cópia local para reenviar.");
       }
+
       return false;
     } finally {
       if (!skipStatusUpdate) {
@@ -376,6 +460,14 @@ export function useIntelligenceForm() {
     const payloadSignature = signature ?? createSignature(payload);
 
     return persistChanges(payload, payloadSignature);
+  }
+
+  async function retrySave() {
+    const pendingSnapshot = storeId ? readPendingSnapshot(storeId) : null;
+    const payload = pendingSnapshot ?? contextRef.current;
+    const payloadSignature = createSignature(payload);
+
+    return persistChanges(payload, payloadSignature, { maxRetries: 1 });
   }
 
   useEffect(() => {
@@ -430,8 +522,43 @@ export function useIntelligenceForm() {
     };
   }, [storeId]);
 
+  useEffect(() => {
+    if (!storeId) {
+      return;
+    }
+
+    async function syncPendingSnapshot() {
+      const pendingSnapshot = readPendingSnapshot(storeId);
+
+      if (!pendingSnapshot) {
+        return;
+      }
+
+      const pendingSignature = createSignature(pendingSnapshot);
+
+      if (pendingSignature === lastSavedSignatureRef.current) {
+        clearPendingSnapshot(storeId);
+        return;
+      }
+
+      await persistChanges(pendingSnapshot, pendingSignature, { maxRetries: 1 });
+    }
+
+    function handleOnline() {
+      void syncPendingSnapshot();
+    }
+
+    window.addEventListener("online", handleOnline);
+    void syncPendingSnapshot();
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+    };
+  }, [storeId]);
+
   function updateField(path: string, value: unknown) {
     setContext((current) => setNestedValue(current, path, value));
+    setSaveError(null);
     setSaveStatus("idle");
     setSaveMessage("Alterações pendentes. Troque de aba ou saia da página para salvar.");
   }
@@ -476,7 +603,9 @@ export function useIntelligenceForm() {
     validationErrors,
     saving,
     saveStatus,
+    saveError,
     saveMessage,
     saveChanges,
+    retrySave,
   };
 }

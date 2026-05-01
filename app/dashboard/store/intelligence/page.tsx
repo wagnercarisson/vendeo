@@ -1,13 +1,25 @@
 "use client";
 
+import { Suspense, lazy } from "react";
 import Link from "next/link";
 import { IntelligenceTabs } from "./components/IntelligenceTabs";
 import { ProgressIndicator } from "./components/ProgressIndicator";
-import { Tab1PublicoTom } from "./components/Tab1-PublicoTom";
-import { Tab2Posicionamento } from "./components/Tab2-Posicionamento";
-import { Tab3Conversao } from "./components/Tab3-Conversao";
-import { Tab4Avancado } from "./components/Tab4-Avancado";
+import { SaveIndicator } from "./components/SaveIndicator";
 import { useIntelligenceForm } from "./hooks/useIntelligenceForm";
+import { useOfflineDetection } from "./hooks/useOfflineDetection";
+
+const Tab1PublicoTom = lazy(() =>
+  import("./components/Tab1-PublicoTom").then((module) => ({ default: module.Tab1PublicoTom }))
+);
+const Tab2Posicionamento = lazy(() =>
+  import("./components/Tab2-Posicionamento").then((module) => ({ default: module.Tab2Posicionamento }))
+);
+const Tab3Conversao = lazy(() =>
+  import("./components/Tab3-Conversao").then((module) => ({ default: module.Tab3Conversao }))
+);
+const Tab4Avancado = lazy(() =>
+  import("./components/Tab4-Avancado").then((module) => ({ default: module.Tab4Avancado }))
+);
 
 const TABS = [
   {
@@ -37,6 +49,7 @@ const TABS = [
 ];
 
 export default function IntelligencePage() {
+  const isOnline = useOfflineDetection();
   const {
     loading,
     loadError,
@@ -49,41 +62,25 @@ export default function IntelligencePage() {
     setSuccessfulPastCtas,
     scoreSummary,
     validationErrors,
+    saving,
+    saveError,
     saveMessage,
-    saveStatus,
+    retrySave,
   } = useIntelligenceForm();
 
-  const panels = [
-    <Tab1PublicoTom
-      key="tab-1"
-      context={context}
-      errors={validationErrors}
-      updateField={updateField}
-      toggleArrayValue={toggleArrayValue}
-      setStringList={setStringList}
-    />,
-    <Tab2Posicionamento
-      key="tab-2"
-      context={context}
-      errors={validationErrors}
-      updateField={updateField}
-      toggleArrayValue={toggleArrayValue}
-    />,
-    <Tab3Conversao
-      key="tab-3"
-      context={context}
-      errors={validationErrors}
-      updateField={updateField}
-      setStringList={setStringList}
-      setSuccessfulPastCtas={setSuccessfulPastCtas}
-    />,
-    <Tab4Avancado
-      key="tab-4"
-      context={context}
-      errors={validationErrors}
-      updateField={updateField}
-    />,
-  ];
+  const panelFallback = (
+    <div className="grid gap-4 xl:grid-cols-2">
+      <div className="h-40 animate-pulse rounded-3xl bg-zinc-100" />
+      <div className="h-40 animate-pulse rounded-3xl bg-zinc-100" />
+    </div>
+  );
+
+  const PanelComponent = [
+    Tab1PublicoTom,
+    Tab2Posicionamento,
+    Tab3Conversao,
+    Tab4Avancado,
+  ][activeTab];
 
   return (
     <main className="h-full overflow-y-auto bg-[#F6F8F6] px-4 py-6 sm:px-6 lg:px-10">
@@ -116,8 +113,14 @@ export default function IntelligencePage() {
           filledFields={scoreSummary.filledFields}
           totalFields={scoreSummary.totalFields}
           badge={scoreSummary.badge}
-          saveMessage={saveMessage}
-          saveStatus={saveStatus}
+        />
+
+        <SaveIndicator
+          isOnline={isOnline}
+          isSaving={saving}
+          error={saveError}
+          message={saveMessage}
+          onRetry={retrySave}
         />
 
         {loading ? (
@@ -147,8 +150,18 @@ export default function IntelligencePage() {
         ) : (
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
             <section className="space-y-6">
-              <IntelligenceTabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
-              {panels[activeTab]}
+              <IntelligenceTabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab}>
+                <Suspense fallback={panelFallback}>
+                  <PanelComponent
+                    context={context}
+                    errors={validationErrors}
+                    updateField={updateField}
+                    toggleArrayValue={toggleArrayValue}
+                    setStringList={setStringList}
+                    setSuccessfulPastCtas={setSuccessfulPastCtas}
+                  />
+                </Suspense>
+              </IntelligenceTabs>
             </section>
 
             <aside className="grid content-start gap-6">

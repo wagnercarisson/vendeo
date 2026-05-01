@@ -116,6 +116,7 @@ export function Tab1PublicoTom({
         hint="Como o Vendeo deve soar quando falar em nome da sua loja."
       >
         <ChoiceChips
+          ariaLabel="Tom da marca"
           options={BRAND_VOICE_OPTIONS}
           value={context.brand_voice ?? null}
           onChange={(value) => updateField("brand_voice", value)}
@@ -130,6 +131,8 @@ export function Tab1PublicoTom({
         error={errors.target_audience}
       >
         <SelectInput
+          id="target-audience-preset"
+          ariaLabel="Público-alvo"
           value={targetAudiencePreset}
           onChange={(value) => {
             if (!value) {
@@ -157,6 +160,9 @@ export function Tab1PublicoTom({
         />
         {targetAudiencePreset === "custom" ? (
           <TextArea
+            id="target-audience-custom"
+            ariaLabel="Descreva o público-alvo"
+            autoFocus
             value={context.target_audience}
             onChange={(value) => updateField("target_audience", value)}
             placeholder="Descreva o público principal da sua loja."
@@ -174,12 +180,14 @@ export function Tab1PublicoTom({
         error={errors.seasonal_peaks ?? errors.seasonal_peaks_custom}
       >
         <MultiSelectChips
+          ariaLabel="Picos sazonais"
           options={SEASONAL_PEAK_OPTIONS}
           values={context.seasonal_peaks ?? []}
           onToggle={(value) => toggleArrayValue("seasonal_peaks", value)}
           maxSelections={5}
         />
         <TextInput
+          ariaLabel="Outros eventos sazonais"
           value={context.seasonal_peaks_custom}
           onChange={(value) => updateField("seasonal_peaks_custom", value)}
           placeholder="Outros eventos da sua região ou da loja"
@@ -195,6 +203,7 @@ export function Tab1PublicoTom({
         error={errors.main_differentiation}
       >
         <ChoiceChips
+          ariaLabel="Diferencial principal"
           options={MAIN_DIFFERENTIATION_OPTIONS}
           value={mainDifferentiationPreset || null}
           onChange={(value) => {

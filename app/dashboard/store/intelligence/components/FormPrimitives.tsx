@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useRef, useState } from "react";
 import type { IntelligenceSuccessfulPastCta } from "../hooks/useIntelligenceForm";
 
 function cx(...classes: Array<string | false | null | undefined>) {
@@ -34,7 +34,11 @@ export function FieldShell({
           </div>
           {hint ? <div className="mt-1 text-xs leading-5 text-zinc-500">{hint}</div> : null}
         </div>
-        {counter ? <div className="text-xs text-zinc-400">{counter}</div> : null}
+        {counter ? (
+          <div className="text-xs text-zinc-400" aria-live="polite">
+            {counter}
+          </div>
+        ) : null}
       </div>
       {children}
       {error ? <div className="mt-2 text-xs font-medium text-rose-600">{error}</div> : null}
@@ -50,6 +54,9 @@ export function TextInput({
   min,
   max,
   maxLength,
+  id,
+  ariaLabel,
+  ariaDescribedBy,
 }: {
   value: string | number | undefined | null;
   onChange: (value: string) => void;
@@ -58,15 +65,21 @@ export function TextInput({
   min?: number;
   max?: number;
   maxLength?: number;
+  id?: string;
+  ariaLabel?: string;
+  ariaDescribedBy?: string;
 }) {
   return (
     <input
+      id={id}
       type={type}
       value={value ?? ""}
       min={min}
       max={max}
       maxLength={maxLength}
       placeholder={placeholder}
+      aria-label={ariaLabel}
+      aria-describedby={ariaDescribedBy}
       onChange={(event) => onChange(event.target.value)}
       className={inputClassName}
     />
@@ -79,19 +92,28 @@ export function TextArea({
   placeholder,
   rows = 4,
   maxLength,
+  id,
+  ariaLabel,
+  autoFocus,
 }: {
   value: string | undefined;
   onChange: (value: string) => void;
   placeholder?: string;
   rows?: number;
   maxLength?: number;
+  id?: string;
+  ariaLabel?: string;
+  autoFocus?: boolean;
 }) {
   return (
     <textarea
+      id={id}
       value={value ?? ""}
       rows={rows}
       maxLength={maxLength}
       placeholder={placeholder}
+      autoFocus={autoFocus}
+      aria-label={ariaLabel}
       onChange={(event) => onChange(event.target.value)}
       className={cx(inputClassName, "resize-none")}
     />
@@ -103,16 +125,25 @@ export function SelectInput({
   onChange,
   placeholder,
   options,
+  id,
+  ariaLabel,
+  ariaDescribedBy,
 }: {
   value: string | undefined | null;
   onChange: (value: string) => void;
   placeholder?: string;
   options: Array<{ label: string; value: string }>;
+  id?: string;
+  ariaLabel?: string;
+  ariaDescribedBy?: string;
 }) {
   return (
     <select
+      id={id}
       value={value ?? ""}
       onChange={(event) => onChange(event.target.value)}
+      aria-label={ariaLabel}
+      aria-describedby={ariaDescribedBy}
       className={inputClassName}
     >
       <option value="">{placeholder ?? "Selecione"}</option>
@@ -129,13 +160,46 @@ export function ChoiceChips({
   options,
   value,
   onChange,
+  ariaLabel,
 }: {
   options: Array<{ label: string; value: string }>;
   value?: string | null;
   onChange: (value: string | null) => void;
+  ariaLabel?: string;
 }) {
+  const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  function focusOption(index: number) {
+    optionRefs.current[index]?.focus();
+  }
+
+  function handleKeyDown(event: React.KeyboardEvent<HTMLButtonElement>, index: number) {
+    switch (event.key) {
+      case "ArrowLeft":
+      case "ArrowUp":
+        event.preventDefault();
+        focusOption(index === 0 ? options.length - 1 : index - 1);
+        break;
+      case "ArrowRight":
+      case "ArrowDown":
+        event.preventDefault();
+        focusOption(index === options.length - 1 ? 0 : index + 1);
+        break;
+      case "Home":
+        event.preventDefault();
+        focusOption(0);
+        break;
+      case "End":
+        event.preventDefault();
+        focusOption(options.length - 1);
+        break;
+      default:
+        break;
+    }
+  }
+
   return (
-    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+    <div className="mt-3 grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label={ariaLabel}>
       {options.map((option) => {
         const active = value === option.value;
 
@@ -143,7 +207,13 @@ export function ChoiceChips({
           <button
             key={option.value}
             type="button"
+            ref={(element) => {
+              optionRefs.current[options.indexOf(option)] = element;
+            }}
+            role="radio"
+            aria-checked={active}
             onClick={() => onChange(active ? null : option.value)}
+            onKeyDown={(event) => handleKeyDown(event, options.indexOf(option))}
             className={cx(
               "rounded-2xl border px-4 py-3 text-left text-sm font-medium transition",
               active
@@ -164,14 +234,18 @@ export function MultiSelectChips({
   values,
   onToggle,
   maxSelections,
+  ariaLabel,
 }: {
   options: Array<{ label: string; value: string }>;
   values: string[];
   onToggle: (value: string) => void;
   maxSelections?: number;
+  ariaLabel?: string;
 }) {
+  const hintId = useId();
+
   return (
-    <div className="mt-3 flex flex-wrap gap-2">
+    <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label={ariaLabel}>
       {options.map((option) => {
         const active = values.includes(option.value);
         const disabled = !active && maxSelections !== undefined && values.length >= maxSelections;
@@ -181,6 +255,9 @@ export function MultiSelectChips({
             key={option.value}
             type="button"
             disabled={disabled}
+            role="checkbox"
+            aria-checked={active}
+            aria-describedby={maxSelections !== undefined ? hintId : undefined}
             onClick={() => onToggle(option.value)}
             className={cx(
               "rounded-full border px-3 py-2 text-sm font-medium transition",
@@ -195,6 +272,11 @@ export function MultiSelectChips({
           </button>
         );
       })}
+      {maxSelections !== undefined ? (
+        <div id={hintId} className="sr-only">
+          Máximo de {maxSelections} seleções.
+        </div>
+      ) : null}
     </div>
   );
 }

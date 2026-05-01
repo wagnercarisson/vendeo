@@ -172,6 +172,7 @@ export function Tab2Posicionamento({
         hint="Como a loja costuma se posicionar na cabeça do cliente."
       >
         <SelectInput
+          ariaLabel="Posicionamento de preço"
           value={context.price_positioning}
           onChange={(value) => updateField("price_positioning", value || null)}
           placeholder="Selecione o posicionamento"
@@ -186,10 +187,12 @@ export function Tab2Posicionamento({
         error={errors.average_ticket_brl}
       >
         <div className="mt-2 flex items-center rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 shadow-sm outline-none transition focus-within:border-emerald-400 focus-within:ring-4 focus-within:ring-emerald-100">
-          <span className="mr-2 text-zinc-500">R$</span>
+          <span className="mr-2 text-zinc-500" aria-hidden="true">R$</span>
           <input
             type="text"
             inputMode="decimal"
+            aria-label="Ticket médio em reais"
+            aria-describedby="average-ticket-format-hint"
             value={ticketDisplay}
             onFocus={() => setIsEditingTicket(true)}
             onChange={(event) => handleTicketChange(event.target.value)}
@@ -197,6 +200,9 @@ export function Tab2Posicionamento({
             placeholder="150,00"
             className="w-full border-0 bg-transparent outline-none placeholder:text-zinc-400"
           />
+        </div>
+        <div id="average-ticket-format-hint" className="sr-only">
+          Digite o valor em reais, usando vírgula para os centavos. Exemplo: 150,00.
         </div>
       </FieldShell>
 
@@ -208,6 +214,7 @@ export function Tab2Posicionamento({
         error={errors.competitors}
       >
         <ChoiceChips
+          ariaLabel="Tipo de concorrência"
           options={COMPETITOR_TYPE_OPTIONS}
           value={competitorType}
           onChange={(value) => updateField("competitor_type", value ?? "local")}
@@ -215,6 +222,7 @@ export function Tab2Posicionamento({
 
         {competitorType === "national" ? (
           <MultiSelectChips
+            ariaLabel="Concorrentes nacionais"
             options={NATIONAL_COMPETITOR_OPTIONS}
             values={context.competitors ?? []}
             onToggle={(value) => toggleArrayValue("competitors", value)}
@@ -222,6 +230,7 @@ export function Tab2Posicionamento({
           />
         ) : (
           <TextArea
+            ariaLabel="Lista de concorrentes"
             value={context.competitors?.join(", ")}
             onChange={(value) => {
               const nextValues = value
