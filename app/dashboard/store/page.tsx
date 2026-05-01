@@ -192,6 +192,7 @@ export default function StorePage() {
 
   const [saving, setSaving] = useState(false);
   const [bootLoading, setBootLoading] = useState(true);
+  const [showOnboardingSuccess, setShowOnboardingSuccess] = useState(false);
 
   const [toast, setToast] = useState<{
     message: string;
@@ -547,6 +548,7 @@ export default function StorePage() {
   async function handleSave(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSaving(true);
+    const creatingStore = !activeStoreId;
 
     try {
       const validationError = validateForm();
@@ -599,14 +601,16 @@ export default function StorePage() {
         return;
       }
 
-      showToast(activeStoreId ? "Alterações salvas!" : "Loja cadastrada!", "success");
+      showToast(creatingStore ? "Loja cadastrada!" : "Alterações salvas!", "success");
 
-      if (!activeStoreId) {
+      if (creatingStore) {
         // recarrega lista se for nova loja
         await loadStoresAndMaybeSelectDefault();
+        setShowOnboardingSuccess(true);
+        return;
       }
 
-      // volta para o dashboard
+      // edição continua voltando para o dashboard
       window.setTimeout(() => {
         router.refresh();
         router.push("/dashboard");
@@ -716,6 +720,64 @@ export default function StorePage() {
                         <div className="h-11 w-full animate-pulse rounded-xl bg-slate-100" />
                         <div className="h-11 w-full animate-pulse rounded-xl bg-slate-100" />
                       </div>
+                    </div>
+                  </MotionWrapper>
+                ) : showOnboardingSuccess ? (
+                  <MotionWrapper delay={0.2} className="mx-auto max-w-2xl rounded-[2rem] border border-emerald-200 bg-gradient-to-b from-emerald-50 to-white p-6 sm:p-8">
+                    <div className="flex flex-col gap-6 text-center sm:text-left">
+                      <div className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-sm sm:mx-0">
+                        <Sparkles className="h-6 w-6" />
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="inline-flex items-center justify-center rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700 sm:justify-start">
+                          Loja pronta
+                        </div>
+                        <h2 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
+                          Loja configurada com sucesso
+                        </h2>
+                        <p className="text-sm leading-6 text-zinc-600 sm:text-base">
+                          O pr\u00f3ximo passo \u00e9 calibrar a intelig\u00eancia avan\u00e7ada para deixar campanhas, tom de voz e segmenta\u00e7\u00e3o ainda mais alinhados com a sua loja.
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl border border-zinc-200 bg-white p-4 text-left shadow-sm">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <div className="text-sm font-semibold text-zinc-900">
+                              \ud83e\udde0 Calibrar Intelig\u00eancia Avan\u00e7ada
+                            </div>
+                            <div className="mt-1 text-sm text-zinc-600">
+                              Complete a etapa avan\u00e7ada para vender com uma comunica\u00e7\u00e3o mais fiel \u00e0 realidade da sua loja.
+                            </div>
+                          </div>
+                          <span className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                            ~3 min
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-3 sm:flex-row">
+                        <button
+                          type="button"
+                          onClick={() => router.push("/dashboard/store/intelligence")}
+                          className="inline-flex w-full items-center justify-center rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-premium transition hover:bg-emerald-500 sm:w-auto"
+                        >
+                          \ud83e\udde0 Calibrar Intelig\u00eancia Avan\u00e7ada
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => router.push("/dashboard")}
+                          className="inline-flex w-full items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 py-3 text-sm font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-50 sm:w-auto"
+                        >
+                          Fazer isso depois
+                        </button>
+                      </div>
+
+                      <p className="text-xs leading-5 text-zinc-500 sm:text-sm">
+                        Se preferir voltar depois, a p\u00e1gina fica dispon\u00edvel em <span className="font-medium text-zinc-700">Intelig\u00eancia</span> no menu lateral.
+                      </p>
                     </div>
                   </MotionWrapper>
                 ) : (
