@@ -55,6 +55,14 @@ function isFilledValue(value: unknown) {
   return true;
 }
 
+export function countFilledIntelligenceFields(context: unknown) {
+  const normalized = normalizeContext(context);
+
+  return INTELLIGENCE_CONTEXT_FIELDS.filter((field) =>
+    isFilledValue(normalized[field])
+  ).length;
+}
+
 export function mergeIntelligenceContext(
   existingContext: unknown,
   patch: IntelligenceContextRecord
@@ -67,10 +75,7 @@ export function mergeIntelligenceContext(
 }
 
 export function calculateIntelligenceScore(context: unknown) {
-  const normalized = normalizeContext(context);
-  const filledFields = INTELLIGENCE_CONTEXT_FIELDS.filter((field) =>
-    isFilledValue(normalized[field])
-  );
+  const filledFields = countFilledIntelligenceFields(context);
 
-  return Math.round((filledFields.length / INTELLIGENCE_CONTEXT_FIELDS.length) * 100);
+  return Math.round((filledFields / INTELLIGENCE_CONTEXT_FIELDS.length) * 100);
 }

@@ -127,7 +127,11 @@ export function validateIntelligenceContext(context: IntelligenceContext) {
     errors["copy_length_preferences.body_max_words"] = "O valor deve ser maior ou igual a 0";
   }
 
-  for (const [index, item] of (context.successful_past_ctas ?? []).entries()) {
+  const successfulPastCtas = context.successful_past_ctas ?? [];
+
+  for (let index = 0; index < successfulPastCtas.length; index += 1) {
+    const item = successfulPastCtas[index];
+
     if ((item.approval_speed_seconds ?? 0) < 0) {
       errors[`successful_past_ctas.${index}.approval_speed_seconds`] =
         "O valor deve ser maior ou igual a 0";

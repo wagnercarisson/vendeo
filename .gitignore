@@ -25,6 +25,7 @@ dist/
 build/
 *.log
 logs/
+*.tsbuildinfo
 
 # IDE & OS (AIOX)
 Thumbs.db

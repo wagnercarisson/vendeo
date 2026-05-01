@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   INTELLIGENCE_CONTEXT_FIELDS,
   calculateIntelligenceScore,
+  countFilledIntelligenceFields,
   mergeIntelligenceContext,
 } from "./service.ts";
 
@@ -72,4 +73,16 @@ test("calculateIntelligenceScore ignores null, undefined, blank strings, and emp
   });
 
   assert.equal(score, 7);
+});
+
+test("countFilledIntelligenceFields tracks how many fields are meaningfully filled", () => {
+  const count = countFilledIntelligenceFields({
+    brand_voice: "informal",
+    target_audience: "",
+    seasonal_peaks: ["Natal"],
+    competitors: [],
+    average_ticket_brl: 120,
+  });
+
+  assert.equal(count, 3);
 });
