@@ -1280,6 +1280,31 @@ export default function StorePage() {
                     <span className={hasPlans ? "text-zinc-900 font-medium" : ""}>Gerar plano semanal com consistência</span>
                   </div>
                 </div>
+
+                <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-emerald-900">
+                        🧠 Inteligência Avançada
+                      </div>
+                      <div className="mt-1 text-sm text-emerald-800/80">
+                        Refine tom de voz, diferenciais e gatilhos para deixar a geração mais fiel à sua loja.
+                      </div>
+                    </div>
+                    <span className="shrink-0 rounded-full border border-emerald-200 bg-white px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                      ~3 min
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => router.push("/dashboard/store/intelligence")}
+                    disabled={!isEditMode}
+                    className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-600"
+                  >
+                    {isEditMode ? "Abrir Inteligência" : "Salve a loja para liberar Inteligência"}
+                  </button>
+                </div>
               </div>
             </MotionWrapper>
           </div>

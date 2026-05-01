@@ -23,10 +23,13 @@
 **Status:** ✅ COMPLETE  
 **Effort:** ~5 minutes (actual)
 
+> Historical note: this first attempt targeted `components/dashboard/Sidebar.tsx`, which is no longer part of the active dashboard flow. The live application uses `components/dashboard/DashboardShell.tsx`.
+
 ### Implementation
 
-**File Modified:** [components/dashboard/Sidebar.tsx](g:\Projetos\vendeo\components\dashboard\Sidebar.tsx)  
-**Changes:** 2 lines added
+**Original file modified:** `components/dashboard/Sidebar.tsx` (legacy, not active)  
+**Active file:** `components/dashboard/DashboardShell.tsx`  
+**Changes:** 2 lines added in the original attempt
 
 ```diff
 + import { Brain } from "lucide-react";

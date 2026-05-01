@@ -9,6 +9,7 @@ import { changelogData } from "@/lib/data/changelog";
 import {
   LayoutDashboard,
   Store,
+  Brain,
   Megaphone,
   CalendarRange,
   Plus,
@@ -185,6 +186,7 @@ export function DashboardShell({
     () => [
       { href: "/dashboard", label: "Dashboard", requiresStore: false, icon: LayoutDashboard },
       { href: "/dashboard/store", label: "Loja", requiresStore: false, icon: Store },
+      { href: "/dashboard/store/intelligence", label: "Inteligência", requiresStore: true, icon: Brain },
       { href: "/dashboard/campaigns", label: "Campanhas", requiresStore: true, icon: Megaphone, badge: "Novo" },
       { href: "/dashboard/plans", label: "Planos semanais", requiresStore: true, icon: CalendarRange },
     ],
