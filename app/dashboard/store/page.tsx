@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Upload, Loader2, Image as ImageIcon, X } from "lucide-react";
+import { Upload, Loader2, Image as ImageIcon, X, Sparkles } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { MotionWrapper } from "../_components/MotionWrapper";
 import { getSignedUrlAction } from "@/lib/supabase/storage-actions";
 import { saveStoreAction } from "@/lib/domain/stores/actions";
+import LogoGeneratorModal from "@/components/LogoGeneratorModal";
 
 function Toast({
   message,
@@ -233,6 +234,9 @@ export default function StorePage() {
   const [hasCampaigns, setHasCampaigns] = useState(false);
   const [hasPlans, setHasPlans] = useState(false);
 
+  // Logo Generator Modal (Story 3: Logo IA)
+  const [logoModalOpen, setLogoModalOpen] = useState(false);
+
   // cores
   const [primaryColor, setPrimaryColor] = useState("#16a34a");
   const [secondaryColor, setSecondaryColor] = useState("#0f172a");
@@ -303,7 +307,7 @@ export default function StorePage() {
       if (!publicUrl) throw new Error("Falha ao obter URL pública da imagem.");
 
       setUploadProgress(100);
-      
+
       const signedUrl = await getSignedUrlAction(path);
       // ✅ IMPORTANTE: Salvar o PATH no banco, não a URL assinada (Etapa 2)
       setLogoUrl(path);
@@ -507,7 +511,7 @@ export default function StorePage() {
 
     const storeData = data as StoreRow;
     const signedLogo = await getSignedUrlAction(storeData.logo_url);
-    
+
     fillFromStore({
       ...storeData,
       logo_url: storeData.logo_url ?? "",
@@ -836,6 +840,20 @@ export default function StorePage() {
                               </button>
                             )}
                           </div>
+
+                          {/* Story 3: Lazy Loading Trigger - Only show if logo_url is empty */}
+                          {!logoUrl.trim() && !uploadingLogo && (
+                            <div className="mt-4 text-center">
+                              <button
+                                type="button"
+                                onClick={() => setLogoModalOpen(true)}
+                                className="inline-flex items-center gap-2 text-sm font-semibold text-purple-600 hover:text-purple-700 transition-colors group"
+                              >
+                                <Sparkles className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                                Gerar logo com IA (gratuito)
+                              </button>
+                            </div>
+                          )}
 
                           <div className="relative mt-3">
                             <div className="absolute inset-0 flex items-center" aria-hidden="true">
@@ -1205,6 +1223,20 @@ export default function StorePage() {
           </div>
         </div>
       </main>
+
+      {/* Story 3: Logo Generator Modal */}
+      <LogoGeneratorModal
+        isOpen={logoModalOpen}
+        onClose={() => setLogoModalOpen(false)}
+        storeName={name}
+        segment={mainSegment || segmentChoice}
+        tone={toneOfVoice || toneChoice}
+        storeId={activeStoreId}
+        onLogoSaved={(newLogoUrl) => {
+          setLogoUrl(newLogoUrl);
+          showToast("✨ Logo gerado com sucesso!", "success");
+        }}
+      />
     </>
   );
 }
