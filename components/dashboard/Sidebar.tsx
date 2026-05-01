@@ -8,6 +8,7 @@ import {
     Megaphone,
     CalendarRange,
     Store,
+    Brain,
     Plus,
     ChevronsLeft,
     ChevronsRight,
@@ -84,6 +85,7 @@ export function Sidebar() {
         { label: "Campanhas", href: "/dashboard/campaigns", icon: Megaphone, badge: "Novo" },
         { label: "Plano Semanal", href: "/dashboard/plans", icon: CalendarRange },
         { label: "Loja", href: "/dashboard/store", icon: Store },
+        { label: "Inteligência", href: "/dashboard/store/intelligence", icon: Brain },
     ];
 
     const widthClass = collapsed ? "w-[76px]" : "w-[280px]";
