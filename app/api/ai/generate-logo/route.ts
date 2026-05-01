@@ -10,9 +10,13 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
-import { getLogoPromptBySegment, type Segment, type ToneOfVoice } from "@/lib/ai/logo-prompts";
+import {
+  getLogoPromptBySegment as getV1LogoPromptBySegment,
+  type Segment,
+  type ToneOfVoice,
+} from "@/lib/ai/logo-prompts";
+import { getLogoPromptBySegment as getV2LogoPromptBySegment } from "@/lib/ai/logo-prompts-v2";
 import { createClient } from "@supabase/supabase-js";
-import { ratelimit } from "@/lib/ratelimit";
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -30,7 +34,10 @@ interface GenerateLogoRequest {
   segment: Segment;
   tone?: ToneOfVoice;
   storeId: string;
+  promptVersion?: PromptVersion;
 }
+
+type PromptVersion = "v1" | "v2";
 
 interface LogoSuggestion {
   id: string;
@@ -45,6 +52,26 @@ interface GenerateLogoResponse {
   cost_usd?: number;
   error?: string;
   remaining_generations?: number;
+  prompt_version?: PromptVersion;
+}
+
+function getPromptVersion(requestedVersion?: PromptVersion): PromptVersion {
+  if (requestedVersion === "v1" || requestedVersion === "v2") {
+    return requestedVersion;
+  }
+
+  return process.env.LOGO_PROMPT_VERSION === "v2" ? "v2" : "v1";
+}
+
+function buildOptimizedPrompt(
+  storeName: string,
+  segment: Segment,
+  tone: ToneOfVoice | undefined,
+  promptVersion: PromptVersion
+): string {
+  return promptVersion === "v2"
+    ? getV2LogoPromptBySegment(storeName, segment, tone)
+    : getV1LogoPromptBySegment(storeName, segment, tone);
 }
 
 /**
@@ -127,7 +154,7 @@ export async function POST(req: NextRequest) {
   try {
     // Parse request body
     const body: GenerateLogoRequest = await req.json();
-    const { storeName, segment, tone, storeId } = body;
+    const { storeName, segment, tone, storeId, promptVersion: requestedPromptVersion } = body;
 
     // Validate required fields
     if (!storeName || !segment || !storeId) {
@@ -154,10 +181,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generate optimized prompt using @prompt-eng's templates
-    const optimizedPrompt = getLogoPromptBySegment(storeName, segment, tone);
+    const promptVersion = getPromptVersion(requestedPromptVersion);
 
-    console.log(`[Logo Generation] Store: ${storeName}, Segment: ${segment}, Tone: ${tone || "default"}`);
+    // Generate optimized prompt using the selected prompt version.
+    const optimizedPrompt = buildOptimizedPrompt(
+      storeName,
+      segment,
+      tone,
+      promptVersion
+    );
+
+    console.log(
+      `[Logo Generation] Store: ${storeName}, Segment: ${segment}, Tone: ${tone || "default"}, Prompt: ${promptVersion}`
+    );
     console.log(`[Logo Generation] Prompt: ${optimizedPrompt.substring(0, 100)}...`);
 
     // Generate 3 logo suggestions (sequential due to DALL-E 3 n=1 constraint)
@@ -198,6 +234,7 @@ export async function POST(req: NextRequest) {
         suggestions,
         cost_usd: costUsd,
         remaining_generations: remaining - 1,
+        prompt_version: promptVersion,
       } as GenerateLogoResponse,
       { status: 200 }
     );
