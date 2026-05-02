@@ -6,6 +6,8 @@
  * @created 2026-04-30
  */
 
+import test from "node:test";
+import assert from "node:assert/strict";
 import {
   getLogoPromptBySegment,
   getColorSuggestions,
@@ -17,42 +19,40 @@ import {
   type ToneOfVoice,
 } from "./logo-prompts.ts";
 
-describe("lib/ai/logo-prompts", () => {
-  describe("getLogoPromptBySegment", () => {
-    it("returns a complete prompt with store name interpolated", () => {
+test("getLogoPromptBySegment returns a complete prompt with store name interpolated", () => {
       const prompt = getLogoPromptBySegment(
         "Mercearia do Bairro",
         "Mercado / Mercearia"
       );
 
-      expect(prompt).toContain("Mercearia do Bairro");
-      expect(prompt).toContain("grocery store");
-      expect(prompt).toContain("minimalist");
-      expect(prompt).toContain("no text");
-      expect(prompt).toContain("white background");
-    });
+      assert.match(prompt, /Mercearia do Bairro/);
+      assert.match(prompt, /grocery store/);
+      assert.match(prompt, /minimalist/);
+      assert.match(prompt, /no text/);
+      assert.match(prompt, /white background/);
+});
 
-    it("adjusts visual style when tone is provided", () => {
+test("getLogoPromptBySegment adjusts visual style when tone is provided", () => {
       const promptPremium = getLogoPromptBySegment(
         "Boutique Elegance",
         "Moda / Boutique",
         "Premium"
       );
 
-      expect(promptPremium).toContain("elegant and sophisticated");
-    });
+      assert.match(promptPremium, /elegant and sophisticated/);
+});
 
-    it("preserves base style when tone is 'Outro…'", () => {
+test("getLogoPromptBySegment preserves base style when tone is 'Outro…'", () => {
       const prompt = getLogoPromptBySegment(
         "Pet Shop Amigo",
         "Pet shop",
         "Outro…"
       );
 
-      expect(prompt).toContain("playful and caring"); // Base style
-    });
+      assert.match(prompt, /playful and caring/);
+});
 
-    it("handles all 12 segments without errors", () => {
+test("getLogoPromptBySegment handles all 12 segments without errors", () => {
       const segments: Segment[] = [
         "Mercado / Mercearia",
         "Loja de bebidas",
@@ -70,12 +70,12 @@ describe("lib/ai/logo-prompts", () => {
 
       segments.forEach((segment) => {
         const prompt = getLogoPromptBySegment(`Test ${segment}`, segment);
-        expect(prompt).toBeTruthy();
-        expect(prompt.length).toBeGreaterThan(100); // Reasonable prompt length
+        assert.ok(prompt);
+        assert.ok(prompt.length > 100);
       });
-    });
+});
 
-    it("handles all 8 tone variations without errors", () => {
+test("getLogoPromptBySegment handles all 8 tone variations without errors", () => {
       const tones: ToneOfVoice[] = [
         "Amigável",
         "Direto",
@@ -93,139 +93,126 @@ describe("lib/ai/logo-prompts", () => {
           "Mercado / Mercearia",
           tone
         );
-        expect(prompt).toBeTruthy();
+        assert.ok(prompt);
       });
-    });
+});
 
-    it("falls back to 'Outro…' template for unknown segment", () => {
+test("getLogoPromptBySegment falls back to 'Outro…' template for unknown segment", () => {
       // This tests internal fallback behavior
       const prompt = getLogoPromptBySegment(
         "Test Store",
         "Invalid Segment" as Segment
       );
 
-      expect(prompt).toContain("Test Store");
-      expect(prompt).toContain("clean and modern"); // "Outro…" style
-    });
+      assert.match(prompt, /Test Store/);
+      assert.match(prompt, /clean and modern/);
+});
 
-    it("handles empty store name gracefully", () => {
+test("getLogoPromptBySegment handles empty store name gracefully", () => {
       const prompt = getLogoPromptBySegment("", "Pet shop");
 
-      expect(prompt).toContain('""'); // Empty placeholder
-      expect(prompt).toContain("pet shop");
-    });
+      assert.match(prompt, /""/);
+      assert.match(prompt, /pet shop/);
+});
 
-    it("handles store names with special characters", () => {
+test("getLogoPromptBySegment handles store names with special characters", () => {
       const storeName = "João's Café & Mercearia";
       const prompt = getLogoPromptBySegment(storeName, "Mercado / Mercearia");
 
-      expect(prompt).toContain(storeName);
-    });
-  });
+      assert.match(prompt, /João's Café & Mercearia/);
+});
 
-  describe("getColorSuggestions", () => {
-    it("returns valid hex color array for each segment", () => {
+test("getColorSuggestions returns valid hex color array for each segment", () => {
       const colors = getColorSuggestions("Pet shop");
 
-      expect(Array.isArray(colors)).toBe(true);
-      expect(colors.length).toBeGreaterThan(0);
+      assert.equal(Array.isArray(colors), true);
+      assert.ok(colors.length > 0);
       colors.forEach((color) => {
-        expect(color).toMatch(/^#[0-9A-F]{6}$/i); // Valid hex format
+        assert.match(color, /^#[0-9A-F]{6}$/i);
       });
-    });
+});
 
-    it("returns different colors for different segments", () => {
+test("getColorSuggestions returns different colors for different segments", () => {
       const colorsGrocery = getColorSuggestions("Mercado / Mercearia");
       const colorsBeverage = getColorSuggestions("Loja de bebidas");
 
-      expect(colorsGrocery).not.toEqual(colorsBeverage);
-    });
+      assert.notDeepEqual(colorsGrocery, colorsBeverage);
+});
 
-    it("returns consistent colors for same segment", () => {
+test("getColorSuggestions returns consistent colors for same segment", () => {
       const colors1 = getColorSuggestions("Academia");
       const colors2 = getColorSuggestions("Academia");
 
-      expect(colors1).toEqual(colors2);
-    });
+      assert.deepEqual(colors1, colors2);
+});
 
-    it("returns fallback colors for 'Outro…' segment", () => {
+test("getColorSuggestions returns fallback colors for 'Outro…' segment", () => {
       const colors = getColorSuggestions("Outro…");
 
-      expect(colors).toContain("#000000"); // Black
-      expect(colors).toContain("#FFFFFF"); // White
-    });
-  });
+      assert.ok(colors.includes("#000000"));
+      assert.ok(colors.includes("#FFFFFF"));
+});
 
-  describe("getIconicElements", () => {
-    it("returns array of iconic elements for each segment", () => {
+test("getIconicElements returns array of iconic elements for each segment", () => {
       const elements = getIconicElements("Farmácia");
 
-      expect(Array.isArray(elements)).toBe(true);
-      expect(elements.length).toBeGreaterThan(0);
-      expect(elements).toContain("medical cross");
-    });
+      assert.equal(Array.isArray(elements), true);
+      assert.ok(elements.length > 0);
+      assert.ok(elements.includes("medical cross"));
+});
 
-    it("returns segment-appropriate elements", () => {
+test("getIconicElements returns segment-appropriate elements", () => {
       const petElements = getIconicElements("Pet shop");
       const gymElements = getIconicElements("Academia");
 
-      expect(petElements).toContain("paw print");
-      expect(gymElements).toContain("dumbbell icon");
-    });
-  });
+      assert.ok(petElements.includes("paw print"));
+      assert.ok(gymElements.includes("dumbbell icon"));
+});
 
-  describe("getAvoidElements", () => {
-    it("returns array of elements to avoid for each segment", () => {
+test("getAvoidElements returns array of elements to avoid for each segment", () => {
       const avoidElements = getAvoidElements("Salão / Estética");
 
-      expect(Array.isArray(avoidElements)).toBe(true);
-      expect(avoidElements.length).toBeGreaterThan(0);
-    });
+      assert.equal(Array.isArray(avoidElements), true);
+      assert.ok(avoidElements.length > 0);
+});
 
-    it("provides helpful negative guidance", () => {
+test("getAvoidElements provides helpful negative guidance", () => {
       const avoidElements = getAvoidElements("Eletrônicos");
 
-      expect(avoidElements.some((el) => el.includes("dated"))).toBe(true); // Avoid dated tech
-    });
-  });
+      assert.ok(avoidElements.some((el) => el.includes("dated")));
+});
 
-  describe("getAllSegments", () => {
-    it("returns all 12 segments", () => {
+test("getAllSegments returns all 12 segments", () => {
       const segments = getAllSegments();
 
-      expect(segments.length).toBe(12);
-      expect(segments).toContain("Mercado / Mercearia");
-      expect(segments).toContain("Academia");
-      expect(segments).toContain("Outro…");
-    });
-  });
+      assert.equal(segments.length, 12);
+      assert.ok(segments.includes("Mercado / Mercearia"));
+      assert.ok(segments.includes("Academia"));
+      assert.ok(segments.includes("Outro…"));
+});
 
-  describe("isValidSegment", () => {
-    it("returns true for valid segments", () => {
-      expect(isValidSegment("Pet shop")).toBe(true);
-      expect(isValidSegment("Farmácia")).toBe(true);
-      expect(isValidSegment("Outro…")).toBe(true);
-    });
+test("isValidSegment returns true for valid segments", () => {
+      assert.equal(isValidSegment("Pet shop"), true);
+      assert.equal(isValidSegment("Farmácia"), true);
+      assert.equal(isValidSegment("Outro…"), true);
+});
 
-    it("returns false for invalid segments", () => {
-      expect(isValidSegment("Invalid")).toBe(false);
-      expect(isValidSegment("")).toBe(false);
-      expect(isValidSegment("pet shop")).toBe(false); // Case-sensitive
-    });
+test("isValidSegment returns false for invalid segments", () => {
+      assert.equal(isValidSegment("Invalid"), false);
+      assert.equal(isValidSegment(""), false);
+      assert.equal(isValidSegment("pet shop"), false);
+});
 
-    it("can be used as type guard", () => {
+test("isValidSegment can be used as type guard", () => {
       const userInput = "Pet shop";
 
       if (isValidSegment(userInput)) {
-        // TypeScript should recognize userInput as Segment here
         const prompt = getLogoPromptBySegment("Test", userInput);
-        expect(prompt).toBeTruthy();
+        assert.ok(prompt);
       }
-    });
-  });
+});
 
-  describe("Integration: Full workflow", () => {
-    it("generates complete logo context for a store", () => {
+test("Integration generates complete logo context for a store", () => {
       const storeName = "Boutique da Moda";
       const segment: Segment = "Moda / Boutique";
       const tone: ToneOfVoice = "Premium";
@@ -242,15 +229,14 @@ describe("lib/ai/logo-prompts", () => {
       // Get avoid elements
       const avoidElements = getAvoidElements(segment);
 
-      // Validate complete context
-      expect(prompt).toContain(storeName);
-      expect(prompt).toContain("elegant and sophisticated"); // Premium tone
-      expect(colors.length).toBeGreaterThan(0);
-      expect(iconicElements).toContain("dress silhouette");
-      expect(avoidElements.length).toBeGreaterThan(0);
-    });
+      assert.match(prompt, /Boutique da Moda/);
+      assert.match(prompt, /elegant and sophisticated/);
+      assert.ok(colors.length > 0);
+      assert.ok(iconicElements.includes("dress silhouette"));
+      assert.ok(avoidElements.length > 0);
+});
 
-    it("generates prompts for all segment/tone combinations (smoke test)", () => {
+test("Integration generates prompts for all segment tone combinations", () => {
       const segments = getAllSegments();
       const tones: ToneOfVoice[] = [
         "Amigável",
@@ -272,36 +258,31 @@ describe("lib/ai/logo-prompts", () => {
             segment,
             tone
           );
-          expect(prompt).toBeTruthy();
+          assert.ok(prompt);
           totalPrompts++;
         });
       });
 
-      // Should generate 12 segments * 8 tones = 96 prompts
-      expect(totalPrompts).toBe(96);
-    });
-  });
+      assert.equal(totalPrompts, 96);
+});
 
-  describe("Edge cases", () => {
-    it("handles very long store names", () => {
+test("Edge case handles very long store names", () => {
       const longName = "A".repeat(200);
       const prompt = getLogoPromptBySegment(longName, "Outro…");
 
-      expect(prompt).toContain(longName);
-    });
+      assert.match(prompt, new RegExp(longName));
+});
 
-    it("handles store names with quotes", () => {
+test("Edge case handles store names with quotes", () => {
       const storeName = 'João\'s "Premium" Store';
       const prompt = getLogoPromptBySegment(storeName, "Outro…");
 
-      expect(prompt).toContain(storeName);
-    });
+      assert.match(prompt, /João's "Premium" Store/);
+});
 
-    it("handles unicode characters in store name", () => {
+test("Edge case handles unicode characters in store name", () => {
       const storeName = "Café São José ☕";
       const prompt = getLogoPromptBySegment(storeName, "Restaurante / Lanchonete");
 
-      expect(prompt).toContain(storeName);
-    });
-  });
+      assert.match(prompt, /Café São José ☕/);
 });

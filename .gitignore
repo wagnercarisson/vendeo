@@ -50,3 +50,8 @@ docs-old/
 # Supabase temp files (contain credentials)
 .temp
 **/.temp
+
+# Playwright test artifacts
+playwright-report/
+test-results/
+.env.test
