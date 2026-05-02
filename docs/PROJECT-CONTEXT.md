@@ -1,6 +1,6 @@
 # Vendeo — Project Context (Session Bootstrap)
 
-**Última Atualização:** 2026-04-30 por @aiox-master  
+**Última Atualização:** 2026-05-01 por @aiox-master  
 **Propósito:** Contexto obrigatório para @aiox-master no início de cada sessão
 
 ---
@@ -13,14 +13,21 @@ Motor de vendas social para varejo físico (adegas, farmácias, moda, beauty, ho
 
 ## 📍 ONDE ESTAMOS AGORA
 
-**Fase:** Beta/Pré-lançamento — Consolidação Arquitetural  
-**Status Técnico:** Phase 0 + Phase 1 + Phase 2.0 + Phase 2.1 DEPLOYED ✅ (30/04/2026)  
-**Último Milestone:** Marketing Intelligence Layer expandida — 15 campos críticos + importantes deployados
+**Fase:** Beta/Pré-lançamento — Refinamento UX + Otimização de IA  
+**Status Técnico:** Phase 2.1 DEPLOYED + Intelligence UX Refinements COMPLETE ✅ (01/05/2026)  
+**Último Milestone:** Intelligence Page refinamentos UX + Logo IA Optimization Sprint 1 completo
 
 **3 Gaps Críticos Identificados:**
-1. **Marketing Intelligence Layer** (em implementação) — Phase 2 Híbrida aprovada
-2. **Conversion Science / Agency Principles** (planejado) — Após Phase 2.0
+1. **Marketing Intelligence Layer** (em implementação) — Phase 2.1 deployada, 2.2 próxima
+2. **Conversion Science / Agency Principles** (em progresso) — Logo IA Optimization Sprint 1 completo
 3. **Conteúdo Unidimensional** (planejado) — Weekly Plan contextualizado
+
+**Trabalho Atual (01/05/2026):**
+- ✅ **Intelligence UX Refinements** — 8 melhorias implementadas (máscaras BRL, campos guiados, hints)
+- ✅ **Logo IA Optimization Sprint 1** — v2 prompts + A/B testing infrastructure completo
+- ✅ **Intelligence Mobile Support** — Story 2B (8 de 10 ACs completos)
+- ✅ **Navigation Integration** — Intelligence integrada no dashboard flow
+- ✅ **Documentação Estratégica** — Marketing Squad + análises commitadas
 
 **Squad Marketing Completo:** 5 agentes especializados criados
 - @commerce-strategist (Especialista em Varejo) — Contexto comercial, sazonalidade
@@ -52,19 +59,17 @@ Motor de vendas social para varejo físico (adegas, farmácias, moda, beauty, ho
 
 ## 🚧 BLOCKERS ATIVOS
 
-Nenhum blocker ativo. Pronto para Phase 2.
+Nenhum blocker ativo. Próximos passos claros.
 
 ---
 
 ## 📚 DECISÕES RECENTES (Últimas 5)
 
-1. **[DEC-2026-04-30-004]** - Phase 2.1 deployada com sucesso (migrations 034-035, 9/9 validações OK)
-2. **[DEC-2026-04-30-003]** - Phase 2.0 deployada com sucesso (migrations 031-033, 11/11 validações OK)
-3. **[DEC-2026-04-30-002]** - Phase 2 Híbrida aprovada (Opção C: 2.0 → 2.1 → 2.2 incremental) ✅ EXECUTED
-4. **[DEC-2026-04-30-001]** - Phase 1 documentada como concluída (reconciliação schema.sql executada em 29/04)
-3. **[DEC-2026-04-29-003]** - Migrations 017-030 reconstituídas (Phase 0 VERDADEIRAMENTE concluída)
-4. **[DEC-2026-04-29-002]** - Sistema de navegação bússola criado (CRITICAL-FLOWS, INTEGRATION-CHECKLIST, PROJECT-CONTEXT)
-5. **[DEC-2026-04-29-001]** - Squad Marketing completo definido (5 agentes)
+1. **[DEC-2026-05-01-003]** - Git workflow modificado: usuário assume controle de commits/push (após incidente com git stash)
+2. **[DEC-2026-05-01-002]** - Intelligence UX: guided selections aprovado como padrão (vs free text fields)
+3. **[DEC-2026-05-01-001]** - Logo v2 prompts ready for A/B testing (6 vulnerabilidades corrigidas)
+4. **[DEC-2026-04-30-004]** - Phase 2.1 deployada com sucesso (migrations 034-035, 9/9 validações OK)
+5. **[DEC-2026-04-30-003]** - Phase 2.0 deployada com sucesso (migrations 031-033, 11/11 validações OK)
 
 ## 🔗 NAVEGAÇÃO RÁPIDA
 
@@ -76,80 +81,116 @@ Nenhum blocker ativo. Pronto para Phase 2.
 - `docs/analysis/critical-product-evaluation-lojista.md` — 3 gaps críticos identificados
 - `docs/analysis/segments-strategic-analysis.md` — Priorização de segmentos
 - `docs/analysis/brand-recognition-science.md` — Neurociência de reconhecimento
+- `docs/analysis/BRAND-RECOGNITION-RESEARCH-STRATEGY-2026-04-28.md` — Estratégia de pesquisa
+- `docs/analysis/LOGO-GENERATION-STRATEGY-AND-INSIGHTS-2026-04-28.md` — Insights de geração
+- `docs/analysis/SEGMENT-STRATEGIC-ANALYSIS-COMPREHENSIVE-2026-04-28.md` — Análise completa
+- `docs/analysis/SEGMENT-VIABILITY-ANALYSIS-2026-04-28.md` — Viabilidade de segmentos
+- `docs/analysis/VENDEO-CRITICAL-EVALUATION-LOJISTA-PERSPECTIVE-2026-04-28.md` — Perspectiva lojista
 
 **Squad Marketing:**
 - `docs/marketing/MARKETING-SQUAD-AIOX.md` — Definições completas dos 5 agentes
 - `docs/marketing/MARKETING-SQUAD-EXECUTIVE-SUMMARY.md` — Síntese executiva
+- `docs/marketing/MARKETING-SQUAD-TECHNICAL-INTEGRATION.md` — Integração técnica detalhada
+- `docs/marketing/START-HERE-MARKETING-SQUAD.md` — Guia de início
 
 **Protocolos:**
 - `docs/AIOX-MASTER-PROTOCOL.md` — Protocolo pré-flight (5 fases obrigatórias)
 - `docs/PROJECT-CONSTITUTION.md` — Regras inegociáveis do projeto
+- `docs/PRE-DECISION-PROTOCOL.md` — Protocolo de decisões
 
 **Capabilities (Bússola):**
 - `docs/CRITICAL-FLOWS.md` — Fluxos que NÃO PODEM regredir
 - `docs/INTEGRATION-CHECKLIST.md` — Checklist mandatório de integração
 - `docs/CAPABILITIES-INVENTORY.md` — Inventário técnico completo por bounded context
 
+**Padrões:**
+- `docs/architecture/git-standards.md` — Padrão oficial de commits (PT-BR)
+
 ---
 
-## 📋 RESUMO DA SESSÃO ATUAL (29/04/2026)
+## 📋 RESUMO DA SESSÃO ATUAL (01/05/2026)
 
 ### ✅ Conquistas do Dia
-1. **Phase 0 VERDADEIRAMENTE Concluída**
-   - 14 migrations reconstituídas (017-030) por @data-engineer (Dara)
-   - 959 linhas de DDL validadas
-   - 100% guardas de idempotência + BEGIN/COMMIT
-   - 8 tabelas criadas + 5 campos em campaigns
-   - Migrations = canonical source restaurado
 
-2. **Capabilities Inventory Criado** por @architect (Aria)
-   - 15 tabelas mapeadas por bounded context
-   - Status: Implementadas, Planejadas, Gaps
-   - Schema drift watchlist
-   - 3 gaps críticos identificados
+1. **Intelligence UX Refinements COMPLETE**
+   - 8 melhorias implementadas (máscaras BRL, campos guiados, CTAs simplificados)
+   - 3 documentos UX criados (1.907 linhas totais)
+   - Métricas esperadas: preenchimento 60%→95%, tempo 5min→2min
 
-3. **Validação Completa Executada**
-   - Script de validação: 73 guardas totais
-   - Sequência 002-030 completa sem gaps
-   - Schema local = Schema remoto (15 tabelas)
+2. **Intelligence Mobile Support (Story 2B)**
+   - Swipe gestures, retry logic, offline detection
+   - A11Y enhancements, keyboard navigation
+   - 6 unit tests criados
+   - 8 de 10 ACs completos
 
-4. **Documentação Atualizada**
-   - DEC-2026-04-29-003 registrada
-   - migration-plan.md (Phase 0 ✅)
-   - Sistema bússola completo
+3. **Logo IA Optimization Sprint 1 COMPLETE**
+   - logo-prompts-v2.ts criado (598 linhas)
+   - 6 vulnerabilidades corrigidas
+   - A/B testing infrastructure completa
+   - 8 documentos criados (2.647 linhas)
+   - Ready for testing (target: 70%+ approval)
 
-5. **Git Sincronizado** por @devops (Gage)
-   - 4 commits pushed para origin/main
-   - Commit final: `a7e1fe6`
-   - Working tree limpo
+4. **V1/V2 Prompt Switching**
+   - Dual import system implementado
+   - Env var + request param support
+   - Backward compatible (default v1)
+
+5. **Navigation Integration**
+   - Intelligence integrada no dashboard flow
+   - Sidebar limpo (-285 linhas)
+
+6. **Documentação Realinhada**
+   - Marketing Squad documentação commitada
+   - 5 análises estratégicas (28/04) commitadas
+   - PRE-DECISION-PROTOCOL commitado
+   - visual-composer e qa/ artifacts commitados
+
+7. **Git Standards Estabelecido**
+   - `docs/architecture/git-standards.md` criado
+   - Formato oficial: `[tipo]: descrição`
+   - Idioma: PT-BR
+   - Changelog público: apenas impacto visível
+
+8. **Session Closure Document**
+   - Fechamento completo documentado
+   - Lições aprendidas registradas
+   - Próximos passos claros
 
 ### ➡️ Próximos Passos (Retomada Amanhã)
 
-**Phase 2: Additive Changes** (1 dia, baixo risk)
-- Migration 031: `store_intelligence` table
-- Migration 032: `campaign_events` table
-- Migration 033: `weekly_plans.intelligence_snapshot` (campo opcional)
-- Responsável: @data-engineer (Dara)
-- Referência: `docs/architecture/schema-proposal.md`
+**Prioridade 1: Logo A/B Testing**
+- Executar `logo-ab-test.ts` com 9 segmentos
+- Comparar v1 vs v2 vs Flux
+- Decisão de deploy baseada em approval rate
 
-**Onboarding 5min** (Gap #1 — Marketing Intelligence)
-- Questionário inteligente (5 minutos)
-- Agentes: @ux-design-expert, @commerce-strategist, @prompt-eng
-- Objetivo: Coletar contexto do lojista (best_days, audience, differentiation)
+**Prioridade 2: Intelligence Guided Selections**
+- Implementar proposta de campos guiados
+- Transformar 5 campos texto livre em seleções
+- Medir taxa de preenchimento
 
-**Visual Reader** (Gap #3 — Crítico)
-- Implementar do zero: `lib/engines/visual-reader/`
-- Contrato F: 18 campos estruturados
-- Integrar em F2 (Geração de Campanha)
-- Desbloqueia F4 (Validação Produto vs Imagem)
+**Prioridade 3: Phase 2.2 Planning**
+- @data-engineer: migrations 036-039 (governança)
+- JSON Schema validation
+- Agregações de intelligence score
 
-### ❓ Questões Pendentes (Verificar na Próxima Sessão)
-- ⚠️ **Phase 1 existe ou foi desconsiderada?** migration-plan.md menciona Phase 0 (concluída) e Phase 2 (próxima), mas Phase 1 não aparece. Verificar se:
-  - Phase 1 foi mesclada em Phase 0
+### 🚨 Lições Aprendidas
 
-Nenhuma questão pendente.
-- ✅ Migrations 002-030 no repositório remoto
-- ✅ CAPABILITIES-INVENTORY.md = bússola anti-duplicação
-- ✅ AIOX-MASTER-PROTOCOL.md = guia de decisões (+ protocolo de fechamento adicionado)
-- ✅ Phase 2 com decisões aprovadas (design-decisions.md)
-- ⚠️ Arquitetura-alvo v2 desatualizada (usar com cautela)
+**Git Workflow Change (CRÍTICO):**
+- Agentes NÃO executam git operations sem autorização
+- Usuário assume controle de commits/push
+- Nunca usar `git stash` sem necessidade absoluta
+- **Regra:** Agentes documentam, usuário commita
+
+### 📊 Métricas da Sessão
+
+- Commits criados: 8
+- Linhas adicionadas: ~7.500
+- Arquivos modificados: 28
+- Arquivos criados: 25+
+- Documentação: 15 arquivos
+- Testes: 9
+- Duração: ~6 horas
+
+---
+
+**Session closure:** `docs/sessions/session-2026-05-01-closure.md`
