@@ -11,12 +11,23 @@ export function ProgressIndicator({
   filledFields,
   totalFields,
   badge,
+  saveMessage,
+  saveStatus,
 }: {
   score: number;
   filledFields: number;
   totalFields: number;
   badge: string;
+  saveMessage: string;
+  saveStatus: "idle" | "saving" | "saved" | "error";
 }) {
+  const tone =
+    saveStatus === "error"
+      ? "text-rose-600"
+      : saveStatus === "saving"
+        ? "text-amber-600"
+        : "text-emerald-600";
+
   return (
     <div className="rounded-[2rem] border border-zinc-200 bg-white p-6 shadow-sm">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -37,6 +48,7 @@ export function ProgressIndicator({
           <span className={`inline-flex rounded-full border px-3 py-2 text-sm font-semibold ${badgeTone(score)}`}>
             {badge}
           </span>
+          <span className={`text-sm font-medium ${tone}`}>{saveMessage}</span>
         </div>
       </div>
     </div>

@@ -1,6 +1,5 @@
 "use client";
 
-import { Info } from "lucide-react";
 import type { IntelligenceContext } from "../hooks/useIntelligenceForm";
 import {
   CheckboxRow,
@@ -18,14 +17,6 @@ const FORMALITY_OPTIONS = [
   { label: "Muito casual", value: "very_casual" },
 ];
 
-const RECOMMENDED_VALUES = {
-  headlineMaxWords: 8,
-  bodyMaxWords: 50,
-  emojiComfortMin: 4,
-  emojiComfortMax: 6,
-  maxExclamationsPerCopy: 2,
-};
-
 export function Tab4Avancado({
   context,
   errors,
@@ -41,13 +32,7 @@ export function Tab4Avancado({
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
-        <div className="flex items-start gap-2">
-          <Info className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>
-            Se tiver dúvida em algum campo numérico, use o valor recomendado. Você pode
-            ajustar depois se achar melhor.
-          </span>
-        </div>
+        <strong>Dica:</strong> Se tiver dúvida em algum campo numérico, use o valor recomendado. Você pode ajustar depois se achar melhor.
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
@@ -63,29 +48,31 @@ export function Tab4Avancado({
             label="Quero usar gírias ou expressões regionais"
             description="Bom para negócios de bairro que vendem proximidade e familiaridade."
           />
-          <SelectInput
-            value={language.formality_level}
-            onChange={(value) => updateField("language_specifics.formality_level", value || undefined)}
-            placeholder="Selecione o nível de formalidade"
-            options={FORMALITY_OPTIONS}
-          />
-          <SliderField
-            value={language.emoji_comfort ?? 4}
-            onChange={(value) => updateField("language_specifics.emoji_comfort", value)}
-            min={0}
-            max={10}
-            leftLabel="Sem emoji"
-            rightLabel="Emoji liberado"
-          />
-          <div className="text-xs leading-5 text-zinc-500">
-            Quanto mais alto, mais emojis o Vendeo vai usar. Recomendado ({RECOMMENDED_VALUES.emojiComfortMin}
-            -{RECOMMENDED_VALUES.emojiComfortMax}) para equilibrar proximidade e profissionalismo.
+          <div className="mt-3">
+            <div className="text-sm font-medium text-zinc-900">Nível de formalidade</div>
+            <SelectInput
+              value={language.formality_level}
+              onChange={(value) => updateField("language_specifics.formality_level", value || undefined)}
+              placeholder="Selecione o nível de formalidade"
+              options={FORMALITY_OPTIONS}
+            />
+          </div>
+          <div className="mt-3">
+            <div className="text-sm font-medium text-zinc-900">Conforto com emojis</div>
+            <SliderField
+              value={language.emoji_comfort ?? 4}
+              onChange={(value) => updateField("language_specifics.emoji_comfort", value)}
+              min={0}
+              max={10}
+              leftLabel="Sem emoji"
+              rightLabel="Emoji liberado"
+            />
+            <div className="mt-2 text-xs text-zinc-500">
+              Quanto mais alto, mais emojis o Vendeo vai usar. <strong>Recomendado: 4 a 6</strong> para equilibrar proximidade e profissionalismo.
+            </div>
           </div>
           <div className="mt-3">
             <div className="text-sm font-medium text-zinc-900">Máximo de exclamações por texto</div>
-            <div className="mt-1 text-xs leading-5 text-zinc-500">
-              Quantas vezes "!" pode aparecer em cada texto. Se tiver dúvida, comece com o recomendado.
-            </div>
             <TextInput
               type="number"
               min={0}
@@ -97,10 +84,10 @@ export function Tab4Avancado({
                   value === "" ? undefined : Number(value)
                 )
               }
-              placeholder={`Recomendado (${RECOMMENDED_VALUES.maxExclamationsPerCopy})`}
+              placeholder="Recomendado: 2"
             />
-            <div className="mt-1 text-xs leading-5 text-zinc-500">
-              Recomendado ({RECOMMENDED_VALUES.maxExclamationsPerCopy}) para passar urgência sem exagero.
+            <div className="mt-1 text-xs text-zinc-500">
+              Quantas vezes "!" pode aparecer? <strong>Recomendado: 1 a 2</strong> para passar urgência sem exagero.
             </div>
           </div>
         </FieldShell>
@@ -116,9 +103,6 @@ export function Tab4Avancado({
         >
           <div className="mt-3">
             <div className="text-sm font-medium text-zinc-900">Máximo de palavras no título</div>
-            <div className="mt-1 text-xs leading-5 text-zinc-500">
-              Quantas palavras no máximo para o título da campanha. Se tiver dúvida, comece com o recomendado.
-            </div>
             <TextInput
               type="number"
               min={0}
@@ -129,17 +113,14 @@ export function Tab4Avancado({
                   value === "" ? undefined : Number(value)
                 )
               }
-              placeholder={`Recomendado (${RECOMMENDED_VALUES.headlineMaxWords})`}
+              placeholder="Recomendado: 8 palavras"
             />
-            <div className="mt-1 text-xs leading-5 text-zinc-500">
-              Recomendado ({RECOMMENDED_VALUES.headlineMaxWords}) para um título curto e fácil de ler.
+            <div className="mt-1 text-xs text-zinc-500">
+              Títulos entre 6 e 10 palavras costumam segurar melhor a atenção do cliente.
             </div>
           </div>
           <div className="mt-3">
             <div className="text-sm font-medium text-zinc-900">Máximo de palavras no corpo da campanha</div>
-            <div className="mt-1 text-xs leading-5 text-zinc-500">
-              Quantas palavras no máximo para a descrição. Se tiver dúvida, comece com o recomendado.
-            </div>
             <TextInput
               type="number"
               min={0}
@@ -150,10 +131,10 @@ export function Tab4Avancado({
                   value === "" ? undefined : Number(value)
                 )
               }
-              placeholder={`Recomendado (${RECOMMENDED_VALUES.bodyMaxWords})`}
+              placeholder="Recomendado: 50 palavras"
             />
-            <div className="mt-1 text-xs leading-5 text-zinc-500">
-              Recomendado ({RECOMMENDED_VALUES.bodyMaxWords}) para manter atenção sem empobrecer a oferta.
+            <div className="mt-1 text-xs text-zinc-500">
+              Textos entre 40 e 60 palavras mantêm contexto suficiente sem cansar a leitura.
             </div>
           </div>
           <CheckboxRow
