@@ -1,6 +1,6 @@
 # Vendeo — Project Context (Session Bootstrap)
 
-**Última Atualização:** 2026-05-01 por @aiox-master  
+**Última Atualização:** 2026-05-03 por @aiox-master  
 **Propósito:** Contexto obrigatório para @aiox-master no início de cada sessão
 
 ---
@@ -14,20 +14,22 @@ Motor de vendas social para varejo físico (adegas, farmácias, moda, beauty, ho
 ## 📍 ONDE ESTAMOS AGORA
 
 **Fase:** Beta/Pré-lançamento — Refinamento UX + Otimização de IA  
-**Status Técnico:** Phase 2.1 DEPLOYED + Intelligence UX Refinements COMPLETE ✅ (01/05/2026)  
-**Último Milestone:** Intelligence Page refinamentos UX + Logo IA Optimization Sprint 1 completo
+**Status Técnico:** Phase 2.1 DEPLOYED + Intelligence UX Refinements COMPLETE ✅ (01-02/05/2026)  
+**Último Milestone:** Intelligence Page refinamentos UX completo (fixes críticos 02/05) + Logo IA Optimization Sprint 1
 
 **3 Gaps Críticos Identificados:**
 1. **Marketing Intelligence Layer** (em implementação) — Phase 2.1 deployada, 2.2 próxima
 2. **Conversion Science / Agency Principles** (em progresso) — Logo IA Optimization Sprint 1 completo
 3. **Conteúdo Unidimensional** (planejado) — Weekly Plan contextualizado
 
-**Trabalho Atual (01/05/2026):**
+**Trabalho Concluído (01-02/05/2026):**
 - ✅ **Intelligence UX Refinements** — 8 melhorias implementadas (máscaras BRL, campos guiados, hints)
+- ✅ **Intelligence Critical Fixes (02/05)** — 3 fixes UX críticos + limit enforcement (autosave navegação, pain points UX, guidance)
 - ✅ **Logo IA Optimization Sprint 1** — v2 prompts + A/B testing infrastructure completo
 - ✅ **Intelligence Mobile Support** — Story 2B (8 de 10 ACs completos)
 - ✅ **Navigation Integration** — Intelligence integrada no dashboard flow
 - ✅ **Documentação Estratégica** — Marketing Squad + análises commitadas
+- ✅ **Protocolo AIOX-MASTER atualizado** — FASE 6 (CLOSURE & HANDOFF) adicionada
 
 **Squad Marketing Completo:** 5 agentes especializados criados
 - @commerce-strategist (Especialista em Varejo) — Contexto comercial, sazonalidade
@@ -42,11 +44,13 @@ Motor de vendas social para varejo físico (adegas, farmácias, moda, beauty, ho
 
 ## 🎯 PARA ONDE VAMOS
 
-**Próximo Objetivo:** Phase 2.2 — Governança + Agregações (+2 semanas)  
-**Prioridade 1:** @ux-design-expert entrega designs de modais de onboarding progressivo  
-**Prioridade 2:** @data-engineer implementa migrations 036-039 (JSON Schema validation, agregações)  
+**Próximo Objetivo:** Phase 2.2 — Governança + Agregações (+2 semanas) ⚡ CONFIRMADO 03/05  
+**Prioridade 1:** @data-engineer implementa migrations 037-040 (JSON Schema validation, agregações, governança)  
+**Prioridade 2:** @ux-design-expert entrega designs de modais de onboarding progressivo  
 **Prioridade 3:** Backend integration (Phase 4) — integrar store_intelligence.context nos prompts  
 **Meta de Impacto:** LTV +200-300% (de R$ 200-300 para R$ 900-1.200) via intelligence-driven campaigns
+
+**Decisão Estratégica (03/05):** Logo optimization (Sprint 2) adiado. Razão: não-bloqueante + custo adicional desnecessário em fase localhost. Foco em refatoração intelligence embarcada (Phase 2.2) como fundação para backend integration.
 
 **Abordagem:** Phase 2 Híbrida (Opção C)
 - **Phase 2.0 (1 dia):** 5 campos críticos mínimos
@@ -63,13 +67,16 @@ Nenhum blocker ativo. Próximos passos claros.
 
 ---
 
-## 📚 DECISÕES RECENTES (Últimas 5)
+## 📚 DECISÕES RECENTES (Últimas 8)
 
-1. **[DEC-2026-05-01-003]** - Git workflow modificado: usuário assume controle de commits/push (após incidente com git stash)
-2. **[DEC-2026-05-01-002]** - Intelligence UX: guided selections aprovado como padrão (vs free text fields)
-3. **[DEC-2026-05-01-001]** - Logo v2 prompts ready for A/B testing (6 vulnerabilidades corrigidas)
-4. **[DEC-2026-04-30-004]** - Phase 2.1 deployada com sucesso (migrations 034-035, 9/9 validações OK)
-5. **[DEC-2026-04-30-003]** - Phase 2.0 deployada com sucesso (migrations 031-033, 11/11 validações OK)
+1. **[DEC-2026-05-03-001]** - Phase 2.2 confirmada como próximo milestone (governance + aggregations); Logo Sprint 2 adiado (não-bloqueante em localhost)
+2. **[DEC-2026-05-02-003]** - Hints dinâmicos aprovados: educação progressiva > tooltips (reduz fricção cognitiva, acessível)
+3. **[DEC-2026-05-02-002]** - Pain points limit enforcement: isOptionDisabled pattern + removable cards (solução generalizada, feedback visual claro)
+4. **[DEC-2026-05-02-001]** - Autosave strategy: event listeners (beforeunload, visibilitychange, popstate, click) + fetch keepalive (sendBeacon incompatível com application/json)
+5. **[DEC-2026-05-01-003]** - Git workflow modificado: usuário assume controle de commits/push (após incidente com git stash)
+6. **[DEC-2026-05-01-002]** - Intelligence UX: guided selections aprovado como padrão (vs free text fields)
+7. **[DEC-2026-05-01-001]** - Logo v2 prompts ready for A/B testing (6 vulnerabilidades corrigidas)
+8. **[DEC-2026-04-30-004]** - Phase 2.1 deployada com sucesso (migrations 034-035, 9/9 validações OK)
 
 ## 🔗 NAVEGAÇÃO RÁPIDA
 
