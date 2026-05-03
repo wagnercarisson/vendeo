@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useScoreCalculation } from "./useScoreCalculation";
-import { getRetryDelay } from "../utils/saveRetry";
 
 export type IntelligenceSuccessfulPastCta = {
   cta: string;
@@ -23,9 +22,9 @@ export type IntelligenceContext = {
     | "students"
     | "parents"
     | "mixed_age"
-    | "custom";
+    | "custom"
+    | null;
   seasonal_peaks?: string[];
-  seasonal_peaks_custom?: string;
   main_differentiation?: string;
   main_differentiation_preset?:
     | "price"
@@ -36,12 +35,13 @@ export type IntelligenceContext = {
     | "expertise"
     | "speed"
     | "trust"
-    | "custom";
+    | "custom"
+    | null;
   top_products?: string[];
   price_positioning?: "economic" | "medium" | "premium" | "luxury" | null;
   average_ticket_brl?: number | null;
-  competitors?: string[];
   competitor_type?: "local" | "regional" | "national" | "online";
+  competitors?: string[];
   unique_selling_proposition?: {
     primary_usp?: string;
     supporting_points?: string[];
@@ -60,11 +60,11 @@ export type IntelligenceContext = {
   language_specifics?: {
     uses_regional_slang?: boolean;
     formality_level?:
-      | "very_formal"
-      | "formal"
-      | "neutral"
-      | "casual"
-      | "very_casual";
+    | "very_formal"
+    | "formal"
+    | "neutral"
+    | "casual"
+    | "very_casual";
     emoji_comfort?: number;
     max_exclamations_per_copy?: number;
   };
@@ -76,60 +76,6 @@ export type IntelligenceContext = {
 };
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
-
-type PersistChangesOptions = {
-  keepalive?: boolean;
-  skipStatusUpdate?: boolean;
-  maxRetries?: number;
-};
-
-type PendingIntelligenceSnapshot = {
-  context: IntelligenceContext;
-  savedAt: string;
-};
-
-export function getPendingIntelligenceStorageKey(storeId: string) {
-  return `vendeo:intelligence:pending:${storeId}`;
-}
-
-function readPendingSnapshot(storeId: string): IntelligenceContext | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const rawValue = window.localStorage.getItem(getPendingIntelligenceStorageKey(storeId));
-  if (!rawValue) {
-    return null;
-  }
-
-  try {
-    const parsed = JSON.parse(rawValue) as PendingIntelligenceSnapshot;
-    return normalizeLoadedContext(parsed.context);
-  } catch {
-    return null;
-  }
-}
-
-function savePendingSnapshot(storeId: string, context: IntelligenceContext) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  const payload: PendingIntelligenceSnapshot = {
-    context,
-    savedAt: new Date().toISOString(),
-  };
-
-  window.localStorage.setItem(getPendingIntelligenceStorageKey(storeId), JSON.stringify(payload));
-}
-
-function clearPendingSnapshot(storeId: string) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.removeItem(getPendingIntelligenceStorageKey(storeId));
-}
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -145,6 +91,13 @@ function normalizeLoadedContext(value: unknown): IntelligenceContext {
 
 function createSignature(context: IntelligenceContext) {
   return JSON.stringify(context);
+}
+
+function isDirtySignature(currentSignature: string, lastSavedSignature: string, filledFields: number) {
+  const emptyAndNeverSaved =
+    filledFields === 0 && lastSavedSignature === createSignature({});
+
+  return currentSignature !== lastSavedSignature && !emptyAndNeverSaved;
 }
 
 function setNestedValue<T extends Record<string, unknown>>(
@@ -175,32 +128,12 @@ export function validateIntelligenceContext(context: IntelligenceContext) {
     errors.target_audience = "Máximo 200 caracteres";
   }
 
-  if ((context.seasonal_peaks_custom ?? "").length > 100) {
-    errors.seasonal_peaks_custom = "Máximo 100 caracteres";
-  }
-
-  if ((context.seasonal_peaks ?? []).length > 5) {
-    errors.seasonal_peaks = "Selecione no máximo 5 picos sazonais";
-  }
-
   if ((context.main_differentiation ?? "").length > 300) {
     errors.main_differentiation = "Máximo 300 caracteres";
   }
 
-  if ((context.competitors ?? []).length > 5) {
-    errors.competitors = "Liste no máximo 5 concorrentes";
-  }
-
   if ((context.unique_selling_proposition?.primary_usp ?? "").length > 200) {
     errors["unique_selling_proposition.primary_usp"] = "Máximo 200 caracteres";
-  }
-
-  if ((context.customer_pain_points_custom ?? "").length > 100) {
-    errors.customer_pain_points_custom = "Máximo 100 caracteres";
-  }
-
-  if ((context.customer_pain_points ?? []).length > 4) {
-    errors.customer_pain_points = "Selecione no máximo 4 problemas";
   }
 
   if ((context.average_ticket_brl ?? 0) < 0) {
@@ -222,21 +155,6 @@ export function validateIntelligenceContext(context: IntelligenceContext) {
   if ((context.copy_length_preferences?.body_max_words ?? 0) < 0) {
     errors["copy_length_preferences.body_max_words"] = "O valor deve ser maior ou igual a 0";
   }
-
-  const successfulPastCtas = context.successful_past_ctas ?? [];
-
-  for (let index = 0; index < successfulPastCtas.length; index += 1) {
-    const item = successfulPastCtas[index];
-
-    if ((item.cta ?? "").length > 120) {
-      errors[`successful_past_ctas.${index}.cta`] = "Máximo 120 caracteres";
-    }
-
-    if ((item.context ?? "").length > 160) {
-      errors[`successful_past_ctas.${index}.context`] = "Máximo 160 caracteres";
-    }
-  }
-
   return errors;
 }
 
@@ -245,11 +163,11 @@ export function useIntelligenceForm() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [storeId, setStoreId] = useState<string>("");
+  const [storeSegment, setStoreSegment] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(0);
   const [context, setContext] = useState<IntelligenceContext>({});
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
-  const [saveError, setSaveError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState(
     "Preencha os campos e troque de aba para salvar automaticamente."
   );
@@ -268,11 +186,36 @@ export function useIntelligenceForm() {
     filledFieldsRef.current = scoreSummary.filledFields;
   }, [context, scoreSummary.filledFields]);
 
-  function hasPendingChanges(signature = signatureRef.current) {
-    const emptyAndNeverSaved =
-      filledFieldsRef.current === 0 && lastSavedSignatureRef.current === createSignature({});
+  function persistPendingChanges(options?: { keepalive?: boolean }) {
+    const currentSignature = signatureRef.current;
 
-    return Boolean(storeId) && signature !== lastSavedSignatureRef.current && !emptyAndNeverSaved;
+    if (!storeId || !isDirtySignature(currentSignature, lastSavedSignatureRef.current, filledFieldsRef.current)) {
+      return;
+    }
+
+    void fetch("/api/store/intelligence", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        store_id: storeId,
+        context: contextRef.current,
+      }),
+      keepalive: options?.keepalive,
+    })
+      .then(async (response) => {
+        const result = await response.json().catch(() => null);
+
+        if (!response.ok || !result?.success) {
+          throw new Error(result?.details || result?.error || "save_failed");
+        }
+
+        lastSavedSignatureRef.current = currentSignature;
+      })
+      .catch(() => {
+        // Best-effort save for navigation events.
+      });
   }
 
   useEffect(() => {
@@ -296,7 +239,7 @@ export function useIntelligenceForm() {
 
       const { data: store, error: storeError } = await supabase
         .from("stores")
-        .select("id")
+        .select("id, main_segment")
         .eq("owner_user_id", user.id)
         .order("created_at", { ascending: true })
         .limit(1)
@@ -316,6 +259,7 @@ export function useIntelligenceForm() {
       }
 
       setStoreId(store.id);
+  setStoreSegment(store.main_segment ?? null);
 
       const { data: intelligence, error: intelligenceError } = await supabase
         .from("store_intelligence")
@@ -335,7 +279,6 @@ export function useIntelligenceForm() {
       setContext(nextContext);
       lastSavedSignatureRef.current = createSignature(nextContext);
       setSaveStatus("idle");
-      setSaveError(null);
       setSaveMessage(
         Object.keys(nextContext).length > 0
           ? "Dados carregados. Troque de aba para salvar novas alterações."
@@ -351,22 +294,14 @@ export function useIntelligenceForm() {
     };
   }, [router]);
 
-  async function persistChanges(
-    snapshot: IntelligenceContext,
-    signature: string,
-    options: PersistChangesOptions = {}
-  ) {
-    const { keepalive = false, skipStatusUpdate = false, maxRetries = 3 } = options;
-    const payload = snapshot;
-    const payloadSignature = signature;
+  async function saveChanges(snapshot?: IntelligenceContext, signature?: string) {
+    const payload = snapshot ?? contextRef.current;
+    const payloadSignature = signature ?? createSignature(payload);
     const payloadErrors = validateIntelligenceContext(payload);
 
     if (Object.keys(payloadErrors).length > 0) {
-      if (!skipStatusUpdate) {
-        setSaveError("Revise os campos destacados antes de salvar.");
-        setSaveStatus("error");
-        setSaveMessage("Revise os campos destacados antes de salvar.");
-      }
+      setSaveStatus("error");
+      setSaveMessage("Revise os campos destacados antes de salvar.");
       return false;
     }
 
@@ -374,100 +309,44 @@ export function useIntelligenceForm() {
       return false;
     }
 
-    if (typeof navigator !== "undefined" && !navigator.onLine) {
-      savePendingSnapshot(storeId, payload);
-
-      if (!skipStatusUpdate) {
-        setSaveError(null);
-        setSaveStatus("error");
-        setSaveMessage("Offline: guardamos uma cópia local e vamos sincronizar quando a conexão voltar.");
-      }
-
-      return false;
-    }
-
-    if (!skipStatusUpdate) {
-      setSaving(true);
-      setSaveError(null);
-      setSaveStatus("saving");
-      setSaveMessage("💾 Salvando...");
-    }
-
-    let lastErrorMessage = "Falha ao salvar automaticamente.";
+    setSaving(true);
+    setSaveStatus("saving");
+    setSaveMessage("💾 Salvando...");
 
     try {
-      for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
-        try {
-          const response = await fetch("/api/store/intelligence", {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            keepalive,
-            body: JSON.stringify({
-              store_id: storeId,
-              context: payload,
-            }),
-          });
+      const response = await fetch("/api/store/intelligence", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          store_id: storeId,
+          context: payload,
+        }),
+      });
 
-          const result = await response.json().catch(() => null);
+      const result = await response.json().catch(() => null);
 
-          if (!response.ok || !result?.success) {
-            throw new Error(result?.details || result?.error || "save_failed");
-          }
-
-          clearPendingSnapshot(storeId);
-          lastSavedSignatureRef.current = payloadSignature;
-
-          if (!skipStatusUpdate && signatureRef.current === payloadSignature && result?.data?.context) {
-            setContext(normalizeLoadedContext(result.data.context));
-          }
-
-          if (!skipStatusUpdate) {
-            setSaveStatus("saved");
-            setSaveMessage("✅ Salvo automaticamente");
-          }
-
-          return true;
-        } catch (error: any) {
-          lastErrorMessage = error?.message || "Falha ao salvar automaticamente.";
-
-          if (attempt < maxRetries) {
-            await new Promise((resolve) => window.setTimeout(resolve, getRetryDelay(attempt)));
-            continue;
-          }
-        }
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.details || result?.error || "save_failed");
       }
 
-      savePendingSnapshot(storeId, payload);
+      lastSavedSignatureRef.current = payloadSignature;
 
-      if (!skipStatusUpdate) {
-        setSaveError(lastErrorMessage);
-        setSaveStatus("error");
-        setSaveMessage("Não foi possível salvar agora. Mantivemos uma cópia local para reenviar.");
+      if (signatureRef.current === payloadSignature && result?.data?.context) {
+        setContext(normalizeLoadedContext(result.data.context));
       }
 
+      setSaveStatus("saved");
+      setSaveMessage("✅ Salvo automaticamente");
+      return true;
+    } catch (error: any) {
+      setSaveStatus("error");
+      setSaveMessage(error?.message || "Falha ao salvar automaticamente.");
       return false;
     } finally {
-      if (!skipStatusUpdate) {
-        setSaving(false);
-      }
+      setSaving(false);
     }
-  }
-
-  async function saveChanges(snapshot?: IntelligenceContext, signature?: string) {
-    const payload = snapshot ?? contextRef.current;
-    const payloadSignature = signature ?? createSignature(payload);
-
-    return persistChanges(payload, payloadSignature);
-  }
-
-  async function retrySave() {
-    const pendingSnapshot = storeId ? readPendingSnapshot(storeId) : null;
-    const payload = pendingSnapshot ?? contextRef.current;
-    const payloadSignature = createSignature(payload);
-
-    return persistChanges(payload, payloadSignature, { maxRetries: 1 });
   }
 
   useEffect(() => {
@@ -477,7 +356,13 @@ export function useIntelligenceForm() {
     }
 
     const currentSignature = signatureRef.current;
-    if (!hasPendingChanges(currentSignature)) {
+    const isDirty = isDirtySignature(
+      currentSignature,
+      lastSavedSignatureRef.current,
+      filledFieldsRef.current
+    );
+
+    if (!storeId || !isDirty) {
       return;
     }
 
@@ -489,78 +374,75 @@ export function useIntelligenceForm() {
   }, [activeTab, storeId]);
 
   useEffect(() => {
-    async function flushPendingChanges() {
+    function handleBeforeUnload(event: BeforeUnloadEvent) {
       const currentSignature = signatureRef.current;
 
-      if (!hasPendingChanges(currentSignature)) {
+      if (!isDirtySignature(currentSignature, lastSavedSignatureRef.current, filledFieldsRef.current) || !storeId) {
         return;
       }
 
-      await persistChanges(contextRef.current, currentSignature, {
-        keepalive: true,
-        skipStatusUpdate: true,
-      });
+      persistPendingChanges({ keepalive: true });
+      event.preventDefault();
+      event.returnValue = "";
     }
 
     function handleVisibilityChange() {
       if (document.visibilityState === "hidden") {
-        void flushPendingChanges();
+        persistPendingChanges({ keepalive: true });
       }
     }
 
-    function handleBeforeUnload() {
-      void flushPendingChanges();
+    function handleDocumentClick(event: MouseEvent) {
+      if (!(event.target instanceof Element)) {
+        return;
+      }
+
+      const anchor = event.target.closest("a[href]");
+
+      if (!(anchor instanceof HTMLAnchorElement)) {
+        return;
+      }
+
+      const href = anchor.getAttribute("href");
+
+      if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) {
+        return;
+      }
+
+      if (anchor.target === "_blank" || anchor.hasAttribute("download")) {
+        return;
+      }
+
+      const nextUrl = new URL(anchor.href, window.location.href);
+
+      if (nextUrl.origin !== window.location.origin || nextUrl.pathname === window.location.pathname) {
+        return;
+      }
+
+      persistPendingChanges({ keepalive: true });
     }
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    function handlePopState() {
+      persistPendingChanges({ keepalive: true });
+    }
+
     window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("popstate", handlePopState);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    document.addEventListener("click", handleDocumentClick, true);
 
     return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("beforeunload", handleBeforeUnload);
-      void flushPendingChanges();
-    };
-  }, [storeId]);
-
-  useEffect(() => {
-    if (!storeId) {
-      return;
-    }
-
-    async function syncPendingSnapshot() {
-      const pendingSnapshot = readPendingSnapshot(storeId);
-
-      if (!pendingSnapshot) {
-        return;
-      }
-
-      const pendingSignature = createSignature(pendingSnapshot);
-
-      if (pendingSignature === lastSavedSignatureRef.current) {
-        clearPendingSnapshot(storeId);
-        return;
-      }
-
-      await persistChanges(pendingSnapshot, pendingSignature, { maxRetries: 1 });
-    }
-
-    function handleOnline() {
-      void syncPendingSnapshot();
-    }
-
-    window.addEventListener("online", handleOnline);
-    void syncPendingSnapshot();
-
-    return () => {
-      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("popstate", handlePopState);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      document.removeEventListener("click", handleDocumentClick, true);
     };
   }, [storeId]);
 
   function updateField(path: string, value: unknown) {
     setContext((current) => setNestedValue(current, path, value));
-    setSaveError(null);
     setSaveStatus("idle");
-    setSaveMessage("Alterações pendentes. Troque de aba ou saia da página para salvar.");
+    setSaveMessage("Alterações pendentes. Salve trocando de aba ou saindo da tela.");
   }
 
   function toggleArrayValue(path: string, value: string) {
@@ -592,6 +474,7 @@ export function useIntelligenceForm() {
     loading,
     loadError,
     storeId,
+    storeSegment,
     activeTab,
     setActiveTab,
     context,
@@ -603,9 +486,7 @@ export function useIntelligenceForm() {
     validationErrors,
     saving,
     saveStatus,
-    saveError,
     saveMessage,
     saveChanges,
-    retrySave,
   };
 }
