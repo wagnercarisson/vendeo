@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useState } from "react";
 import type { IntelligenceSuccessfulPastCta } from "../hooks/useIntelligenceForm";
 
 function cx(...classes: Array<string | false | null | undefined>) {
@@ -34,11 +34,7 @@ export function FieldShell({
           </div>
           {hint ? <div className="mt-1 text-xs leading-5 text-zinc-500">{hint}</div> : null}
         </div>
-        {counter ? (
-          <div className="text-xs text-zinc-400" aria-live="polite">
-            {counter}
-          </div>
-        ) : null}
+        {counter ? <div className="text-xs text-zinc-400">{counter}</div> : null}
       </div>
       {children}
       {error ? <div className="mt-2 text-xs font-medium text-rose-600">{error}</div> : null}
@@ -53,10 +49,6 @@ export function TextInput({
   type = "text",
   min,
   max,
-  maxLength,
-  id,
-  ariaLabel,
-  ariaDescribedBy,
 }: {
   value: string | number | undefined | null;
   onChange: (value: string) => void;
@@ -64,22 +56,14 @@ export function TextInput({
   type?: "text" | "number";
   min?: number;
   max?: number;
-  maxLength?: number;
-  id?: string;
-  ariaLabel?: string;
-  ariaDescribedBy?: string;
 }) {
   return (
     <input
-      id={id}
       type={type}
       value={value ?? ""}
       min={min}
       max={max}
-      maxLength={maxLength}
       placeholder={placeholder}
-      aria-label={ariaLabel}
-      aria-describedby={ariaDescribedBy}
       onChange={(event) => onChange(event.target.value)}
       className={inputClassName}
     />
@@ -91,31 +75,21 @@ export function TextArea({
   onChange,
   placeholder,
   rows = 4,
-  maxLength,
-  id,
-  ariaLabel,
-  autoFocus,
+  className,
 }: {
   value: string | undefined;
   onChange: (value: string) => void;
   placeholder?: string;
   rows?: number;
-  maxLength?: number;
-  id?: string;
-  ariaLabel?: string;
-  autoFocus?: boolean;
+  className?: string;
 }) {
   return (
     <textarea
-      id={id}
       value={value ?? ""}
       rows={rows}
-      maxLength={maxLength}
       placeholder={placeholder}
-      autoFocus={autoFocus}
-      aria-label={ariaLabel}
       onChange={(event) => onChange(event.target.value)}
-      className={cx(inputClassName, "resize-none")}
+      className={cx(inputClassName, "resize-none", className)}
     />
   );
 }
@@ -125,25 +99,16 @@ export function SelectInput({
   onChange,
   placeholder,
   options,
-  id,
-  ariaLabel,
-  ariaDescribedBy,
 }: {
   value: string | undefined | null;
   onChange: (value: string) => void;
   placeholder?: string;
   options: Array<{ label: string; value: string }>;
-  id?: string;
-  ariaLabel?: string;
-  ariaDescribedBy?: string;
 }) {
   return (
     <select
-      id={id}
       value={value ?? ""}
       onChange={(event) => onChange(event.target.value)}
-      aria-label={ariaLabel}
-      aria-describedby={ariaDescribedBy}
       className={inputClassName}
     >
       <option value="">{placeholder ?? "Selecione"}</option>
@@ -160,46 +125,13 @@ export function ChoiceChips({
   options,
   value,
   onChange,
-  ariaLabel,
 }: {
   options: Array<{ label: string; value: string }>;
   value?: string | null;
   onChange: (value: string | null) => void;
-  ariaLabel?: string;
 }) {
-  const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
-
-  function focusOption(index: number) {
-    optionRefs.current[index]?.focus();
-  }
-
-  function handleKeyDown(event: React.KeyboardEvent<HTMLButtonElement>, index: number) {
-    switch (event.key) {
-      case "ArrowLeft":
-      case "ArrowUp":
-        event.preventDefault();
-        focusOption(index === 0 ? options.length - 1 : index - 1);
-        break;
-      case "ArrowRight":
-      case "ArrowDown":
-        event.preventDefault();
-        focusOption(index === options.length - 1 ? 0 : index + 1);
-        break;
-      case "Home":
-        event.preventDefault();
-        focusOption(0);
-        break;
-      case "End":
-        event.preventDefault();
-        focusOption(options.length - 1);
-        break;
-      default:
-        break;
-    }
-  }
-
   return (
-    <div className="mt-3 grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label={ariaLabel}>
+    <div className="mt-3 grid gap-2 sm:grid-cols-2">
       {options.map((option) => {
         const active = value === option.value;
 
@@ -207,13 +139,7 @@ export function ChoiceChips({
           <button
             key={option.value}
             type="button"
-            ref={(element) => {
-              optionRefs.current[options.indexOf(option)] = element;
-            }}
-            role="radio"
-            aria-checked={active}
             onClick={() => onChange(active ? null : option.value)}
-            onKeyDown={(event) => handleKeyDown(event, options.indexOf(option))}
             className={cx(
               "rounded-2xl border px-4 py-3 text-left text-sm font-medium transition",
               active
@@ -233,32 +159,31 @@ export function MultiSelectChips({
   options,
   values,
   onToggle,
-  maxSelections,
-  ariaLabel,
+  isOptionDisabled,
 }: {
   options: Array<{ label: string; value: string }>;
   values: string[];
   onToggle: (value: string) => void;
-  maxSelections?: number;
-  ariaLabel?: string;
+  isOptionDisabled?: (option: { label: string; value: string }, active: boolean) => boolean;
 }) {
-  const hintId = useId();
-
   return (
-    <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label={ariaLabel}>
+    <div className="mt-3 flex flex-wrap gap-2">
       {options.map((option) => {
         const active = values.includes(option.value);
-        const disabled = !active && maxSelections !== undefined && values.length >= maxSelections;
+        const disabled = isOptionDisabled?.(option, active) ?? false;
 
         return (
           <button
             key={option.value}
             type="button"
+            onClick={() => {
+              if (disabled) {
+                return;
+              }
+
+              onToggle(option.value);
+            }}
             disabled={disabled}
-            role="checkbox"
-            aria-checked={active}
-            aria-describedby={maxSelections !== undefined ? hintId : undefined}
-            onClick={() => onToggle(option.value)}
             className={cx(
               "rounded-full border px-3 py-2 text-sm font-medium transition",
               active
@@ -272,11 +197,6 @@ export function MultiSelectChips({
           </button>
         );
       })}
-      {maxSelections !== undefined ? (
-        <div id={hintId} className="sr-only">
-          Máximo de {maxSelections} seleções.
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -286,37 +206,23 @@ export function CheckboxRow({
   onChange,
   label,
   description,
-  disabled,
 }: {
   checked: boolean;
   onChange: (checked: boolean) => void;
   label: string;
   description?: string;
-  disabled?: boolean;
 }) {
   return (
-    <label
-      className={cx(
-        "mt-3 flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm",
-        disabled
-          ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-400"
-          : "border-zinc-200 bg-zinc-50 text-zinc-700"
-      )}
-    >
+    <label className="mt-3 flex items-start gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
       <input
         type="checkbox"
         checked={checked}
-        disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
         className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
       />
       <span>
-        <span className={cx("block font-medium", disabled ? "text-zinc-500" : "text-zinc-900")}>{label}</span>
-        {description ? (
-          <span className={cx("mt-1 block text-xs leading-5", disabled ? "text-zinc-400" : "text-zinc-500")}>
-            {description}
-          </span>
-        ) : null}
+        <span className="block font-medium text-zinc-900">{label}</span>
+        {description ? <span className="mt-1 block text-xs leading-5 text-zinc-500">{description}</span> : null}
       </span>
     </label>
   );
@@ -461,6 +367,11 @@ export function CTAListField({
               <input
                 value={item.cta}
                 onChange={(event) => updateItem(index, { cta: event.target.value })}
+                onKeyDown={(event) => {
+                  if (event.key === " ") {
+                    event.stopPropagation();
+                  }
+                }}
                 placeholder="Ex: Passe aqui hoje"
                 className={inputClassName}
               />
@@ -470,6 +381,11 @@ export function CTAListField({
               <input
                 value={item.context}
                 onChange={(event) => updateItem(index, { context: event.target.value })}
+                onKeyDown={(event) => {
+                  if (event.key === " ") {
+                    event.stopPropagation();
+                  }
+                }}
                 placeholder="Ex: promoção relâmpago, queima de estoque"
                 className={inputClassName}
               />

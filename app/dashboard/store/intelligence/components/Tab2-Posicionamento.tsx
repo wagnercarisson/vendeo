@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { parseBRLToNumber } from "@/lib/formatters/priceMask";
+import { formatBRL, parseBRL } from "@/lib/formatters/currency";
 import type { IntelligenceContext } from "../hooks/useIntelligenceForm";
 import {
-  CheckboxRow,
   ChoiceChips,
   FieldShell,
   MultiSelectChips,
   SelectInput,
+  StringListField,
   TextArea,
   TextInput,
 } from "./FormPrimitives";
@@ -20,149 +20,121 @@ const PRICE_OPTIONS = [
   { label: "Luxo", value: "luxury" },
 ];
 
+const PAIN_POINT_OPTIONS = [
+  { label: "Falta de tempo", value: "Falta de tempo" },
+  { label: "Preço alto", value: "Preço alto" },
+  { label: "Poucas opções", value: "Poucas opções" },
+  { label: "Atendimento frio", value: "Atendimento frio" },
+  { label: "Distância", value: "Distância" },
+  { label: "Estacionamento difícil", value: "Estacionamento difícil" },
+];
+
+const DIFFERENTIATION_OPTIONS = [
+  { label: "Melhor preço da região", value: "price" },
+  { label: "Alta qualidade", value: "quality" },
+  { label: "Atendimento personalizado", value: "service" },
+  { label: "Maior variedade", value: "variety" },
+  { label: "Conveniência e localização", value: "convenience" },
+  { label: "Especialização técnica", value: "expertise" },
+  { label: "Rapidez no atendimento", value: "speed" },
+  { label: "Tradição e confiança", value: "trust" },
+  { label: "Outro", value: "custom" },
+];
+
+const DIFFERENTIATION_LABELS: Record<string, string> = {
+  price: "Oferecemos o melhor preço da região",
+  quality: "Trabalhamos apenas com produtos de alta qualidade",
+  service: "Nosso atendimento é personalizado e atencioso",
+  variety: "Temos a maior variedade de produtos",
+  convenience: "Localização conveniente e fácil acesso",
+  expertise: "Equipe especializada com conhecimento técnico profundo",
+  speed: "Atendimento rápido e eficiente",
+  trust: "Tradição e confiança construídas ao longo dos anos",
+};
+
 const COMPETITOR_TYPE_OPTIONS = [
   { label: "Lojas locais", value: "local" },
   { label: "Redes regionais", value: "regional" },
-  { label: "Redes nacionais", value: "national" },
-  { label: "E-commerce", value: "online" },
+  { label: "Grandes redes", value: "national" },
+  { label: "E-commerces", value: "online" },
 ];
 
-const NATIONAL_COMPETITOR_OPTIONS = [
-  { label: "Drogasil", value: "Drogasil" },
-  { label: "Drogaria São Paulo", value: "Drogaria São Paulo" },
-  { label: "Pague Menos", value: "Pague Menos" },
-  { label: "Renner", value: "Renner" },
-  { label: "C&A", value: "C&A" },
-  { label: "Riachuelo", value: "Riachuelo" },
-  { label: "O Boticário", value: "O Boticário" },
-  { label: "Natura", value: "Natura" },
-  { label: "Leroy Merlin", value: "Leroy Merlin" },
-  { label: "Tok&Stok", value: "Tok&Stok" },
-];
+const NATIONAL_COMPETITORS_BY_SEGMENT: Record<string, string[]> = {
+  bebidas: ["Evino", "Mistral", "Grand Cru"],
+  farmacia: ["Drogasil", "Pague Menos", "Drogaria Sao Paulo"],
+  moda: ["Renner", "C&A", "Riachuelo"],
+  beauty: ["O Boticario", "Natura", "Sephora"],
+  casa: ["Leroy Merlin", "Camicado", "Casa & Video"],
+  generic: ["Mercado Livre", "Amazon", "Shopee"],
+};
 
-const PAIN_POINT_OPTIONS = [
-  {
-    label: "Preço alto em outros lugares",
-    value: "Preço alto em outros lugares",
-    description: "O cliente sente que a concorrência cobra caro demais.",
-  },
-  {
-    label: "Produtos de baixa qualidade em outros lugares",
-    value: "Produtos de baixa qualidade em outros lugares",
-    description: "A concorrência não passa confiança na qualidade.",
-  },
-  {
-    label: "Atendimento ruim em outros lugares",
-    value: "Atendimento ruim em outros lugares",
-    description: "Falta atenção, cuidado ou resposta rápida.",
-  },
-  {
-    label: "Distância ou acesso ruim",
-    value: "Distância ou acesso ruim",
-    description: "Outras lojas ficam longe ou dão trabalho para comprar.",
-  },
-  {
-    label: "Falta de tempo para comprar",
-    value: "Falta de tempo para comprar",
-    description: "O cliente quer resolver tudo com rapidez.",
-  },
-  {
-    label: "Desconfiança de lojas desconhecidas",
-    value: "Desconfiança de lojas desconhecidas",
-    description: "O cliente precisa sentir segurança antes de comprar.",
-  },
-  {
-    label: "Pouca variedade em outros lugares",
-    value: "Pouca variedade em outros lugares",
-    description: "A concorrência não oferece opções suficientes.",
-  },
-  {
-    label: "Horário limitado em outras lojas",
-    value: "Horário limitado em outras lojas",
-    description: "As outras lojas fecham cedo ou não atendem quando precisa.",
-  },
-];
+function mapSegmentToCompetitorBucket(segment: string | null) {
+  const normalized = (segment ?? "").toLowerCase();
 
-function formatBRLDisplay(value: number): string {
-  return new Intl.NumberFormat("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
+  if (normalized.includes("bebida") || normalized.includes("adega")) return "bebidas";
+  if (normalized.includes("farm")) return "farmacia";
+  if (normalized.includes("moda") || normalized.includes("boutique")) return "moda";
+  if (normalized.includes("estet") || normalized.includes("salao") || normalized.includes("salão")) return "beauty";
+  if (normalized.includes("casa") || normalized.includes("decora")) return "casa";
+
+  return "generic";
 }
 
 export function Tab2Posicionamento({
+  storeSegment,
   context,
   errors,
   updateField,
   toggleArrayValue,
+  setStringList,
 }: {
+  storeSegment: string | null;
   context: IntelligenceContext;
   errors: Record<string, string>;
   updateField: (path: string, value: unknown) => void;
   toggleArrayValue: (path: string, value: string) => void;
+  setStringList: (path: string, values: string[]) => void;
 }) {
-  const competitorType = context.competitor_type ?? "local";
-  const painPoints = context.customer_pain_points ?? [];
-  const customPainPoints = painPoints.filter(
-    (value) => !PAIN_POINT_OPTIONS.some((option) => option.value === value)
+  const [ticketDisplay, setTicketDisplay] = useState(formatBRL(context.average_ticket_brl));
+  const competitorBucket = mapSegmentToCompetitorBucket(storeSegment);
+  const nationalCompetitors = NATIONAL_COMPETITORS_BY_SEGMENT[competitorBucket];
+  const competitorCount = context.competitors?.length ?? 0;
+  const painPointsCount = context.customer_pain_points?.length ?? 0;
+  const customPainPoints = (context.customer_pain_points ?? []).filter(
+    (item) => !PAIN_POINT_OPTIONS.some((option) => option.value === item)
   );
-  const [isEditingTicket, setIsEditingTicket] = useState(false);
-  const [ticketDisplay, setTicketDisplay] = useState(
-    context.average_ticket_brl == null ? "" : formatBRLDisplay(context.average_ticket_brl)
-  );
 
-  useEffect(() => {
-    if (isEditingTicket) {
+  function togglePainPoint(value: string) {
+    const currentValues = context.customer_pain_points ?? [];
+
+    if (!currentValues.includes(value) && painPointsCount >= 4) {
       return;
     }
 
-    setTicketDisplay(
-      context.average_ticket_brl == null ? "" : formatBRLDisplay(context.average_ticket_brl)
-    );
-  }, [context.average_ticket_brl, isEditingTicket]);
-
-  function handleTicketChange(rawValue: string) {
-    const sanitized = rawValue
-      .replace(/[^\d,]/g, "")
-      .replace(/,(?=.*?,)/g, "");
-
-    const [integerPart = "", decimalPart] = sanitized.split(",");
-    const nextDisplay =
-      decimalPart === undefined
-        ? integerPart
-        : `${integerPart},${decimalPart.slice(0, 2)}`;
-
-    setTicketDisplay(nextDisplay);
-
-    if (nextDisplay === "" || nextDisplay === ",") {
-      return;
-    }
-  }
-
-  function handleTicketBlur() {
-    setIsEditingTicket(false);
-
-    if (ticketDisplay.trim() === "") {
-      setTicketDisplay("");
-      updateField("average_ticket_brl", null);
-      return;
-    }
-
-    const parsed = parseBRLToNumber(ticketDisplay);
-    updateField("average_ticket_brl", parsed);
-    setTicketDisplay(formatBRLDisplay(parsed));
+    toggleArrayValue("customer_pain_points", value);
   }
 
   function addCustomPainPoint() {
-    const customValue = (context.customer_pain_points_custom ?? "").trim();
+    const customValue = context.customer_pain_points_custom?.trim();
 
-    if (!customValue || painPoints.length >= 4 || painPoints.includes(customValue)) {
-      return;
-    }
+    if (!customValue) return;
+    if (painPointsCount >= 4) return;
+    if (context.customer_pain_points?.includes(customValue)) return;
 
-    updateField("customer_pain_points", [...painPoints, customValue]);
+    updateField("customer_pain_points", [...(context.customer_pain_points ?? []), customValue]);
     updateField("customer_pain_points_custom", "");
   }
+
+  function removeCustomPainPoint(value: string) {
+    updateField(
+      "customer_pain_points",
+      (context.customer_pain_points ?? []).filter((item) => item !== value)
+    );
+  }
+
+  useEffect(() => {
+    setTicketDisplay(formatBRL(context.average_ticket_brl));
+  }, [context.average_ticket_brl]);
 
   return (
     <div className="grid gap-4 xl:grid-cols-2">
@@ -172,7 +144,6 @@ export function Tab2Posicionamento({
         hint="Como a loja costuma se posicionar na cabeça do cliente."
       >
         <SelectInput
-          ariaLabel="Posicionamento de preço"
           value={context.price_positioning}
           onChange={(value) => updateField("price_positioning", value || null)}
           placeholder="Selecione o posicionamento"
@@ -186,66 +157,81 @@ export function Tab2Posicionamento({
         hint="Ajuda a calibrar linguagem, ofertas e urgência."
         error={errors.average_ticket_brl}
       >
-        <div className="mt-2 flex items-center rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 shadow-sm outline-none transition focus-within:border-emerald-400 focus-within:ring-4 focus-within:ring-emerald-100">
-          <span className="mr-2 text-zinc-500" aria-hidden="true">R$</span>
-          <input
-            type="text"
-            inputMode="decimal"
-            aria-label="Ticket médio em reais"
-            aria-describedby="average-ticket-format-hint"
-            value={ticketDisplay}
-            onFocus={() => setIsEditingTicket(true)}
-            onChange={(event) => handleTicketChange(event.target.value)}
-            onBlur={handleTicketBlur}
-            placeholder="150,00"
-            className="w-full border-0 bg-transparent outline-none placeholder:text-zinc-400"
-          />
-        </div>
-        <div id="average-ticket-format-hint" className="sr-only">
-          Digite o valor em reais, usando vírgula para os centavos. Exemplo: 150,00.
-        </div>
+        <input
+          type="text"
+          inputMode="decimal"
+          value={ticketDisplay}
+          onChange={(event) => setTicketDisplay(event.target.value)}
+          onBlur={() => {
+            const parsed = parseBRL(ticketDisplay);
+            updateField("average_ticket_brl", parsed);
+            setTicketDisplay(formatBRL(parsed));
+          }}
+          placeholder="Ex: R$ 150,00"
+          className="mt-2 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 shadow-sm outline-none transition placeholder:text-zinc-400 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
+        />
       </FieldShell>
 
       <FieldShell
         label="Concorrentes mais lembrados"
         optional
-        hint="Defina o tipo de concorrência e liste até 5 nomes para o Vendeo entender quem você precisa superar."
-        counter={`${context.competitors?.length ?? 0}/5`}
-        error={errors.competitors}
+        hint="Selecione o tipo: use lojas locais para concorrentes do bairro e grandes redes quando você disputa cliente com marcas nacionais ou marketplaces."
       >
         <ChoiceChips
-          ariaLabel="Tipo de concorrência"
           options={COMPETITOR_TYPE_OPTIONS}
-          value={competitorType}
+          value={context.competitor_type ?? "local"}
           onChange={(value) => updateField("competitor_type", value ?? "local")}
         />
 
-        {competitorType === "national" ? (
-          <MultiSelectChips
-            ariaLabel="Concorrentes nacionais"
-            options={NATIONAL_COMPETITOR_OPTIONS}
-            values={context.competitors ?? []}
-            onToggle={(value) => toggleArrayValue("competitors", value)}
-            maxSelections={5}
-          />
-        ) : (
-          <TextArea
-            ariaLabel="Lista de concorrentes"
-            value={context.competitors?.join(", ")}
-            onChange={(value) => {
-              const nextValues = value
-                .split(",")
-                .map((item) => item.trim())
-                .filter(Boolean)
-                .slice(0, 5);
+        {context.competitor_type === "national" ? (
+          <div className="mt-3 space-y-2">
+            <div className="text-xs font-medium text-zinc-600">Selecione até 3 redes de referência</div>
+            <MultiSelectChips
+              options={nationalCompetitors.map((competitor) => ({
+                label: competitor,
+                value: competitor,
+              }))}
+              values={context.competitors ?? []}
+              onToggle={(value) => {
+                const currentValues = context.competitors ?? [];
+                const nextValues = currentValues.includes(value)
+                  ? currentValues.filter((item) => item !== value)
+                  : currentValues.length >= 3
+                    ? currentValues
+                    : [...currentValues, value];
 
-              updateField("competitors", nextValues);
-            }}
-            placeholder="Ex: Loja da esquina, Mercado do bairro, concorrente online"
-            rows={3}
-            maxLength={200}
+                updateField("competitors", nextValues);
+              }}
+            />
+          </div>
+        ) : (
+          <StringListField
+            values={context.competitors ?? []}
+            onChange={(values) => setStringList("competitors", values.slice(0, 3))}
+            placeholder={
+              context.competitor_type === "local"
+                ? "Ex: Farmácia do João, Mercadinho Central, Loja da esquina"
+                : context.competitor_type === "regional"
+                  ? "Ex: Drogaria Araújo, redes regionais da sua cidade"
+                  : context.competitor_type === "online"
+                    ? "Ex: Amazon, Mercado Livre, Shopee"
+                    : "Ex: principais concorrentes da sua região"
+            }
+            addLabel="Adicionar concorrente"
+            max={3}
           />
         )}
+        <div className="mt-2 flex items-center justify-between text-xs">
+          <span className="text-zinc-500">{competitorCount}/3 concorrentes listados</span>
+          {competitorCount >= 3 ? (
+            <span className="flex items-center gap-1 font-medium text-amber-600">
+              <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+              Máximo atingido
+            </span>
+          ) : null}
+        </div>
       </FieldShell>
 
       <FieldShell
@@ -265,61 +251,109 @@ export function Tab2Posicionamento({
 
       <div className="xl:col-span-2">
         <FieldShell
-          label="Problemas que você resolve"
+          label="Diferencial principal"
           optional
-          hint="Marque até 4 dificuldades que sua loja ajuda o cliente a resolver."
-          counter={`${painPoints.length}/4`}
-          error={errors.customer_pain_points ?? errors.customer_pain_points_custom}
+          hint="O que faz o cliente escolher você em vez da concorrência."
+          counter={context.main_differentiation_preset === "custom" ? `${context.main_differentiation?.length ?? 0}/300` : undefined}
+          error={errors.main_differentiation}
         >
-          {PAIN_POINT_OPTIONS.map((option) => {
-            const checked = painPoints.includes(option.value);
-            const disabled = !checked && painPoints.length >= 4;
+          <ChoiceChips
+            options={DIFFERENTIATION_OPTIONS}
+            value={context.main_differentiation_preset ?? null}
+            onChange={(value) => {
+              updateField("main_differentiation_preset", value);
 
-            return (
-              <CheckboxRow
-                key={option.value}
-                checked={checked}
-                disabled={disabled}
-                onChange={() => toggleArrayValue("customer_pain_points", option.value)}
-                label={option.label}
-                description={option.description}
-              />
-            );
-          })}
+              if (value === "custom") {
+                updateField("main_differentiation", "");
+                return;
+              }
 
-          {customPainPoints.map((value) => (
-            <CheckboxRow
-              key={value}
-              checked
-              disabled={false}
-              onChange={() => toggleArrayValue("customer_pain_points", value)}
-              label={value}
-              description="Adicionado por você para representar uma dor específica do seu cliente."
+              updateField("main_differentiation", value ? DIFFERENTIATION_LABELS[value] : "");
+            }}
+          />
+
+          {context.main_differentiation_preset === "custom" ? (
+            <TextArea
+              value={context.main_differentiation}
+              onChange={(value) => updateField("main_differentiation", value)}
+              placeholder="Descreva o diferencial único da sua loja..."
+              rows={3}
+              className="mt-3"
             />
-          ))}
+          ) : null}
+        </FieldShell>
+      </div>
 
-          <div className="mt-3">
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <TextInput
-                  value={context.customer_pain_points_custom}
-                  onChange={(value) => updateField("customer_pain_points_custom", value)}
-                  placeholder="Ex: Não tem atendimento especializado"
-                  maxLength={100}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={addCustomPainPoint}
-                disabled={painPoints.length >= 4}
-                className="mt-2 shrink-0 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Adicionar
-              </button>
+      <div className="xl:col-span-2">
+        <FieldShell
+          label="Dores do cliente"
+          optional
+          hint="Quais objeções ou frustrações o seu conteúdo precisa destravar."
+        >
+          <MultiSelectChips
+            options={PAIN_POINT_OPTIONS}
+            values={context.customer_pain_points ?? []}
+            onToggle={togglePainPoint}
+            isOptionDisabled={(_, active) => !active && painPointsCount >= 4}
+          />
+          {customPainPoints.length > 0 ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {customPainPoints.map((value) => (
+                <span
+                  key={value}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700"
+                >
+                  {value}
+                  <button
+                    type="button"
+                    onClick={() => removeCustomPainPoint(value)}
+                    className="text-zinc-400 transition hover:text-zinc-700"
+                    aria-label={`Excluir ${value}`}
+                  >
+                    x
+                  </button>
+                </span>
+              ))}
             </div>
-            <div className="mt-1 text-xs text-zinc-500">
-              Descreva um problema específico do seu segmento e clique em adicionar.
-            </div>
+          ) : null}
+          <div className="mt-2 text-xs text-zinc-500">
+            {painPointsCount}/4 selecionados
+          </div>
+
+          <div className="mt-3 flex items-start gap-2">
+            <input
+              value={context.customer_pain_points_custom ?? ""}
+              onChange={(event) => updateField("customer_pain_points_custom", event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter") {
+                  return;
+                }
+
+                event.preventDefault();
+                addCustomPainPoint();
+              }}
+              placeholder="Outro problema que sua loja resolve"
+              maxLength={100}
+              className="flex-1 rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 shadow-sm outline-none transition placeholder:text-zinc-400 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
+            />
+            <button
+              type="button"
+              onClick={addCustomPainPoint}
+              disabled={
+                !context.customer_pain_points_custom?.trim() ||
+                painPointsCount >= 4
+              }
+              className="shrink-0 rounded-2xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:border disabled:border-zinc-200 disabled:bg-zinc-100 disabled:text-zinc-400"
+            >
+              Adicionar
+            </button>
+          </div>
+          <div className="mt-1 text-xs text-zinc-500">
+            {context.customer_pain_points_custom?.trim()
+              ? painPointsCount >= 4
+                ? "Máximo de 4 dores atingido. Remova uma para adicionar outra."
+                : "Pressione Enter ou clique em 'Adicionar' para incluir na lista."
+              : "Digite um problema específico do seu segmento acima."}
           </div>
         </FieldShell>
       </div>
