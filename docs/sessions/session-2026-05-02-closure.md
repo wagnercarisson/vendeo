@@ -373,4 +373,25 @@ npm run dev
 
 ---
 
-*Documento gerado por @aiox-master (Orion) seguindo AIOX-MASTER-PROTOCOL.md (com FASE 6: CLOSURE & HANDOFF) — 2 de maio de 2026*
+## 📎 NOTA SOBRE ANCORAGEM DE PROTOCOLO
+
+**Localização Original:** `.aiox/sessions/intelligence-refinement-session-20260502.md`  
+**Localização Atual:** `docs/sessions/session-2026-05-02-closure.md` (movido em 03/05/2026)
+
+**Motivo da Movimentação:**  
+Este artefato foi inicialmente criado em `.aiox/sessions/` (diretório de framework AIOX), mas o padrão estabelecido do projeto Vendeo é armazenar documentação de sessões em `docs/sessions/`. A movimentação garante consistência com `session-2026-05-01-closure.md` e facilita localização futura.
+
+**Ancoragem em Protocolo:**  
+Este documento representa a primeira aplicação completa do **AIOX-MASTER-PROTOCOL.md FASE 6: CLOSURE & HANDOFF** (adicionado em 02/05/2026). Demonstra o novo padrão de fechamento de sessão que inclui:
+1. Build validation (TypeScript compilation)
+2. Git status check (arquivos modificados)
+3. Commit commands generation (estruturados conforme git-standards.md)
+4. Session closure document (contexto completo preservado)
+5. Handoff ao usuário (comandos prontos para execução)
+
+Este protocolo foi solicitado pelo usuário como enhancement do AIOX-MASTER-PROTOCOL.md original (que tinha apenas Fases 0-5) para garantir que sessions sempre encerrem com git housekeeping completo e comandos de commit estruturados prontos para execução pelo usuário.
+
+---
+
+*Documento gerado por @aiox-master (Orion) seguindo AIOX-MASTER-PROTOCOL.md (com FASE 6: CLOSURE & HANDOFF) — 2 de maio de 2026*  
+*Movido para localização padrão em 3 de maio de 2026 por @aiox-master*
