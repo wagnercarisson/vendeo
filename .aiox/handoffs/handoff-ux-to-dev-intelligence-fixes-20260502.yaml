@@ -1,0 +1,508 @@
+---
+handoff:
+  from_agent: ux-design-expert
+  to_agent: dev
+  timestamp: 2026-05-02T14:30:00Z
+  story_context:
+    area: Intelligence Calibration Page
+    current_status: Phases 1-3 implemented, user validation revealed 3 runtime issues
+    branch: main
+    files_affected:
+      - app/dashboard/store/intelligence/components/Tab2-Posicionamento.tsx
+      - app/dashboard/store/intelligence/hooks/useIntelligenceForm.ts
+      - app/dashboard/store/intelligence/components/FormPrimitives.tsx (opcional)
+      - components/dashboard/Sidebar.tsx (opcional para Fix 3)
+  
+  blockers:
+    - "Botão 'Adicionar' em dores do cliente não funciona visualmente (lojista não percebe que precisa digitar antes)"
+    - "Autosave só dispara em mudança de tab, não em navegação via sidebar/browser (PERDA DE DADOS)"
+    - "Campo concorrentes tem guidance insuficiente (placeholders vagos, hints curtos)"
+
+decisions:
+  - "Priorização: Fix 3 (autosave) > Fix 1 (botão) > Fix 2 (guidance) por gravidade"
+  - "Fix 3 usar beforeunload + route change detection (Next.js App Router)"
+  - "Fix 1 mudar para layout horizontal (flex gap-2) com feedback visual claro"
+  - "Fix 2 melhorar hints e placeholders sem mudança estrutural"
+
+next_action: "Implementar os 3 fixes na ordem P0 > P1 > P2 conforme especificações abaixo"
+
+---
+
+# 🛠️ FIX SPECIFICATIONS
+
+## FIX 1: Botão "Adicionar" - UX Visual 🟠 P1 - ALTO
+
+### Problema Atual:
+- Botão fica disabled (opacity 50%) quando campo custom está vazio
+- Layout vertical separa campo do botão (confunde lojista)
+- Sem feedback visual conectando campo → botão → resultado
+- Lojista acha que está "quebrado" ao invés de "aguardando input"
+
+### Localização:
+**Arquivo:** `app/dashboard/store/intelligence/components/Tab2-Posicionamento.tsx`  
+**Linhas:** 238-283 (seção "Dores do cliente")
+
+### Mudanças Necessárias:
+
+#### 1.1 - Alterar layout de vertical para horizontal (flex gap-2)
+
+**Estado atual (linhas ~251-270):**
+```tsx
+<div className="mt-3 flex gap-2">
+  <input
+    value={context.customer_pain_points_custom ?? ""}
+    onChange={(event) => updateField("customer_pain_points_custom", event.target.value)}
+    placeholder="Outro problema que sua loja resolve"
+    maxLength={100}
+    className="mt-2 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 shadow-sm outline-none transition placeholder:text-zinc-400 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
+  />
+  <button
+    type="button"
+    onClick={() => { /* lógica existente */ }}
+    disabled={
+      !context.customer_pain_points_custom?.trim() ||
+      (context.customer_pain_points?.length ?? 0) >= 4
+    }
+    className="mt-2 shrink-0 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+  >
+    Adicionar
+  </button>
+</div>
+```
+
+**Substituir por:**
+```tsx
+<div className="mt-3 flex items-start gap-2">
+  <input
+    value={context.customer_pain_points_custom ?? ""}
+    onChange={(event) => updateField("customer_pain_points_custom", event.target.value)}
+    onKeyDown={(event) => {
+      if (event.key === "Enter" && context.customer_pain_points_custom?.trim() && (context.customer_pain_points?.length ?? 0) < 4) {
+        const customValue = context.customer_pain_points_custom.trim();
+        if (!context.customer_pain_points?.includes(customValue)) {
+          updateField("customer_pain_points", [...(context.customer_pain_points ?? []), customValue]);
+          updateField("customer_pain_points_custom", "");
+        }
+      }
+    }}
+    placeholder="Outro problema que sua loja resolve"
+    maxLength={100}
+    className="flex-1 rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 shadow-sm outline-none transition placeholder:text-zinc-400 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
+  />
+  <button
+    type="button"
+    onClick={() => {
+      const customValue = context.customer_pain_points_custom?.trim();
+
+      if (!customValue) return;
+      if ((context.customer_pain_points?.length ?? 0) >= 4) return;
+      if (context.customer_pain_points?.includes(customValue)) return;
+
+      updateField("customer_pain_points", [...(context.customer_pain_points ?? []), customValue]);
+      updateField("customer_pain_points_custom", "");
+    }}
+    disabled={
+      !context.customer_pain_points_custom?.trim() ||
+      (context.customer_pain_points?.length ?? 0) >= 4
+    }
+    className="shrink-0 rounded-2xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400 disabled:border disabled:border-zinc-200"
+  >
+    Adicionar
+  </button>
+</div>
+```
+
+**Mudanças-chave:**
+- `mt-2` removido de input e button → aplicado `items-start` no container para alinhar tops
+- `w-full` → `flex-1` no input (ocupa espaço disponível)
+- `px-4` → `px-6` no button (mais destaque)
+- `disabled:opacity-50` → `disabled:bg-zinc-100 disabled:text-zinc-400 disabled:border disabled:border-zinc-200` (estado disabled mais claro)
+- Adicionado `onKeyDown` para Enter key no input (UX improvement)
+
+#### 1.2 - Melhorar hint text com feedback condicional
+
+**Estado atual (linha ~282):**
+```tsx
+<div className="mt-1 text-xs text-zinc-500">
+  Descreva um problema específico do seu segmento e clique em "Adicionar".
+</div>
+```
+
+**Substituir por:**
+```tsx
+<div className="mt-1 text-xs text-zinc-500">
+  {context.customer_pain_points_custom?.trim() 
+    ? (context.customer_pain_points?.length ?? 0) >= 4
+      ? "Máximo de 4 dores atingido. Remova uma para adicionar outra."
+      : "Pressione Enter ou clique em 'Adicionar' para incluir na lista"
+    : "Digite um problema específico do seu segmento acima"}
+</div>
+```
+
+**Resultado esperado:**
+- Feedback dinâmico baseado no estado do formulário
+- Lojista entende claramente o que fazer em cada momento
+
+---
+
+## FIX 2: Concorrentes - Guidance Enriquecida 🟡 P2 - BAIXO
+
+### Problema Atual:
+- Placeholder genérico: "Ex: Adega da esquina"
+- Hint text curto demais (não explica quando usar cada tipo)
+- Contador não destaca limite atingido
+
+### Localização:
+**Arquivo:** `app/dashboard/store/intelligence/components/Tab2-Posicionamento.tsx`  
+**Linhas:** 129-172 (seção "Concorrentes mais lembrados")
+
+### Mudanças Necessárias:
+
+#### 2.1 - Expandir hint text (linha ~131)
+
+**Estado atual:**
+```tsx
+<FieldShell
+  label="Concorrentes mais lembrados"
+  optional
+  hint="Até 3 nomes para o Vendeo entender quem você precisa superar."
+>
+```
+
+**Substituir por:**
+```tsx
+<FieldShell
+  label="Concorrentes mais lembrados"
+  optional
+  hint="Selecione o tipo: 'Lojas locais' se competir com vizinhos do bairro, 'Grandes redes' se perder cliente para marcas nacionais (Drogasil, Amazon, etc.)."
+>
+```
+
+#### 2.2 - Melhorar placeholder do StringListField (linha ~165)
+
+**Estado atual:**
+```tsx
+<StringListField
+  values={context.competitors ?? []}
+  onChange={(values) => setStringList("competitors", values.slice(0, 3))}
+  placeholder="Ex: Adega da esquina"
+  addLabel="Adicionar concorrente"
+  max={3}
+/>
+```
+
+**Substituir por:**
+```tsx
+<StringListField
+  values={context.competitors ?? []}
+  onChange={(values) => setStringList("competitors", values.slice(0, 3))}
+  placeholder={
+    context.competitor_type === "local"
+      ? "Ex: Farmácia do João, Mercadinho Central, Loja da esquina"
+      : context.competitor_type === "regional"
+      ? "Ex: Drogaria Araújo, Redes regionais da sua cidade"
+      : context.competitor_type === "online"
+      ? "Ex: Amazon, Mercado Livre, Shopee"
+      : "Ex: Principais concorrentes da sua região"
+  }
+  addLabel="Adicionar concorrente"
+  max={3}
+/>
+```
+
+#### 2.3 - Adicionar contador visual destacado (após StringListField/MultiSelectChips)
+
+**Adicionar após linha ~171:**
+```tsx
+<div className="mt-2 flex items-center justify-between text-xs">
+  <span className="text-zinc-500">
+    {context.competitors?.length ?? 0}/3 concorrentes listados
+  </span>
+  {(context.competitors?.length ?? 0) >= 3 && (
+    <span className="text-amber-600 font-medium flex items-center gap-1">
+      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+      </svg>
+      Máximo atingido
+    </span>
+  )}
+</div>
+```
+
+**Resultado esperado:**
+- Placeholders contextualizados por tipo de concorrente
+- Hint explica claramente quando usar cada opção
+- Contador destaca limite com ícone de alerta
+
+---
+
+## FIX 3: Autosave em Navegação 🔴 P0 - CRÍTICO
+
+### Problema Atual:
+- Autosave só escuta `activeTab` no useEffect (linha 323-343)
+- Não salva quando usuário clica em link da sidebar (Campanhas, Planos, etc.)
+- Não salva quando usuário pressiona voltar no browser
+- Não salva quando usuário fecha aba ou atualiza página (F5)
+- **RESULTADO:** Perda de dados do formulário → perda de confiança do lojista
+
+### Localização:
+**Arquivo:** `app/dashboard/store/intelligence/hooks/useIntelligenceForm.ts`  
+**Linhas:** 323-343 (useEffect de autosave)
+
+### Mudanças Necessárias:
+
+#### 3.1 - Adicionar beforeunload handler (salva ao fechar/atualizar)
+
+**Adicionar APÓS o useEffect atual de autosave (linha ~343):**
+
+```tsx
+// Save on page unload (close tab, refresh, navigate away)
+useEffect(() => {
+  const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+    const currentSignature = signatureRef.current;
+    const isDirty = currentSignature !== lastSavedSignatureRef.current;
+    const emptyAndNeverSaved =
+      filledFieldsRef.current === 0 && lastSavedSignatureRef.current === createSignature({});
+
+    if (isDirty && !emptyAndNeverSaved && storeId) {
+      // Try to save (browser may block async operations here)
+      void saveChanges(contextRef.current, signatureRef.current);
+
+      // Warn user about unsaved changes
+      e.preventDefault();
+      e.returnValue = "Você tem alterações não salvas. Tem certeza que deseja sair?";
+      return e.returnValue;
+    }
+  };
+
+  window.addEventListener("beforeunload", handleBeforeUnload);
+
+  return () => {
+    window.removeEventListener("beforeunload", handleBeforeUnload);
+  };
+}, [storeId]);
+```
+
+#### 3.2 - Adicionar route change handler (salva ao navegar via sidebar/links)
+
+**Adicionar APÓS o useEffect de beforeunload:**
+
+```tsx
+// Save on route change (sidebar navigation, back button)
+useEffect(() => {
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === "hidden") {
+      const currentSignature = signatureRef.current;
+      const isDirty = currentSignature !== lastSavedSignatureRef.current;
+      const emptyAndNeverSaved =
+        filledFieldsRef.current === 0 && lastSavedSignatureRef.current === createSignature({});
+
+      if (isDirty && !emptyAndNeverSaved && storeId) {
+        // Use sendBeacon for reliable save on page unload
+        const payload = {
+          store_id: storeId,
+          context: contextRef.current,
+        };
+
+        // Try fetch first (more reliable), fallback to sendBeacon
+        fetch("/api/store/intelligence", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          keepalive: true, // Keep request alive after page unload
+        }).catch(() => {
+          // Fallback to sendBeacon if fetch fails
+          navigator.sendBeacon(
+            "/api/store/intelligence",
+            JSON.stringify(payload)
+          );
+        });
+      }
+    }
+  };
+
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+
+  return () => {
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+  };
+}, [storeId]);
+```
+
+#### 3.3 - Adicionar cleanup no unmount do componente
+
+**Adicionar APÓS os useEffects acima:**
+
+```tsx
+// Save on component unmount (navigation via Next.js router)
+useEffect(() => {
+  return () => {
+    const currentSignature = signatureRef.current;
+    const isDirty = currentSignature !== lastSavedSignatureRef.current;
+    const emptyAndNeverSaved =
+      filledFieldsRef.current === 0 && lastSavedSignatureRef.current === createSignature({});
+
+    if (isDirty && !emptyAndNeverSaved && storeId) {
+      // Synchronous save on unmount (blocking)
+      const payload = {
+        store_id: storeId,
+        context: contextRef.current,
+      };
+
+      navigator.sendBeacon(
+        "/api/store/intelligence",
+        JSON.stringify(payload)
+      );
+    }
+  };
+}, [storeId]);
+```
+
+**IMPORTANTE:** `navigator.sendBeacon` requer que o endpoint `/api/store/intelligence` aceite `text/plain` content-type, pois sendBeacon não suporta custom headers. Se necessário, ajustar o endpoint para detectar sendBeacon requests.
+
+### Alternativa (se sendBeacon não funcionar):
+
+Se o endpoint não puder ser adaptado, usar apenas `visibilitychange` + `beforeunload` com fetch + keepalive:
+
+```tsx
+// Unified save on visibility change + unmount
+useEffect(() => {
+  const saveOnExit = () => {
+    const currentSignature = signatureRef.current;
+    const isDirty = currentSignature !== lastSavedSignatureRef.current;
+    const emptyAndNeverSaved =
+      filledFieldsRef.current === 0 && lastSavedSignatureRef.current === createSignature({});
+
+    if (isDirty && !emptyAndNeverSaved && storeId) {
+      fetch("/api/store/intelligence", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          store_id: storeId,
+          context: contextRef.current,
+        }),
+        keepalive: true,
+      }).catch(() => {
+        console.error("Failed to save intelligence on exit");
+      });
+    }
+  };
+
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === "hidden") {
+      saveOnExit();
+    }
+  };
+
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+  window.addEventListener("beforeunload", saveOnExit);
+
+  return () => {
+    saveOnExit(); // Save on unmount
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+    window.removeEventListener("beforeunload", saveOnExit);
+  };
+}, [storeId]);
+```
+
+**Resultado esperado:**
+- ✅ Salva ao trocar de tab (comportamento existente mantido)
+- ✅ Salva ao clicar em link da sidebar
+- ✅ Salva ao pressionar voltar no browser
+- ✅ Salva ao fechar aba (com aviso se houver mudanças)
+- ✅ Salva ao atualizar página (F5)
+- ✅ Aviso ao usuário se tentar sair com mudanças pendentes
+
+---
+
+## 📋 ACCEPTANCE CRITERIA
+
+### Fix 1 - Botão Adicionar:
+- [ ] Layout horizontal: input e botão na mesma linha
+- [ ] Input ocupa espaço flexível (`flex-1`)
+- [ ] Botão tem largura fixa (`shrink-0`, `px-6`)
+- [ ] Estado disabled visualmente claro (bg-zinc-100, text-zinc-400, border)
+- [ ] Hint text dinâmico baseado em estado do formulário
+- [ ] Enter key adiciona item à lista (UX improvement)
+- [ ] Lojista consegue adicionar custom pain point sem confusão
+
+### Fix 2 - Concorrentes:
+- [ ] Hint text expandido explica quando usar cada tipo
+- [ ] Placeholder contextualizado por tipo de concorrente selecionado
+- [ ] Contador visual destaca limite atingido (ícone + cor amber)
+- [ ] Visual polish não quebra funcionalidade existente
+
+### Fix 3 - Autosave:
+- [ ] Autosave dispara ao trocar de tab (comportamento existente mantido)
+- [ ] Autosave dispara ao clicar em link da sidebar
+- [ ] Autosave dispara ao navegar via browser (voltar/avançar)
+- [ ] Autosave dispara ao fechar aba ou atualizar (F5)
+- [ ] Aviso exibido ao usuário se tentar sair com mudanças pendentes
+- [ ] Teste: preencher campo → clicar em "Campanhas" → voltar → dados preservados
+- [ ] Teste: preencher campo → F5 → dados preservados
+- [ ] Teste: preencher campo → fechar aba → aviso exibido
+
+---
+
+## 🧪 TESTING CHECKLIST
+
+### Fix 1:
+1. Abrir intelligence page
+2. Ir para Tab 2 - Posicionamento
+3. Rolar até "Dores do cliente"
+4. Verificar layout horizontal (campo + botão lado a lado)
+5. Campo vazio → botão cinza claro (disabled state óbvio)
+6. Digitar texto → botão fica verde (enabled)
+7. Pressionar Enter → item adicionado à lista
+8. Clicar "Adicionar" → item adicionado à lista
+9. Verificar hint text muda conforme contexto
+
+### Fix 2:
+1. Abrir intelligence page
+2. Ir para Tab 2 - Posicionamento
+3. Rolar até "Concorrentes mais lembrados"
+4. Verificar hint text expandido
+5. Selecionar "Lojas locais" → placeholder muda
+6. Selecionar "Grandes redes" → chips aparecem
+7. Adicionar 3 concorrentes → contador mostra "3/3" com ícone amber
+8. Tentar adicionar 4º → botão disabled
+
+### Fix 3:
+1. Abrir intelligence page
+2. Preencher campo qualquer (ex: público-alvo)
+3. Clicar em "Campanhas" na sidebar → voltar → verificar campo salvo
+4. Preencher outro campo → clicar em "Planos" → voltar → verificar salvo
+5. Preencher campo → pressionar F5 → verificar salvo após reload
+6. Preencher campo → tentar fechar aba → verificar aviso exibido
+7. Preencher campo → trocar de tab → verificar salvo (comportamento existente)
+
+---
+
+## ⚠️ WARNINGS
+
+- **Fix 3:** `navigator.sendBeacon` envia como `text/plain`. Se endpoint `/api/store/intelligence` exigir `application/json`, usar alternativa com `fetch` + `keepalive` apenas.
+- **Fix 1:** Enter key no input pode conflitar com form submission se houver `<form>` wrapper. Verificar `event.preventDefault()` se necessário.
+- **Fix 2:** Placeholders dinâmicos aumentam bundle size minimamente. Considerar i18n se houver multilanguage no roadmap.
+
+---
+
+## 📊 ESTIMATED EFFORT
+
+| Fix | Complexity | Time Estimate |
+|-----|-----------|--------------|
+| Fix 1 | Baixa | 1h |
+| Fix 2 | Muito Baixa | 30min |
+| Fix 3 | Média | 2-3h (testing incluído) |
+| **TOTAL** | **Média** | **3.5-4.5h** |
+
+---
+
+## 🔗 RELATED DOCS
+
+- UX Spec Original: `docs/ux/intelligence-campos-selecao-proposta.md`
+- Implementation Guide: `docs/ux/intelligence-ux-corrections-IMPLEMENTATION-GUIDE.md`
+- Component Library: `app/dashboard/store/intelligence/components/FormPrimitives.tsx`
+
+---
+
+**Ready for @dev implementation. Priority: P0 (Fix 3) → P1 (Fix 1) → P2 (Fix 2)**
