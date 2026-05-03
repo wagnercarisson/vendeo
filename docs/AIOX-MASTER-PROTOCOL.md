@@ -536,6 +536,248 @@ decision:
 
 ---
 
+## 🎬 FASE 6: CLOSURE & HANDOFF (Session Closure Protocol)
+
+**Objetivo:** Encerrar sessão de trabalho com contexto completo preservado e git housekeeping.
+
+**Executar quando:**
+- Sessão de implementação foi concluída
+- Usuário solicita fechamento de sessão
+- Handoff para outro agente necessário
+
+**Checklist:**
+- [ ] Verificar localização (O que foi feito? Onde estamos? Pendências? Próximos passos?)
+- [ ] Validar build (`npm exec tsc --noEmit` ou equivalente)
+- [ ] Checar status de commit (`get_changed_files` ou `git status`)
+- [ ] Gerar comandos de commit estruturados conforme `git-standards.md`
+- [ ] Criar documento de session closure em `.aiox/sessions/`
+- [ ] Entregar comandos de commit para usuário executar
+
+**Perguntas a responder:**
+1. O que foi implementado nesta sessão?
+2. Quais validações foram executadas? (Status: PASS/FAIL)
+3. Quais arquivos foram modificados? (Path, linhas alteradas, propósito)
+4. Quais decisões técnicas foram tomadas?
+5. O que ficou pendente para próxima sessão?
+6. Build está compilando corretamente?
+7. Há arquivos unstaged/uncommitted?
+
+**Documentar:**
+```yaml
+session_closure:
+  timestamp: "2026-05-02T16:30:00Z"
+  work_completed:
+    - summary: "Implementação dos 3 fixes UX (autosave, pain points, guidance)"
+      files_modified: 10
+      lines_changed: 866
+  validations:
+    - type: "typescript"
+      status: "PASS"
+      details: "0 errors"
+    - type: "build"
+      status: "PASS"
+      details: "npm exec tsc --noEmit = no output"
+    - type: "manual_testing"
+      status: "PASS"
+      details: "Usuário testou Patch 2, todos fixes funcionando"
+  decisions:
+    - id: "DEC-001"
+      title: "Autosave strategy"
+      decision: "fetch + keepalive + event listeners"
+      rationale: "sendBeacon incompatível com endpoint application/json"
+  pending:
+    - item: "E2E tests para autosave scenarios"
+      priority: "LOW"
+      owner: "@qa"
+  git_status:
+    changed_files: 10
+    staged: 0
+    unstaged: 10
+  commit_commands:
+    - "git add <files> && git commit -m '<message>'"
+    - "git add <files> && git commit -m '<message>'"
+```
+
+### Procedimento Detalhado
+
+#### 1. Verificação & Localização (5 min)
+
+```markdown
+## O QUE FOI FEITO
+- [Item 1 implementado]
+- [Item 2 implementado]
+
+## ONDE ESTAMOS
+- Fase atual: [Beta/Production/Sprint X]
+- Milestone: [Nome do milestone]
+- Blockers: [Nenhum/Lista de blockers]
+
+## PENDÊNCIAS
+- [Pendência 1: descrição + owner]
+- [Pendência 2: descrição + owner]
+
+## PRÓXIMOS PASSOS
+1. [Passo 1]
+2. [Passo 2]
+```
+
+#### 2. Build Validation (2 min)
+
+Execute validação de build conforme stack do projeto:
+
+```bash
+# TypeScript/Node
+npm exec tsc --noEmit
+
+# Python
+pytest --collect-only
+
+# Go
+go build ./...
+```
+
+**Status esperado:** ✅ 0 errors (compilation clean)
+
+#### 3. Git Status Check (1 min)
+
+Obter lista completa de arquivos modificados:
+
+```bash
+# Via tool (preferido)
+get_changed_files()
+
+# Via shell (alternativa)
+git status --short
+git diff --stat
+```
+
+#### 4. Commit Commands Generation (10 min)
+
+**IMPORTANTE:** Seguir rigorosamente `docs/architecture/git-standards.md`
+
+**Formato oficial:**
+```
+[tipo]: breve descrição
+
+- Detalhe 1
+- Detalhe 2
+- Detalhe 3
+```
+
+**Tipos permitidos:**
+- `feat`: Nova funcionalidade
+- `fix`: Correção de bug
+- `refactor`: Mudança sem alterar funcionalidade
+- `docs`: Documentação
+- `chore`: Manutenção técnica
+- `style`: Ajustes visuais
+
+**Diretrizes:**
+1. Idioma: Português (PT-BR)
+2. Contexto: Sempre citar componente/campo principal
+3. Especificidade: Citar casos de uso específicos
+4. Impacto: Listar pontos principais da mudança
+
+**Agrupamento lógico:**
+- Commits devem ser atômicos (1 funcionalidade = 1 commit)
+- Agrupar arquivos relacionados (ex: component + hook)
+- Separar docs de código
+- Commits priorizados (P0 primeiro, P2 último)
+
+**Exemplo de saída:**
+
+```bash
+# Commit 1: Feature crítica (P0)
+git add app/hooks/useAutosave.ts
+git commit -m "feat: implementa autosave em navegação
+
+- Event handlers: beforeunload, visibilitychange, popstate
+- Fetch com keepalive para save confiável durante unload
+- Helper isDirtySignature() evita saves desnecessários
+- Resolve perda de dados ao navegar sem trocar de tab (Fix 3 - P0)"
+
+# Commit 2: Feature secundária (P1)
+git add app/components/Form.tsx
+git commit -m "feat: adiciona layout horizontal em pain points
+
+- Layout vertical → horizontal (flex gap-2)
+- Hints dinâmicos baseados em estado
+- Disabled state visualmente claro
+- Resolve Fix 1 (P1)"
+
+# Commit 3: Documentação
+git add docs/handoffs/handoff-ux-to-dev-20260502.yaml
+git commit -m "docs: adiciona handoff UX-to-Dev para fixes
+
+- Specs detalhadas dos 3 fixes
+- Acceptance criteria completos
+- Testing checklists"
+```
+
+#### 5. Session Closure Document (15 min)
+
+Criar documento em `.aiox/sessions/session-{description}-{date}.md`:
+
+**Estrutura obrigatória:**
+- FASE 0: PROJECT CONTEXT (validado)
+- FASE 1: CONTEXTO DA SESSÃO (objetivo, trabalho realizado)
+- FASE 2: INVENTÁRIO DE MUDANÇAS (arquivos, linhas, impacto)
+- FASE 3: VALIDAÇÕES (TypeScript, build, manual testing)
+- FASE 4: DECISÕES TÉCNICAS (com contexto e alternativas)
+- FASE 5: PENDÊNCIAS E PRÓXIMOS PASSOS (priorizados)
+- FASE 6: ARTEFATOS GERADOS (docs, código)
+- FASE 7: CONTEXTO DE CONTINUIDADE (como retomar)
+
+Ver exemplo: `.aiox/sessions/intelligence-refinement-session-20260502.md`
+
+#### 6. Handoff ao Usuário
+
+**Mensagem final:**
+
+```
+## ✅ SESSION CLOSURE COMPLETO
+
+### Trabalho Realizado
+- [Item 1]
+- [Item 2]
+
+### Validações
+- Build: ✅ PASS
+- TypeScript: ✅ PASS
+- Manual testing: ✅ PASS (ou 🟡 PENDENTE)
+
+### Git Status
+- 10 arquivos modificados
+- 866 linhas alteradas
+- 0 arquivos staged
+
+### Próximos Passos (VOCÊ)
+1. Revisar comandos de commit abaixo
+2. Executar comandos na ordem
+3. `git push origin main` (ou branch atual)
+4. Validar em ambiente de teste/produção
+
+### Comandos de Commit
+[Comandos estruturados conforme git-standards.md]
+
+---
+
+**Sessão encerrada.** Faço o fechamento final com os commits e push para o remoto.
+```
+
+**User mantém controle:** Sempre entregue comandos para usuário executar. NUNCA execute `git commit` ou `git push` diretamente (exceto se explicitamente solicitado pelo usuário).
+
+### Critérios de Sucesso
+
+- [ ] Build validado (0 errors)
+- [ ] Git status checado (lista completa de arquivos)
+- [ ] Comandos de commit gerados (seguindo git-standards.md)
+- [ ] Session closure document criado (`.aiox/sessions/`)
+- [ ] Contexto de continuidade preservado
+- [ ] Usuário recebeu comandos de commit para executar
+
+---
+
 ## 📊 CHECKLIST RÁPIDO (Use Antes de Cada Decisão)
 
 ```markdown
@@ -553,6 +795,9 @@ decision:
 - [ ] FASE 5: Documentei decisão em YAML
 - [ ] FASE 5: Validei TODOS os gates automáticos
 - [ ] FASE 5: Salvei decisão em docs/integration-checklists/
+- [ ] FASE 6: Validei build antes de gerar commits (se aplicável)
+- [ ] FASE 6: Gerei comandos de commit estruturados (se aplicável)
+- [ ] FASE 6: Criei session closure document (se aplicável)
 
 **Todos marcados?** → Pronto para proceder ✅
 ```
