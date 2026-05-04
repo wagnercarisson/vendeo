@@ -16,7 +16,7 @@
  */
 
 import { StoreMetadata, IntelligenceContext } from '@/lib/domain/campaigns/context-builder'
-import { SegmentExpert, RegionalExpert } from '@/lib/ai/prompts/registries/loader'
+import { SegmentExpert, RegionalExpert } from '@/lib/ai/prompts/registries/types'
 
 interface CampaignPromptInput {
   storeId: string
