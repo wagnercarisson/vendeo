@@ -1,8 +1,8 @@
 # Phase 2.3 — Backend Integration: Execution Tracker
 
 **Data Início:** 04 Mai 2026  
-**Status Atual:** � PHASE 2.3A SUBSTANTIALLY COMPLETE — 6/10 tasks done (A1-A4, A6 done; A5/A7/A8/A9/A10 pending)  
-**Última Atualização:** 04 Mai 2026 18:50
+**Status Atual:** 🟢 PHASE 2.3B IN PROGRESS — A: 85% (6/10) | B: 40% (4/10) | Overall: ~35%  
+**Última Atualização:** 05 Mai 2026 00:15
 
 ---
 
@@ -255,11 +255,11 @@ ${L2.score >= 70 ? "Use PRIORITARIAMENTE as preferências calibradas do lojista.
 
 | # | Task | Agent(s) | Status | Data | Notas |
 |---|------|----------|--------|------|-------|
-| B1 | Context Builder Service (L1) | @dev | 🔴 | — | fetchStoreMetadata(storeId) |
-| B2 | Context Builder Service (L2) | @dev | 🔴 | — | fetchIntelligenceContext(storeId) + score check |
-| B3 | Context Builder Service (L3) | @dev + @prompt-eng | 🔴 | — | buildAgenticPersona(segment, location) |
-| B4 | Prompt Renderer (Template Engine) | @dev | 🔴 | — | Handlebars ou similar |
-| B5 | Registry Loader (YAML → runtime) | @dev | 🔴 | — | Carregar segment/regional experts em memória |
+| B1 | Context Builder Service (L1) | @dev | ✅ | 05 Mai 2026 | fetchStoreMetadata(storeId) — Query stores table, region mapping, 2/2 tests ✅ |
+| B2 | Context Builder Service (L2) | @dev | ✅ | 05 Mai 2026 | fetchIntelligenceContext(storeId) + RPC score extraction, 2/2 tests ✅ |
+| B3 | Context Builder Service (L3) | @dev + @prompt-eng | ✅ | 05 Mai 2026 | buildAgenticPersona() + buildPromptContext() assembly, 5/5 tests ✅ |
+| B4 | Prompt Renderer (Template Engine) | @dev | 🔴 | — | buildCampaignPrompt() body implementation — NEXT STEP |
+| B5 | Registry Loader (YAML → runtime) | @dev | ✅ | 05 Mai 2026 | Loader + cache + type guards + clearRegistryCaches(), 10/10 tests ✅ |
 | B6 | Token Optimizer (truncate > 8K) | @dev + @prompt-eng | 🔴 | — | Priorizar L1 > L3 > L2 |
 | B7 | Feature Flag System | @dev | 🔴 | — | `useL3Persona`, `intelligenceThreshold`, rollback |
 | B8 | Integração em `/api/generate/route.ts` | @dev | 🔴 | — | Substituir prompt genérico por buildCampaignPrompt() |
@@ -267,12 +267,14 @@ ${L2.score >= 70 ? "Use PRIORITARIAMENTE as preferências calibradas do lojista.
 | B10 | Logging & Observability | @dev | 🔴 | — | Log de qual layer foi usado (L1+L3 vs L1+L2+L3) |
 
 **Entregáveis:**
-- [ ] `lib/domain/campaigns/context-builder.ts`
-- [ ] `lib/ai/prompts/prompt-renderer.ts`
-- [ ] `lib/ai/prompts/registries/loader.ts`
-- [ ] `lib/ai/prompts/token-optimizer.ts`
-- [ ] Feature flags em `lib/constants/feature-flags.ts`
-- [ ] Endpoint `/api/generate/route.ts` atualizado
+- [x] `lib/domain/campaigns/context-builder.ts` ✅ 05 Mai 2026 — 260 lines, 9/9 tests passing
+- [x] `lib/domain/campaigns/context-builder.test.ts` ✅ 05 Mai 2026 — Complete test coverage
+- [x] `lib/ai/prompts/registries/loader.ts` ✅ 05 Mai 2026 — Refined with cache management + type guards
+- [x] `lib/ai/prompts/registries/loader.test.ts` ✅ 05 Mai 2026 — 10/10 tests passing
+- [ ] `lib/ai/prompts/prompt-renderer.ts` — Pending (B4)
+- [ ] `lib/ai/prompts/token-optimizer.ts` — Pending (B6)
+- [ ] Feature flags em `lib/constants/feature-flags.ts` — Pending (B7)
+- [ ] Endpoint `/api/generate/route.ts` atualizado — Pending (B8)
 
 ---
 
