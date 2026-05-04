@@ -946,11 +946,106 @@ docs/integration-checklists/
 
 ### Regras de Fechamento
 
-1. **Resumo conciso**: Máximo 5 conquistas principais (não listar tudo)
-2. **Próximos passos claros**: O que fazer imediatamente ao retomar
-3. **Questões explícitas**: Se houver algo estranho/inconsistente, MARCAR para verificar
-4. **Sempre atualizar PROJECT-CONTEXT.md**: Adicionar seção ao final do documento
-5. **Commitar antes de encerrar**: Garantir que nada fica pendente
+**DOIS ARTEFATOS OBRIGATÓRIOS a cada fechamento:**
+
+#### 1. PROJECT-CONTEXT.md (Resumo Executivo)
+**Propósito:** Quick start para próxima sessão (2-3 minutos de leitura)
+
+**Conteúdo obrigatório:**
+- ✅ Conquistas principais (máximo 5 bullet points)
+- ✅ Progresso quantitativo (% complete, tasks done)
+- ✅ Próximos passos (1 parágrafo, máximo 3 ações)
+- ✅ Métricas básicas (commits, linhas, arquivos, duração)
+- ✅ Questões pendentes (se houver)
+
+**Formato:** ~50 linhas, incremental (nova seção ao final)
+
+---
+
+#### 2. Session Closure File (Documentação Técnica)
+**Propósito:** Snapshot imutável e auditável (~600 linhas, 10-15 minutos de leitura)
+
+**Localização:** `docs/sessions/session-YYYY-MM-DD-closure.md`
+
+**Estrutura das 7 FASES (OBRIGATÓRIAS):**
+
+**FASE 0: PROJECT CONTEXT**
+- Validação de `PROJECT-CONTEXT.md` lido
+- Fase atual, status técnico, último milestone
+- Blockers ativos (se houver)
+
+**FASE 1: CONTEXTO DA SESSÃO**
+- Objetivo principal (1 parágrafo)
+- Escopo de trabalho (lista detalhada)
+- Trabalho realizado (seções por parte/agente)
+
+**FASE 2: INVENTÁRIO DE MUDANÇAS**
+- Tabela de arquivos criados (path, linhas, descrição)
+- Tabela de arquivos modificados (path, mudanças, descrição)
+- Lista de commits criados (hash, mensagem)
+
+**FASE 3: VALIDAÇÕES**
+- TypeScript compilation (status, erros)
+- Unit tests (status, quantidade passing)
+- Manual testing (status ou N/A)
+- Build status
+
+**FASE 4: DECISÕES TÉCNICAS**
+- DEC-YYYY-MM-DD-NNN para cada decisão
+- Contexto, decisão tomada, alternativas rejeitadas
+- Rationale completo (POR QUÊ desta escolha)
+- Resultado/impacto
+
+**FASE 5: PENDÊNCIAS E PRÓXIMOS PASSOS**
+- Próximo blocker crítico (detalhado)
+- Pendências secundárias (não-bloqueantes)
+- Questões pendentes (se houver)
+
+**FASE 6: ARTEFATOS GERADOS**
+- Lista de código de produção criado
+- Lista de testes criados
+- Lista de documentação atualizada
+- Lista de commits
+
+**FASE 7: CONTEXTO DE CONTINUIDADE**
+- Como retomar na próxima sessão
+- Estado atual (checklist de o que está pronto)
+- Primeira ação ao retomar
+- Convocação sugerida para próximo agente
+- Blockers identificados
+- Dependências externas
+
+**MÉTRICAS DA SESSÃO (ao final):**
+- Tabela com: duração, commits, linhas, arquivos, tests, erros, agents
+
+---
+
+### Por que AMBOS são necessários?
+
+| Aspecto | PROJECT-CONTEXT.md | Session Closure File |
+|---------|-------------------|---------------------|
+| **Tamanho** | ~50 linhas | ~600 linhas |
+| **Propósito** | Quick start executivo | Auditoria técnica completa |
+| **Leitura** | 2-3 minutos | 10-15 minutos |
+| **Atualização** | Incremental (append) | Snapshot imutável |
+| **Quando usar** | Início de cada sessão | Troubleshooting, decisões técnicas, onboarding |
+
+**Exemplo de uso:**
+- **PROJECT-CONTEXT.md:** "O que fizemos ontem? → B1-B3 complete, próximo B4"
+- **Session Closure:** "Por que escolhemos lazy loading? → DEC-2026-05-05-002 com contexto completo"
+
+---
+
+### Checklist de Fechamento Atualizado
+
+Antes de encerrar sessão, confirmar:
+- [ ] **PROJECT-CONTEXT.md atualizado** (resumo executivo adicionado)
+- [ ] **Session Closure file criado** (`docs/sessions/session-YYYY-MM-DD-closure.md`)
+- [ ] Questões pendentes registradas em AMBOS (se houver)
+- [ ] Próximos passos claros em AMBOS
+- [ ] Commits estruturados conforme `git-standards.md`
+- [ ] Working tree commitado (`git status` limpo)
+- [ ] Confirmação verbal ao usuário: "Sessão encerrada, documentação completa"
 
 ### Exemplo de Questão Pendente
 
