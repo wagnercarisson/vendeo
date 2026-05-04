@@ -103,10 +103,18 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 
 function normalizeLoadedContext(value: unknown): IntelligenceContext {
   if (!isPlainObject(value)) {
-    return {};
+    return { schema_version: "2.1" };
   }
 
-  return value as IntelligenceContext;
+  const context = value as IntelligenceContext;
+  
+  // CRITICAL: Ensure schema_version exists (required by migration 037 constraint)
+  // Always default to "2.1" if missing (supports legacy contexts from before migration 037)
+  if (!context.schema_version) {
+    context.schema_version = "2.1";
+  }
+
+  return context;
 }
 
 function normalizeLoadedOnboarding(value: unknown): StoreOnboardingState {
@@ -251,6 +259,12 @@ export function useIntelligenceForm() {
       return;
     }
 
+    // CRITICAL: Ensure schema_version exists before save (required by migration 037 constraint)
+    const contextToSave = {
+      ...contextRef.current,
+      schema_version: contextRef.current.schema_version || "2.1",
+    };
+
     void fetch("/api/store/intelligence", {
       method: "PATCH",
       headers: {
@@ -258,7 +272,7 @@ export function useIntelligenceForm() {
       },
       body: JSON.stringify({
         store_id: storeId,
-        context: contextRef.current,
+        context: contextToSave,
       }),
       keepalive: options?.keepalive,
     })
@@ -389,6 +403,12 @@ export function useIntelligenceForm() {
     setSaveMessage("💾 Salvando...");
 
     try {
+      // CRITICAL: Ensure schema_version exists before save (required by migration 037 constraint)
+      const contextToSave = {
+        ...payload,
+        schema_version: payload.schema_version || "2.1",
+      };
+
       const response = await fetch("/api/store/intelligence", {
         method: "PATCH",
         headers: {
@@ -396,7 +416,7 @@ export function useIntelligenceForm() {
         },
         body: JSON.stringify({
           store_id: storeId,
-          context: payload,
+          context: contextToSave,
         }),
       });
 
