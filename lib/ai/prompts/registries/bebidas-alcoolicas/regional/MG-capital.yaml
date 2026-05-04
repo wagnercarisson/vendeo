@@ -1,0 +1,87 @@
+region_id: MG-capital
+region_name: "Belo Horizonte - Capital"
+segment_id: bebidas_alcoolicas
+version: "1.0"
+
+cultural_context:
+  overview: "Sotaque mineiro, cultura hospitaleira, tradição familiar"
+  mentality: "Acolhedor, autêntico, gosta de qualidade e tradição"
+  lifestyle: "Valor em amizade, encontros em casa, comida caseira"
+  income_profile: "Classe média, média-alta (Savassi, Funcionários)"
+  digital_adoption: "Média"
+
+local_events:
+  - name: "Festa da Pampulha"
+    month: 12
+    relevance: "Celebração arquitetônica. Festas, shows na região"
+    messaging: "Qualidade, encontro, tradição"
+  
+  - name: "Aniversário de BH"
+    month: 4
+    relevance: "Celebração da cidade, festas nos bairros"
+    messaging: "Belo Horizonte, celebração, comunidade"
+  
+  - name: "Romarias e Festas religiosas"
+    month: 9-10
+    relevance: "Tradição mineira (Festa de Iemanjá, Aparecida)"
+    messaging: "Fé, encontro, tradição"
+
+linguistic_markers:
+  informal:
+    - "Vixe, aproveita"
+    - "Bora ali"
+    - "Gosto demais"
+    - "Chama a galera"
+  
+  formal:
+    - "De coração para você"
+    - "Qualidade que a gente respeita"
+  
+  regional_specifics:
+    - "Referência à culinária mineira (queijo, broa)"
+    - "Sinceridade (marca mineira)"
+    - "Sotaque mineiro (redução de finais)"
+
+competitive_context:
+  major_chains:
+    - name: "Carrefour / Pão de Açúcar"
+      positioning: "Preço, variedade"
+      threat_level: "Alta"
+  
+  local_players:
+    - name: "Adegas de Savassi/Funcionários"
+      positioning: "Qualidade, atendimento personalizado"
+      threat_level: "Baixa"
+
+seasonal_specifics:
+  verao:
+    climate: "Dezembro a março: quente (20-28°C), úmido"
+    behavior: "Cerveja gelada, refrescantes"
+    messaging: "Gelado, natural, qualidade"
+    urgency: "Média"
+  
+  inverno:
+    climate: "Junho a agosto: ameno (12-22°C), seco"
+    behavior: "Vinhos, destilados, harmonização com comida caseira"
+    messaging: "Sofisticação, encontro familiar, aquecimento"
+    urgency: "Média"
+
+pain_points:
+  - "Público valoriza autenticidade (não gosta de marketing artificial)"
+  - "Fidelização por confiança, não por preço"
+
+opportunities:
+  - "Storytelling sobre origem e produção"
+  - "Educação sobre bebidas (curadoria explicada)"
+  - "Eventos de harmonização com comida mineira"
+
+regional_messaging_strategy:
+  tone: "Autêntico, sincero, acolhedor"
+  urgency: "Baixa-Média"
+  personality: "Amigo que ama qualidade"
+  key_messages:
+    - "Qualidade de verdade para quem aprecia"
+    - "Encontro com estilo e sinceridade"
+
+version_notes: "v1.0 - Research: Savassi market analysis, BH cultural calendar"
+last_updated: "2026-05-04"

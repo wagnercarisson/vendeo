@@ -1,0 +1,95 @@
+region_id: SP-capital
+region_name: "São Paulo - Capital"
+segment_id: mercearia
+version: "1.0"
+
+cultural_context:
+  overview: "Sotaque paulistano, correria diária, eficiência"
+  mentality: "Prático, direto, valoriza tempo e conveniência"
+  lifestyle: "Urbano acelerado, compras rápidas, refeições apressadas"
+  income_profile: "Classe média, média-alta (centros), popular (periferias)"
+
+local_events:
+  - name: "Dia das Mães"
+    month: 5
+    relevance: "Alimentos especiais, presentes, confeitaria"
+    messaging: "Para homenagear quem você ama"
+  
+  - name: "Natal"
+    month: 12
+    relevance: "Pico de vendas (ceia, bebidas, presentes)"
+    messaging: "Tudo que precisa para celebrar"
+  
+  - name: "Páscoa"
+    month: 4
+    relevance: "Ovos, chocolates, alimentos festivos"
+    messaging: "Qualidade para a páscoa em família"
+
+linguistic_markers:
+  informal:
+    - "Passa lá rápido"
+    - "Tudo fresco ali"
+    - "Vale a pena, confia"
+  
+  formal:
+    - "Qualidade que você confia"
+  
+  regional_specifics:
+    - "Referência ao metrô (Zona Sul, Leste, Centro)"
+    - "Bairro da casa (Vila Mariana, Mooca, Consolação)"
+    - "Pressa/mobilidade (15 min, pertinho)"
+
+competitive_context:
+  major_chains:
+    - name: "Carrefour Express / Pão de Açúcar Minuto"
+      positioning: "Preço, conveniência, localização"
+      threat_level: "Alta"
+  
+  local_players:
+    - name: "Sacolão/Mercadinho do bairro"
+      positioning: "Proximidade, crédito, atendimento pessoal"
+      threat_level: "Média"
+    
+    - name: "Padaria/Quitanda concorrente"
+      positioning: "Produto fresco, conhecimento pessoal"
+      threat_level: "Média"
+  
+  differentiator: "Atendimento personalizado, frescos locais, crédito rotativo"
+
+seasonal_specifics:
+  verao:
+    climate: "Quente, movimentado"
+    behavior: "Frutas, bebidas geladas, sorvete"
+    messaging: "Fresco, gelado, natural"
+    peak_hours: "Saída do trabalho (5-7pm), sábado o dia todo"
+    urgency: "Média"
+  
+  inverno:
+    climate: "Moderado, estável"
+    behavior: "Alimentos quentes, leite, café"
+    messaging: "Quentinho, aconchego"
+    peak_hours: "Manhã (café) + tarde (lanche)"
+    urgency: "Média"
+
+payment_patterns:
+  "1-10": "Movimento baixo"
+  "11-20": "Movimento médio"
+  "21-30": "Pico (próximo de salários)"
+
+pain_points:
+  - "Preço inflexível — não consegue competir com grandes redes"
+  - "Crédito limitado — cliente quer comprar fiado, mercearia não pode emprestar muito"
+  - "Horário restrito — abre 7am, fecha 19pm, perde vendas noturnas"
+
+opportunities:
+  - "Delivery rápido (diferencial)"
+  - "Crédito rotativo (confiança e fidelização)"
+  - "Produtos frescos locais (diferenciação)"
+
+regional_messaging_strategy:
+  tone: "Próximo, amigável, confiável"
+  urgency: "Média"
+  personality: "Vizinho que tem sempre o que você precisa"
+
+version_notes: "v1.0 - Research: SP metro patterns, neighborhood demographics, local retail dynamics"
+last_updated: "2026-05-04"

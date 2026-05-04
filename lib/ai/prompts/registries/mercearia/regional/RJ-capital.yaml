@@ -1,0 +1,87 @@
+region_id: RJ-capital
+region_name: "Rio de Janeiro - Capital"
+segment_id: mercearia
+version: "1.0"
+
+cultural_context:
+  overview: "Sotaque carioca, descontraído, vida ao ar livre"
+  mentality: "Social, relaxado, gosta de encontro"
+  lifestyle: "Praia, clima tropical, compras cotidianas"
+  income_profile: "Classe média (Zona Sul), popular (Zona Oeste/Centro)"
+
+local_events:
+  - name: "Carnaval"
+    month: 2
+    relevance: "Pico absoluto de movimento em toda a cidade"
+    messaging: "Tudo que precisa para curtir"
+  
+  - name: "Festa de Iemanjá"
+    month: 2
+    relevance: "Celebração cultural, oferendas, festas locais"
+    messaging: "Tradição e gratidão"
+  
+  - name: "Natal"
+    month: 12
+    relevance: "Ceia tradicional carioca, pico de vendas"
+    messaging: "Confraternização em família"
+
+linguistic_markers:
+  informal:
+    - "Vem cá, tem tudo fresco"
+    - "Tá show, aqui você acha"
+    - "Passa lá, que a gente tem"
+  
+  regional_specifics:
+    - "Referência à praia (Barra, Copacabana, Ipanema)"
+    - "Bairros populares (Centro, Penha, São Gonçalo)"
+    - "Calor e clima (precisa de fresco, gelado)"
+
+competitive_context:
+  major_chains:
+    - name: "Carrefour / Pão de Açúcar"
+      positioning: "Preço, variedade"
+      threat_level: "Alta"
+  
+  local_players:
+    - name: "Mercearia de esquina (Zona Oeste, Centro)"
+      positioning: "Proximidade, crédito, relacionamento"
+      threat_level: "Média"
+    
+    - name: "Feira/Sacolão local"
+      positioning: "Preço baixo, fresco diário"
+      threat_level: "Média"
+  
+  differentiator: "Proximidade, atendimento caloroso, confiança"
+
+seasonal_specifics:
+  verao:
+    climate: "Muito quente (25-35°C), úmido"
+    behavior: "Frutas tropicais, bebidas, água gelada"
+    messaging: "Tropical, gelado, refrescante"
+    peak_hours: "Tarde (saída do trabalho), sábado"
+    urgency: "Alta"
+  
+  inverno:
+    climate: "Moderado (15-25°C)"
+    behavior: "Alimentos equilibrados, essenciais"
+    messaging: "Conforto, encontro, qualidade"
+    peak_hours: "Manhã e tarde"
+    urgency: "Média"
+
+pain_points:
+  - "Clima exige reposição constante de produtos perecíveis"
+  - "Turismo sazonal gera flutuação de demanda (Carnaval vs. meses normais)"
+  - "Concorrência de feiras/sacolões com preço muito baixo"
+
+opportunities:
+  - "Bebidas e frutas tropicais (diferenciação)"
+  - "Atendimento caloroso como diferencial competitivo"
+  - "Promoções focadas em social/compartilhamento"
+
+regional_messaging_strategy:
+  tone: "Descontraído, amigável, social"
+  urgency: "Média"
+  personality: "Amigo do bairro que cuida da família"
+
+version_notes: "v1.0 - Research: Rio consumer patterns, seasonal tourism, local retail"
+last_updated: "2026-05-04"

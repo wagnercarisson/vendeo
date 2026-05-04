@@ -1,0 +1,97 @@
+region_id: RJ-capital
+region_name: "Rio de Janeiro - Capital"
+segment_id: bebidas_alcoolicas
+version: "1.0"
+
+cultural_context:
+  overview: "Sotaque carioca, cultura praiana, lifestyle relaxado"
+  mentality: "Descontraído, social, valoriza momentos com amigos/família"
+  lifestyle: "Praia, clima tropical, vida ao ar livre"
+  income_profile: "Classe média, média-alta (Zona Sul), popular (Zona Oeste)"
+  digital_adoption: "Média-Alta"
+
+local_events:
+  - name: "Carnaval carioca"
+    month: 2
+    relevance: "Maior festival do Brasil. Blocos de rua, escolas, desfiles. Pico absoluto de cerveja/bebidas"
+    messaging: "Cerveja gelada, samba, alegria, energia"
+  
+  - name: "Réveillon Copacabana"
+    month: 12
+    relevance: "Celebração à beira-mar, festas em apartamentos frente ao mar"
+    messaging: "Espumante, celebração, praia, glamour"
+  
+  - name: "Festa de Iemanjá"
+    month: 2
+    relevance: "Celebração cultural. Oferendas na praia, festas locais"
+    messaging: "Tradição, gratidão, comunidade"
+  
+  - name: "Verão carioca"
+    month: 12-3
+    relevance: "Auge do turismo, praias lotadas"
+    messaging: "Refrescante, gelado, encontro de amigos"
+
+linguistic_markers:
+  informal:
+    - "Vem cá, aproveita essa"
+    - "Que legal, tá show"
+    - "Meu, tá sensacional"
+    - "Passa lá, é jóia"
+  
+  formal:
+    - "Confira nossas seleções exclusivas"
+    - "Para aquele momento especial"
+  
+  regional_specifics:
+    - "Referência à praia (Copacabana, Ipanema, Barra)"
+    - "Sotaque carioca (supressão de 's', 'r' guttural)"
+    - "Cultura de samba e capoeira"
+
+competitive_context:
+  major_chains:
+    - name: "Carrefour / Pão de Açúcar"
+      positioning: "Preço, variedade"
+      threat_level: "Alta"
+    
+    - name: "Extra / Assaí"
+      positioning: "Volume, atacado"
+      threat_level: "Média"
+  
+  local_players:
+    - name: "Adegas da Zona Sul (Ipanema, Copacabana)"
+      positioning: "Curadoria, exclusividade, atendimento"
+      threat_level: "Baixa"
+
+seasonal_specifics:
+  verao:
+    climate: "Dezembro a março: quente (25-35°C), muito quente"
+    behavior: "Consumo elevado de cerveja gelada, água, suco gelado"
+    messaging: "Gelado, tropical, refrescante, praia"
+    urgency: "Alta"
+  
+  inverno:
+    climate: "Junho a agosto: moderado (15-25°C)"
+    behavior: "Consumo equilibrado, bebidas para harmonização"
+    messaging: "Conforto, encontro, qualidade"
+    urgency: "Média"
+
+pain_points:
+  - "Clima quente exige gelação constante"
+  - "Turismo sazonal (picos e vales de demanda)"
+  - "Preço sensível em populações de menor renda"
+
+opportunities:
+  - "Bebidas tropicais (agua de coco, bebidas à base de frutas)"
+  - "Parcerias com bares de praia"
+  - "Promoções focadas em social/compartilhamento"
+
+regional_messaging_strategy:
+  tone: "Descontraído, social, alegre"
+  urgency: "Média"
+  personality: "Amigo que curte um bom momento"
+  key_messages:
+    - "Cerveja gelada pro seu moment com os amigos"
+    - "Brinde pra vida"
+
+version_notes: "v1.0 - Research: Google Trends RJ, Zona Sul insights"
+last_updated: "2026-05-04"

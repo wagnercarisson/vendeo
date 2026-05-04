@@ -1,0 +1,91 @@
+region_id: MG-capital
+region_name: "Belo Horizonte - Capital"
+segment_id: mercearia
+version: "1.0"
+
+cultural_context:
+  overview: "Sotaque mineiro, tradição familiar, acolhimento"
+  mentality: "Sincero, acolhedor, valoriza relação pessoal"
+  lifestyle: "Família importante, comida caseira, encontros"
+  income_profile: "Classe média (Savassi, Funcionários), popular (periferias)"
+
+local_events:
+  - name: "Aniversário de BH"
+    month: 4
+    relevance: "Celebração da cidade, festas nos bairros"
+    messaging: "Celebre Belo Horizonte com qualidade"
+  
+  - name: "Romarias e Festas religiosas"
+    month: 9-10
+    relevance: "Tradição mineira, encontros familiares"
+    messaging: "Fé e encontro em família"
+  
+  - name: "Festa de Corpus Christi"
+    month: 6
+    relevance: "Tradição religiosa, comidas típicas"
+    messaging: "Comida mineira autêntica"
+
+linguistic_markers:
+  informal:
+    - "Vixe, aproveita"
+    - "Bora ali"
+    - "Gosto demais"
+  
+  formal:
+    - "De coração para você"
+    - "Qualidade que a gente respeita"
+  
+  regional_specifics:
+    - "Referência à culinária mineira (queijo, broa, confeitaria)"
+    - "Bairro consolidado (Savassi, Funcionários, Lourdes)"
+    - "Sinceridade (marca mineira: direto, sem floreios)"
+
+competitive_context:
+  major_chains:
+    - name: "Carrefour / Pão de Açúcar"
+      positioning: "Preço, variedade"
+      threat_level: "Alta"
+  
+  local_players:
+    - name: "Mercearia de bairro tradicional"
+      positioning: "Qualidade, confiança, relacionamento de anos"
+      threat_level: "Média"
+    
+    - name: "Sacolão/Feira com produtos locais"
+      positioning: "Fresco, produtor local, preço acessível"
+      threat_level: "Média"
+  
+  differentiator: "Qualidade, confiança, atendimento sincero"
+
+seasonal_specifics:
+  verao:
+    climate: "Quente (20-28°C), úmido"
+    behavior: "Frutas, bebidas geladas, alimentos frescos"
+    messaging: "Fresco, natural, qualidade"
+    peak_hours: "Tarde (saída do trabalho), sábado"
+    urgency: "Média"
+  
+  inverno:
+    climate: "Ameno (12-22°C), seco"
+    behavior: "Alimentos quentes, leite, café, comida caseira"
+    messaging: "Sofisticação, encontro familiar, autenticidade"
+    peak_hours: "Manhã (café) + tarde (lanche de família)"
+    urgency: "Média"
+
+pain_points:
+  - "Público valoriza autenticidade — não gosta de marketing artificial"
+  - "Fidelização por confiança, não por preço — difícil competir com grandes redes"
+  - "Preferência por produto local — cliente quer saber origem/fabricante"
+
+opportunities:
+  - "Storytelling sobre origem e produção local"
+  - "Educação sobre produtos (história, como usar)"
+  - "Eventos de harmonização com comida mineira"
+
+regional_messaging_strategy:
+  tone: "Sincero, acolhedor, familiar"
+  urgency: "Média"
+  personality: "Vizinho que você confia e que confia em você"
+
+version_notes: "v1.0 - Research: BH consumer demographics, local traditions, retail dynamics"
+last_updated: "2026-05-04"

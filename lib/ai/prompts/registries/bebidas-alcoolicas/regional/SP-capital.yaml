@@ -1,0 +1,127 @@
+region_id: SP-capital
+region_name: "São Paulo - Capital"
+segment_id: bebidas_alcoolicas
+version: "1.0"
+
+# Contexto cultural e comportamental
+cultural_context:
+  overview: "Sotaque paulistano, cultura cosmopolita, ritmo acelerado"
+  mentality: "Prático, competitivo, foco em ROI"
+  lifestyle: "Urbano intenso, pouco tempo, valoriza qualidade/exclusividade"
+  income_profile: "Classe média-alta até premium"
+  digital_adoption: "Alta (apps, redes sociais, delivery)"
+
+# Eventos locais relevantes
+local_events:
+  - name: "Virada Cultural"
+    month: 5
+    relevance: "Alta circulação nas ruas, eventos ao ar livre, consumo social elevado"
+    messaging: "Bebidas para compartilhar, encontros, música"
+  
+  - name: "Carnaval de rua"
+    month: 2
+    relevance: "Blocos em bairros (Vila Madalena, Pinheiros, Consolação), consumo de cerveja/bebidas"
+    messaging: "Cervejas geladas, acessibilidade, energia, diversão"
+  
+  - name: "Réveillon Paulista"
+    month: 12
+    relevance: "Festas em apartamentos, restaurantes, bares. Pico de espumantes e vinho premium"
+    messaging: "Celebração, sofisticação, Ano Novo especial"
+  
+  - name: "Festival de Gastronomia"
+    month: 8
+    relevance: "Harmonização de vinhos com pratos. Público sofisticado"
+    messaging: "Técnica, origem, harmonização"
+
+# Marcadores linguísticos (sotaque paulistano)
+linguistic_markers:
+  informal:
+    - "Mano, aproveita esse"
+    - "Pertinho de você"
+    - "Já era, fechou"
+    - "Leva dois que o terceiro é brinde"
+  
+  formal:
+    - "Confira nossa seleção cuidadosa"
+    - "À sua disposição"
+    - "Qualidade garantida em cada garrafa"
+  
+  regional_specifics:
+    - "Referência ao metrô (zona sul, zona leste)"
+    - "Bairros sofisticados (Vila Mariana, Mooca, Vila Olímpia)"
+    - "Trânsito como contexto (pressa, eficiência)"
+
+# Contexto competitivo
+competitive_context:
+  major_chains:
+    - name: "Carrefour"
+      positioning: "Preço baixo, variedade enorme"
+      threat_level: "Alta"
+    
+    - name: "Pão de Açúcar"
+      positioning: "Variedade, localização, conveniência"
+      threat_level: "Média"
+    
+    - name: "Zona Cerealista"
+      positioning: "Preço por volume, atacado"
+      threat_level: "Média"
+  
+  local_players:
+    - name: "Adegas de bairro (Vila Madalena, Pinheiros)"
+      positioning: "Curadoria, atendimento, exclusividade"
+      threat_level: "Baixa"
+    
+    - name: "Empórios especializados (Mooca, Vila Mariana)"
+      positioning: "Importados, premium, conhecimento técnico"
+      threat_level: "Baixa"
+  
+  differentiator: "Não compete por preço com Carrefour. Compete por curadoria, atendimento e conhecimento."
+
+# Sazonalidade climática e comercial
+seasonal_specifics:
+  verao:
+    climate: "Dezembro a março: quente (20-30°C), úmido"
+    behavior: "Consumo de cervejas geladas, rosés, happy hours noturnos"
+    messaging: "Gelado, refrescante, natural, leve"
+    peak_hours: "Após 17h em dias de semana; o dia todo no fim de semana"
+    urgency: "Alta (pico de vendas)"
+  
+  inverno:
+    climate: "Junho a agosto: frio moderado (10-20°C), seco"
+    behavior: "Consumo de vinhos tintos, destilados, harmonização com fondue/churrasco"
+    messaging: "Sofisticação, corpo, harmonização, aquecimento"
+    peak_hours: "Noites (happy hour + jantares)"
+    urgency: "Média"
+
+# Dores e oportunidades
+pain_points:
+  - "Trânsito intenso → delivery é crítico, 'tá perto de você' é vantagem"
+  - "Correria do dia a dia → praticidade, entregas rápidas"
+  - "Concorrência de apps (iFood, Zé Delivery) → integração digital"
+  - "Preço vs. Curadoria → storytelling sobre origem e técnica"
+
+opportunities:
+  - "Harmonização sob medida para eventos"
+  - "Educação sobre vinhos (masterclass, blog)"
+  - "Entregas em 30 minutos (diferencial)"
+  - "Assinatura mensal de seleção especial"
+  - "Parcerias com restaurantes/bares do bairro"
+
+# Estratégia regional de messaging
+regional_messaging_strategy:
+  tone_of_voice: "Profissional, sofisticado, mas acessível"
+  urgency_level: "Média-Alta"
+  personality: "Conhecedor que respeita tempo"
+  
+  key_messages:
+    - "Qualidade que você merece estar pertinho de você"
+    - "Não é só cerveja, é experiência gelada"
+    - "Vinho pra toda ocasião, desde happy hour até harmonização"
+  
+  forbidden_messages:
+    - "Mais barato que Carrefour (perderá nessa guerra)"
+    - "Cervejinha (reduz a categoria)"
+    - "Bebida popular (não é público-alvo)"
+
+version_notes: "v1.0 - Research: Google Maps local, Zona Leste Mercato Drinks, Pinheiros Happy Hour insights"
+last_updated: "2026-05-04"

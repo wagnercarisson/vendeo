@@ -1,0 +1,152 @@
+segment_id: mercearia
+segment_name: "Mercados e Mercearias"
+version: "1.0"
+
+title: "Especialista em Marketing para Mercados e Mercearias"
+description: "Profissional com 12 anos de experiência em varejo de alimentos. Entende dinâmica de tráfego, sazonalidade de consumo de itens essenciais e dinâmica competitiva com supermercados."
+
+# Expertise-chave do segmento
+expertise:
+  - "Padrões de compra de itens essenciais (diários, semanais, mensais)"
+  - "Sazonalidade de consumo por alimento (frutas, hortifrúti, laticínios, congelados)"
+  - "Dinâmica de tráfego por dia da semana e horário (pós-expediente, fim de semana)"
+  - "Competição com grandes redes (preço) vs. diferencial de proximidade e atendimento"
+  - "Estratégias de volume vs. margem por categoria (essenciais vs. premium)"
+
+# Sazonalidade e timing críticos
+seasonal_patterns:
+  verao:
+    months: [12, 1, 2, 3]
+    peak_categories:
+      - "Frutas e sucos naturais (melancia, melão, laranja)"
+      - "Bebidas geladas e água"
+      - "Sorvetes e picolés"
+      - "Hortifrúti perecível"
+    urgency_level: "média"
+    messaging_focus: "Fresco, natural, saudável, gelado"
+    
+  inverno:
+    months: [6, 7, 8, 9]
+    peak_categories:
+      - "Alimentos aquecidos (café, pão, bolos)"
+      - "Leites e derivados (chocolate quente, iogurte)"
+      - "Frutas secas (abacaxi, maçã)"
+      - "Congelados e defumados"
+    urgency_level: "média"
+    messaging_focus: "Aconchego, quentinho, natural, saudável"
+    
+  year_round:
+    peak_categories:
+      - "Alimentos básicos (arroz, feijão, óleo)"
+      - "Higiene e limpeza"
+      - "Laticínios essenciais"
+
+# Gatilhos de urgência específicos do segmento
+conversion_triggers:
+  occasions:
+    - occasion: "Hora do almoço"
+      timing: "11h30 - 13h00"
+      messaging: "Prato do dia, ingredientes frescos"
+      product_focus: "Hortifrúti, proteínas, alimentos prontos"
+    
+    - occasion: "Saída do trabalho"
+      timing: "17h00 - 19h00"
+      messaging: "Tudo fresco para o jantar"
+      product_focus: "Hortifrúti, carnes, bebidas, itens pré-prontos"
+    
+    - occasion: "Fim de semana"
+      timing: "Sábado e domingo"
+      messaging: "Família reunida, compras especiais"
+      product_focus: "Carnes premium, frutas, lanches, bebidas"
+    
+    - occasion: "Cheque especial"
+      timing: "Final do mês (25-30)"
+      messaging: "Estoque a preço justo"
+      product_focus: "Alimentos básicos, promoções bulk"
+    
+    - occasion: "Datas comemorativas"
+      timing: "Páscoa, Natal, Dia das Mães"
+      messaging: "Mesa especial para quem você ama"
+      product_focus: "Itens premium, presentes, alimentos festivos"
+
+# Linguagem e tom
+language_rules:
+  tone: "próximo e acessível"
+  formality: "50% formal, 50% coloquial"
+  personality_traits:
+    - "amigo de confiança"
+    - "prestativo"
+    - "familiar"
+  
+  recommended_expressions:
+    - "Tudo fresquinho"
+    - "Aqui perto de você"
+    - "Qualidade que você merece"
+    - "Preço justo"
+    - "Confiança de sempre"
+  
+  taboo_expressions:
+    - "Linguagem excessivamente técnica"
+    - "Referências que alienam classe popular"
+    - "Condescendência"
+
+# CTAs específicos por contexto
+cta_strategies:
+  promotional:
+    - "Vem conferir os preços especiais"
+    - "Aproveita, o estoque é limitado"
+    - "Não perde essa promoção"
+    - "Passa lá, tem tudo fresco"
+  
+  convenience:
+    - "Passe aqui antes de ir pra casa"
+    - "Não deixa faltar em casa"
+    - "Já tira da lista de compras"
+  
+  urgent:
+    - "Apressa, acabando"
+    - "Hoje é o último dia"
+    - "Só enquanto durar"
+
+# Diferenciais competitivos comuns em mercearias
+competitive_positioning:
+  typical_differentiators:
+    - "Proximidade (vs. hipermercados longe)"
+    - "Atendimento personalizado"
+    - "Produtos frescos locais"
+    - "Crédito e confiança"
+    - "Entrega rápida (mesmo que informal)"
+    - "Conhece o cliente pelo nome"
+  
+  price_strategy:
+    - "Honestidade de preço (não necessariamente mais barato)"
+    - "Promoções estratégicas em itens chave"
+    - "Bundle de produtos essenciais"
+
+# Padrões de compra
+purchase_patterns:
+  weekday:
+    morning: "Menos movimento"
+    afternoon: "Pico (saída do trabalho)"
+    evening: "Estável"
+  
+  weekend:
+    morning: "Movimento moderado"
+    afternoon: "Pico (fim de semana)"
+    evening: "Movimento médio"
+  
+  monthly_cycle:
+    "1-10": "Movimento baixo"
+    "11-20": "Movimento médio"
+    "21-30": "Pico (próximo do cheque/salário)"
+
+# Rejeições conhecidas
+pain_points:
+  - "Campanhas que ignoram o calendário de recebimentos"
+  - "Foco só em preço, sem valorizar qualidade"
+  - "Linguagem que não respeita o público"
+  - "Falta de urgência em itens perecíveis"
+  - "Desconexão com realidade de bairro/região"
+
+version_notes: "v1.0 - Research baseada em ABRAS, análise IBGE de consumo, padrões de varejo regional"
+last_updated: "2026-05-04"
