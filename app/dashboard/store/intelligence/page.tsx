@@ -1,13 +1,19 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { Award, Calendar, Target, TrendingUp } from "lucide-react";
 import { IntelligenceTabs } from "./components/IntelligenceTabs";
+import { OnboardingModal } from "./components/OnboardingModal";
 import { ProgressIndicator } from "./components/ProgressIndicator";
 import { Tab1PublicoTom } from "./components/Tab1-PublicoTom";
 import { Tab2Posicionamento } from "./components/Tab2-Posicionamento";
 import { Tab3Conversao } from "./components/Tab3-Conversao";
 import { Tab4Avancado } from "./components/Tab4-Avancado";
-import { useIntelligenceForm } from "./hooks/useIntelligenceForm";
+import {
+  type OnboardingTabKey,
+  useIntelligenceForm,
+} from "./hooks/useIntelligenceForm";
 
 const TABS = [
   {
@@ -36,6 +42,61 @@ const TABS = [
   },
 ];
 
+const ONBOARDING_TAB_ORDER: OnboardingTabKey[] = [
+  "tab_1_publico_tom",
+  "tab_2_posicionamento",
+  "tab_3_conversao",
+  "tab_4_avancado",
+];
+
+const ONBOARDING_CONTENT: Record<OnboardingTabKey, {
+  title: string;
+  message: string;
+  bulletPoints: string[];
+  icon: JSX.Element;
+}> = {
+  tab_1_publico_tom: {
+    title: "Conheça seu público e defina o tom",
+    message: "Campanhas que falam a língua certa do seu cliente convertem muito mais. Essa etapa calibra como o Vendeo deve vender por você.",
+    bulletPoints: [
+      "Textos mais próximos de quem realmente compra na sua loja.",
+      "Tom de voz consistente para sua marca parecer reconhecível.",
+      "Menos campanha genérica e mais argumento que encaixa no seu público.",
+    ],
+    icon: <Target className="h-8 w-8" />,
+  },
+  tab_2_posicionamento: {
+    title: "Posicione sua loja no mercado",
+    message: "Quando o Vendeo entende seus diferenciais, preço e concorrência, ele destaca melhor por que o cliente deve comprar de você.",
+    bulletPoints: [
+      "Diferenciais claros deixam a oferta mais forte.",
+      "Preço bem posicionado evita campanha desalinhada com sua realidade.",
+      "A IA passa a vender com argumentos competitivos, não genéricos.",
+    ],
+    icon: <Award className="h-8 w-8" />,
+  },
+  tab_3_conversao: {
+    title: "Otimize suas vendas",
+    message: "Aqui você ensina ao Vendeo quais gatilhos e CTAs fazem seu cliente agir, para transformar atenção em compra.",
+    bulletPoints: [
+      "Urgência e escassez calibradas ao seu jeito de vender.",
+      "CTAs reaproveitam aprendizados do que já funcionou na prática.",
+      "Mais chance de converter cliques em conversas e vendas reais.",
+    ],
+    icon: <TrendingUp className="h-8 w-8" />,
+  },
+  tab_4_avancado: {
+    title: "Contexto adicional para campanhas sazonais",
+    message: "Os ajustes finos ajudam o Vendeo a aproveitar datas, eventos e preferências de linguagem para sugerir campanhas mais oportunas.",
+    bulletPoints: [
+      "Sazonalidade mapeada para publicar no momento certo.",
+      "Eventos locais viram gancho comercial mais rápido.",
+      "Linguagem e tamanho de copy ficam mais alinhados ao seu público.",
+    ],
+    icon: <Calendar className="h-8 w-8" />,
+  },
+};
+
 export default function IntelligencePage() {
   const {
     loading,
@@ -44,15 +105,47 @@ export default function IntelligencePage() {
     setActiveTab,
     storeSegment,
     context,
+    onboardingState,
+    onboardingReady,
     updateField,
     toggleArrayValue,
     setStringList,
     setSuccessfulPastCtas,
+    markOnboardingTabCompleted,
     scoreSummary,
     validationErrors,
     saveMessage,
     saveStatus,
   } = useIntelligenceForm();
+  const [openOnboardingTab, setOpenOnboardingTab] = useState<OnboardingTabKey | null>(null);
+
+  const activeOnboardingTab = useMemo(
+    () => ONBOARDING_TAB_ORDER[activeTab] ?? null,
+    [activeTab]
+  );
+
+  useEffect(() => {
+    if (!onboardingReady || !activeOnboardingTab || loading || loadError) {
+      return;
+    }
+
+    if (!onboardingState[activeOnboardingTab]?.completed) {
+      setOpenOnboardingTab(activeOnboardingTab);
+      return;
+    }
+
+    setOpenOnboardingTab((current) => (current === activeOnboardingTab ? null : current));
+  }, [activeOnboardingTab, loadError, loading, onboardingReady, onboardingState]);
+
+  async function handleCloseOnboarding() {
+    if (!openOnboardingTab) {
+      return;
+    }
+
+    const tabKey = openOnboardingTab;
+    setOpenOnboardingTab(null);
+    await markOnboardingTabCompleted(tabKey);
+  }
 
   const panels = [
     <Tab1PublicoTom
@@ -88,8 +181,19 @@ export default function IntelligencePage() {
     />,
   ];
 
+  const onboardingContent = openOnboardingTab ? ONBOARDING_CONTENT[openOnboardingTab] : null;
+
   return (
     <main className="h-full overflow-y-auto bg-[#F6F8F6] px-4 py-6 sm:px-6 lg:px-10">
+      <OnboardingModal
+        isOpen={!!onboardingContent}
+        onClose={handleCloseOnboarding}
+        icon={onboardingContent?.icon ?? null}
+        title={onboardingContent?.title ?? ""}
+        message={onboardingContent?.message ?? ""}
+        bulletPoints={onboardingContent?.bulletPoints ?? []}
+      />
+
       <div className="mx-auto max-w-[1200px] space-y-6">
         <section className="rounded-[2rem] border border-zinc-200 bg-white px-6 py-8 shadow-sm">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">

@@ -77,6 +77,26 @@ export type IntelligenceContext = {
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
+export type OnboardingTabKey =
+  | "tab_1_publico_tom"
+  | "tab_2_posicionamento"
+  | "tab_3_conversao"
+  | "tab_4_avancado";
+
+type OnboardingTabProgress = {
+  completed: boolean;
+  completed_at: string | null;
+};
+
+export type StoreOnboardingState = Record<OnboardingTabKey, OnboardingTabProgress>;
+
+const DEFAULT_ONBOARDING_STATE: StoreOnboardingState = {
+  tab_1_publico_tom: { completed: false, completed_at: null },
+  tab_2_posicionamento: { completed: false, completed_at: null },
+  tab_3_conversao: { completed: false, completed_at: null },
+  tab_4_avancado: { completed: false, completed_at: null },
+};
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -87,6 +107,42 @@ function normalizeLoadedContext(value: unknown): IntelligenceContext {
   }
 
   return value as IntelligenceContext;
+}
+
+function normalizeLoadedOnboarding(value: unknown): StoreOnboardingState {
+  if (!isPlainObject(value)) {
+    return DEFAULT_ONBOARDING_STATE;
+  }
+
+  const normalized = { ...DEFAULT_ONBOARDING_STATE };
+
+  (Object.keys(DEFAULT_ONBOARDING_STATE) as OnboardingTabKey[]).forEach((tabKey) => {
+    const rawTab = value[tabKey];
+
+    if (!isPlainObject(rawTab)) {
+      return;
+    }
+
+    normalized[tabKey] = {
+      completed: rawTab.completed === true,
+      completed_at: typeof rawTab.completed_at === "string" ? rawTab.completed_at : null,
+    };
+  });
+
+  return normalized;
+}
+
+function cloneOnboardingState(state: StoreOnboardingState): StoreOnboardingState {
+  return {
+    tab_1_publico_tom: { ...state.tab_1_publico_tom },
+    tab_2_posicionamento: { ...state.tab_2_posicionamento },
+    tab_3_conversao: { ...state.tab_3_conversao },
+    tab_4_avancado: { ...state.tab_4_avancado },
+  };
+}
+
+function isOnboardingComplete(state: StoreOnboardingState) {
+  return (Object.keys(state) as OnboardingTabKey[]).every((tabKey) => state[tabKey].completed);
 }
 
 function createSignature(context: IntelligenceContext) {
@@ -166,6 +222,8 @@ export function useIntelligenceForm() {
   const [storeSegment, setStoreSegment] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(0);
   const [context, setContext] = useState<IntelligenceContext>({});
+  const [onboardingState, setOnboardingState] = useState<StoreOnboardingState>(DEFAULT_ONBOARDING_STATE);
+  const [onboardingReady, setOnboardingReady] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [saveMessage, setSaveMessage] = useState(
@@ -259,7 +317,7 @@ export function useIntelligenceForm() {
       }
 
       setStoreId(store.id);
-  setStoreSegment(store.main_segment ?? null);
+        setStoreSegment(store.main_segment ?? null);
 
       const { data: intelligence, error: intelligenceError } = await supabase
         .from("store_intelligence")
@@ -276,7 +334,24 @@ export function useIntelligenceForm() {
       }
 
       const nextContext = normalizeLoadedContext(intelligence?.context);
+
+      const { data: onboarding, error: onboardingError } = await supabase
+        .from("store_onboarding_state")
+        .select("completed_tabs")
+        .eq("store_id", store.id)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (onboardingError) {
+        setLoadError(onboardingError.message);
+        setLoading(false);
+        return;
+      }
+
       setContext(nextContext);
+      setOnboardingState(normalizeLoadedOnboarding(onboarding?.completed_tabs));
+      setOnboardingReady(true);
       lastSavedSignatureRef.current = createSignature(nextContext);
       setSaveStatus("idle");
       setSaveMessage(
@@ -470,6 +545,41 @@ export function useIntelligenceForm() {
     updateField("successful_past_ctas", items);
   }
 
+  async function markOnboardingTabCompleted(tabKey: OnboardingTabKey) {
+    if (!storeId) {
+      return false;
+    }
+
+    const now = new Date().toISOString();
+    const previousState = cloneOnboardingState(onboardingState);
+    const nextState = cloneOnboardingState(onboardingState);
+
+    nextState[tabKey] = {
+      completed: true,
+      completed_at: nextState[tabKey].completed_at ?? now,
+    };
+
+    setOnboardingState(nextState);
+
+    const { error } = await supabase.from("store_onboarding_state").upsert(
+      {
+        store_id: storeId,
+        completed_tabs: nextState,
+        is_complete: isOnboardingComplete(nextState),
+        started_from: "direct",
+        last_interaction_at: now,
+      },
+      { onConflict: "store_id" }
+    );
+
+    if (error) {
+      setOnboardingState(previousState);
+      return false;
+    }
+
+    return true;
+  }
+
   return {
     loading,
     loadError,
@@ -478,10 +588,13 @@ export function useIntelligenceForm() {
     activeTab,
     setActiveTab,
     context,
+    onboardingState,
+    onboardingReady,
     updateField,
     toggleArrayValue,
     setStringList,
     setSuccessfulPastCtas,
+    markOnboardingTabCompleted,
     scoreSummary,
     validationErrors,
     saving,
