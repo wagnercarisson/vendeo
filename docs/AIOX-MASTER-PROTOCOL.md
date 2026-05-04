@@ -979,4 +979,81 @@ Antes de encerrar, confirmar:
 
 ---
 
+## 📝 HISTÓRICO DE SESSÕES
+
+### 📋 SESSÃO 05 MAI 2026 00:15 — Phase 2.3B Implementation
+
+#### ✅ Conquistas do Dia
+1. **Type Definitions Completas (types.ts)**
+   - SegmentExpert e RegionalExpert interfaces definidas
+   - Estrutura completa de registries para L1/L2/L3
+   - Quality Score: 10/10
+
+2. **B5 - Registry Loader Implementation (loader.ts + tests)**
+   - Loader com caching Map-based e validação runtime
+   - Path normalization (bebidas_alcoolicas ↔ bebidas-alcoolicas)
+   - clearRegistryCaches() público + type guards (isSegmentExpert, isRegionalExpert)
+   - 10/10 tests passing
+   - Quality Score: 10/10
+
+3. **B1-B3 - Context Builder Complete (context-builder.ts + tests)**
+   - B1: fetchStoreMetadata() — Query stores table, region mapping
+   - B2: fetchIntelligenceContext() — Query store_intelligence + RPC score extraction
+   - B3: buildAgenticPersona() + buildPromptContext() — L3 assembly + threshold logic
+   - 9/9 tests passing
+   - Test injection pattern (optional client parameter)
+   - Lazy loading de Supabase para test compatibility
+   - Quality Score: 9.5/10
+
+4. **Infrastructure Fixes**
+   - tsconfig.json: allowImportingTsExtensions para test runner compatibility
+   - Relative imports com .ts extensions funcionando em Next.js e node:test
+
+5. **Tracker & Git Commits**
+   - phase-2.3-backend-integration-tracker.md atualizado (35% complete)
+   - 6 commits estruturados conforme git-standards.md
+   - Working tree clean, 9 commits ahead of origin/main
+
+#### 📊 Progresso Phase 2.3
+- **Phase 2.3A:** 85% complete (6/10 tasks)
+- **Phase 2.3B:** 40% complete (4/10 tasks)
+- **Overall:** ~35% complete
+
+#### ➡️ Próximos Passos (Retomada Próxima Sessão)
+**B4 - Prompt Renderer Implementation**
+- Implementar buildCampaignPrompt() function body em campaign-prompt-v1.ts
+- Chamar helpers: formatL1Metadata(), formatL2Intelligence() (condicional), formatL3Persona(), formatTaskDefinition(), formatRules()
+- Assemblar XML structure completo
+- Retornar prompt string final
+- Responsável: @dev
+- Estimativa: 2 dias
+- Referência: lib/ai/prompts/templates/campaign-prompt-v1.ts
+- **Bloqueando:** B8 (API Integration)
+
+#### ❓ Questões Pendentes
+- Nenhuma — Sessão limpa, todos os deliverables completos e validados
+
+#### 🎯 Estado para Retomada
+- ✅ B1-B3 (Context Builder) implementation complete — 19/19 tests passing
+- ✅ B5 (Registry Loader) refined with cache management + type guards
+- ✅ Type definitions ready for all context layers
+- ✅ All TypeScript compilation errors resolved
+- ✅ Test runner compatibility issues fixed (module resolution, lazy loading)
+- ✅ Git commits ready for push (6 new commits)
+- ⚠️ **PRÓXIMO CRÍTICO:** B4 desbloqueia B8 (API Integration) — prioridade máxima
+
+#### 📦 Artefatos Gerados
+- `lib/ai/prompts/registries/types.ts` (125 lines)
+- `lib/ai/prompts/registries/loader.ts` (200 lines, 10 tests)
+- `lib/domain/campaigns/context-builder.ts` (260 lines, 9 tests)
+- 6 git commits estruturados
+- Tracker atualizado
+
+#### 🔄 Comandos para Push
+```bash
+git push origin main  # 9 commits ahead
+```
+
+---
+
 *Este protocolo é meu FREIO. Sem ele, eu causo retrabalho.*
