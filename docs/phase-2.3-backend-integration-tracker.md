@@ -1,8 +1,8 @@
 # Phase 2.3 — Backend Integration: Execution Tracker
 
 **Data Início:** 04 Mai 2026  
-**Status Atual:** 🟢 PHASE 2.3B IN PROGRESS — A: 85% (6/10) | B: 40% (4/10) | Overall: ~35%  
-**Última Atualização:** 05 Mai 2026 00:15
+**Status Atual:** 🟢 PHASE 2.3B IN PROGRESS — A: 85% (6/10) | B: 60% (6/10) | Overall: ~45%  
+**Última Atualização:** 05 Mai 2026 23:45
 
 ---
 
@@ -258,23 +258,24 @@ ${L2.score >= 70 ? "Use PRIORITARIAMENTE as preferências calibradas do lojista.
 | B1 | Context Builder Service (L1) | @dev | ✅ | 05 Mai 2026 | fetchStoreMetadata(storeId) — Query stores table, region mapping, 2/2 tests ✅ |
 | B2 | Context Builder Service (L2) | @dev | ✅ | 05 Mai 2026 | fetchIntelligenceContext(storeId) + RPC score extraction, 2/2 tests ✅ |
 | B3 | Context Builder Service (L3) | @dev + @prompt-eng | ✅ | 05 Mai 2026 | buildAgenticPersona() + buildPromptContext() assembly, 5/5 tests ✅ |
-| B4 | Prompt Renderer (Template Engine) | @dev | 🔴 | — | buildCampaignPrompt() body implementation — NEXT STEP |
+| B4 | Prompt Renderer (Template Engine) | @dev | ✅ | 05 Mai 2026 | buildCampaignPrompt() — L1/L2/L3 integration, threshold logic, 8/8 tests ✅ |
 | B5 | Registry Loader (YAML → runtime) | @dev | ✅ | 05 Mai 2026 | Loader + cache + type guards + clearRegistryCaches(), 10/10 tests ✅ |
-| B6 | Token Optimizer (truncate > 8K) | @dev + @prompt-eng | 🔴 | — | Priorizar L1 > L3 > L2 |
+| B6 | Token Optimizer (truncate > 8K) | @dev + @prompt-eng | 🔴 | — | Priorizar L1 > L3 > L2 (SKIP: otimização prematura) |
 | B7 | Feature Flag System | @dev | 🔴 | — | `useL3Persona`, `intelligenceThreshold`, rollback |
-| B8 | Integração em `/api/generate/route.ts` | @dev | 🔴 | — | Substituir prompt genérico por buildCampaignPrompt() |
+| B8 | Integração em `/api/generate/route.ts` | @dev | 🔴 | — | Substituir prompt genérico por buildCampaignPrompt() — NEXT STEP |
 | B9 | UI: Toggle "Usar Intelligence" | @dev | 🔴 | — | (Opcional) Permitir user desabilitar personalização |
 | B10 | Logging & Observability | @dev | 🔴 | — | Log de qual layer foi usado (L1+L3 vs L1+L2+L3) |
 
 **Entregáveis:**
-- [x] `lib/domain/campaigns/context-builder.ts` ✅ 05 Mai 2026 — 260 lines, 9/9 tests passing
+- [x] `lib/domain/campaigns/context-builder.ts` ✅ 05 Mai 2026 — 320 lines, 9/9 tests passing
 - [x] `lib/domain/campaigns/context-builder.test.ts` ✅ 05 Mai 2026 — Complete test coverage
 - [x] `lib/ai/prompts/registries/loader.ts` ✅ 05 Mai 2026 — Refined with cache management + type guards
 - [x] `lib/ai/prompts/registries/loader.test.ts` ✅ 05 Mai 2026 — 10/10 tests passing
-- [ ] `lib/ai/prompts/prompt-renderer.ts` — Pending (B4)
-- [ ] `lib/ai/prompts/token-optimizer.ts` — Pending (B6)
+- [x] `lib/ai/prompts/prompt-renderer.ts` ✅ 05 Mai 2026 — 260 lines, 8/8 tests passing, JSDoc complete
+- [x] `lib/ai/prompts/prompt-renderer.test.ts` ✅ 05 Mai 2026 — Complete test coverage
+- [ ] `lib/ai/prompts/token-optimizer.ts` — Skipped (otimização prematura, B6)
 - [ ] Feature flags em `lib/constants/feature-flags.ts` — Pending (B7)
-- [ ] Endpoint `/api/generate/route.ts` atualizado — Pending (B8)
+- [ ] Endpoint `/app/api/generate/route.ts` atualizado — Pending (B8)
 
 ---
 
@@ -344,6 +345,35 @@ ${L2.score >= 70 ? "Use PRIORITARIAMENTE as preferências calibradas do lojista.
 **Rationale:** -82% tokens L3 (5.5K → 1K), especialização regional por segmento, manutenção modular  
 **Impacto:** Resolve BLOCK-001 implicitamente, reduz R3 (prompts longos), facilita escalabilidade  
 **Status:** ✅ RESOLVIDA  
+
+### DEC-006: B6 Token Optimizer SKIP
+**Data:** 05 Mai 2026  
+**Decisor:** @aiox-master  
+**Contexto:** Token budget analysis mostrou prompts em 800-1200 tokens (< 15% do limite 8K)  
+**Decisão:** Pular B6 (otimização prematura) e avançar direto para B8  
+**Rationale:** ROI baixo, complexidade alta, não é gargalo real  
+**Status:** ✅ RESOLVIDA  
+
+### DEC-007: B8 Endpoint Integration Complete
+**Data:** 05 Mai 2026 23:30  
+**Decisor:** @dev (Dex)  
+**Contexto:** Integração do prompt-renderer em generateCampaignContent()  
+**Decisão:** Implementado com feature flag, fallback automático, e logging  
+**Entregas:** prompt-resolution.ts (95 lines, 4/4 tests), service.ts integration, legacy deprecation  
+**Testes:** 21/21 unit tests passing, fallback validado em testes manuais  
+**Status:** ✅ COMPLETE  
+
+### DEC-008: [BLOCKER] Segment Normalization Gap
+**Data:** 05 Mai 2026 23:40  
+**Decisor:** PENDENTE (usuário solicitou discussão)  
+**Contexto:** UI labels ("Loja de bebidas", "Adega") não mapeiam diretamente para registry slugs ("bebidas_alcoolicas")  
+**Problema:** Testes E2E bloqueados — usuário precisa usar label exato "Adegas e Distribuidoras" para funcionar  
+**Impacto:** Experiência do usuário ruim, fallback excessivo, registry subutilizado  
+**Propostas:**
+1. Estratégia 1 (MVP): Dicionário de normalização em loader.ts (~15min)
+2. Estratégia 2 (Médio): Registry hierárquico com variants (~1 semana)
+3. Estratégia 3 (Longo): Normalização no DB com SQL enum (~2-3 dias)
+**Status:** 🔴 BLOCKED — Aguarda decisão do usuário após retorno
 
 ---
 

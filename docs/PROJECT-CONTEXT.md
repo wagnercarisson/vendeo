@@ -1,6 +1,6 @@
 # Vendeo — Project Context (Session Bootstrap)
 
-**Última Atualização:** 2026-05-05 por @aiox-master  
+**Última Atualização:** 2026-05-05 23:45 por @aiox-master  
 **Propósito:** Contexto obrigatório para @aiox-master no início de cada sessão
 
 ---
@@ -13,14 +13,22 @@ Motor de vendas social para varejo físico (adegas, farmácias, moda, beauty, ho
 
 ## 📍 ONDE ESTAMOS AGORA
 
-**Fase:** Beta/Pré-lançamento — Refinamento UX + Otimização de IA  
-**Status Técnico:** Phase 2.1 DEPLOYED + Intelligence UX Refinements COMPLETE ✅ (01-02/05/2026)  
-**Último Milestone:** Intelligence Page refinamentos UX completo (fixes críticos 02/05) + Logo IA Optimization Sprint 1
+**Fase:** Beta/Pré-lançamento — Backend Integration (Phase 2.3B)  
+**Status Técnico:** Phase 2.2 DEPLOYED ✅ + Phase 2.3B IN PROGRESS (60% completo)  
+**Último Milestone:** B8 Endpoint Integration COMPLETE ✅ (05/05/2026 23:45)
+
+**Phase 2.3B Progress (Context Layering System):**
+- ✅ **B1-B3:** Context Builder completo (L1/L2/L3 assembly, 9/9 tests passing)
+- ✅ **B4:** Prompt Renderer completo (L1/L2/L3 integration, 8/8 tests passing, JSDoc completo)
+- ✅ **B5:** Registry Loader completo (YAML loading, caching, type guards, 10/10 tests passing)
+- ✅ **B7/B8:** Endpoint Integration + Feature Flags COMPLETE (21/21 tests passing, fallback validated)
+- 🟡 **BLOCKER IDENTIFICADO:** Segment normalization gap (UI "Loja de bebidas" → DB → Registry "bebidas_alcoolicas")
+- 🎯 **PRÓXIMO:** Resolver normalização de segmentos (3 estratégias propostas) + B10 Logging
 
 **3 Gaps Críticos Identificados:**
-1. **Marketing Intelligence Layer** (em implementação) — Phase 2.1 deployada, 2.2 próxima
-2. **Conversion Science / Agency Principles** (em progresso) — Logo IA Optimization Sprint 1 completo
-3. **Conteúdo Unidimensional** (planejado) — Weekly Plan contextualizado
+1. **Marketing Intelligence Layer** (COMPLETO) — Phase 2.1 deployed + 2.2 deployed
+2. **Conversion Science / Agency Principles** (EM PROGRESSÃO) — Context Layering System 50% completo
+3. **Conteúdo Unidimensional** (PLANEJADO) — Weekly Plan contextualizado
 
 **Trabalho Concluído (01-02/05/2026):**
 - ✅ **Intelligence UX Refinements** — 8 melhorias implementadas (máscaras BRL, campos guiados, hints)
@@ -44,20 +52,19 @@ Motor de vendas social para varejo físico (adegas, farmácias, moda, beauty, ho
 
 ## 🎯 PARA ONDE VAMOS
 
-**Próximo Objetivo:** Phase 2.2 — Governança + Agregações (+2 semanas) ⚡ CONFIRMADO 03/05  
-**Prioridade 1:** @data-engineer implementa migrations 037-040 (JSON Schema validation, agregações, governança)  
-**Prioridade 2:** @ux-design-expert entrega designs de modais de onboarding progressivo  
-**Prioridade 3:** Backend integration (Phase 4) — integrar store_intelligence.context nos prompts  
+**Próximo Objetivo:** Resolver Segment Normalization Gap (BLOCKER para testes E2E)  
+**Prioridade 1:** Implementar dicionário de normalização UI → Registry (Estratégia 1 — MVP imediato)  
+**Prioridade 2:** Validação E2E completa com stores em SP/RJ/MG (score < 30, score >= 30)  
+**Prioridade 3:** Phase 2.3C Validation — A/B Testing (baseline vs. L1+L3 vs. L1+L2+L3)  
+**Prioridade 4:** B10 Logging & Observability (dashboard de métricas)  
 **Meta de Impacto:** LTV +200-300% (de R$ 200-300 para R$ 900-1.200) via intelligence-driven campaigns
 
-**Decisão Estratégica (03/05):** Logo optimization (Sprint 2) adiado. Razão: não-bloqueante + custo adicional desnecessário em fase localhost. Foco em refatoração intelligence embarcada (Phase 2.2) como fundação para backend integration.
+**Estratégia:** Context Layering System (L1/L2/L3)
+- **L1 (Store Metadata):** 100% disponível (nome, segmento, localização)
+- **L2 (Intelligence Calibrada):** 0-100% disponível (threshold-based: score >= 30)
+- **L3 (Profissional Agêntico):** 100% disponível (segment + regional experts)
 
-**Abordagem:** Phase 2 Híbrida (Opção C)
-- **Phase 2.0 (1 dia):** 5 campos críticos mínimos
-- **Phase 2.1 (+1 semana):** 10 campos importantes
-- **Phase 2.2 (+2 semanas):** Governança + otimização
-
-**Razão:** Deploy rápido + validação iterativa + risco distribuído. Lojistas churnam em 2-3 semanas porque campanhas não geram vendas. Com intelligence + conversion science incremental, taxa de conversão sobe de 2-3% para 8-12% progressivamente.
+**Razão:** Campanhas genéricas não convertem. Com L1+L2+L3, mesmo lojas sem calibração (score=0) recebem conteúdo contextualizado via L1+L3 (70% qualidade baseline). Com calibração, qualidade sobe para 95% (L1+L2+L3).
 
 ---
 
@@ -67,16 +74,19 @@ Nenhum blocker ativo. Próximos passos claros.
 
 ---
 
-## 📚 DECISÕES RECENTES (Últimas 8)
+## 📚 DECISÕES RECENTES (Últimas 10)
 
-1. **[DEC-2026-05-03-001]** - Phase 2.2 confirmada como próximo milestone (governance + aggregations); Logo Sprint 2 adiado (não-bloqueante em localhost)
-2. **[DEC-2026-05-02-003]** - Hints dinâmicos aprovados: educação progressiva > tooltips (reduz fricção cognitiva, acessível)
-3. **[DEC-2026-05-02-002]** - Pain points limit enforcement: isOptionDisabled pattern + removable cards (solução generalizada, feedback visual claro)
-4. **[DEC-2026-05-02-001]** - Autosave strategy: event listeners (beforeunload, visibilitychange, popstate, click) + fetch keepalive (sendBeacon incompatível com application/json)
-5. **[DEC-2026-05-01-003]** - Git workflow modificado: usuário assume controle de commits/push (após incidente com git stash)
-6. **[DEC-2026-05-01-002]** - Intelligence UX: guided selections aprovado como padrão (vs free text fields)
-7. **[DEC-2026-05-01-001]** - Logo v2 prompts ready for A/B testing (6 vulnerabilidades corrigidas)
-8. **[DEC-2026-04-30-004]** - Phase 2.1 deployada com sucesso (migrations 034-035, 9/9 validações OK)
+1. **[DEC-2026-05-05-003]** - Phase 2.3B (B8) completo: Endpoint integration com feature flag, fallback automático, logging; 21/21 tests passing; **Blocker identificado:** Segment normalization gap (UI labels não mapeiam diretamente para registry slugs)
+2. **[DEC-2026-05-05-002]** - Testes manuais B8 revelaram: (1) Fallback funciona perfeitamente para regiões não suportadas (Rio do Sul, SC), (2) "Loja de bebidas" no UI não mapeia para "bebidas_alcoolicas" no registry, (3) Proposta de 3 estratégias progressivas para normalização
+3. **[DEC-2026-05-05-001]** - Phase 2.3B (B4) completo: Prompt Renderer aprovado com JSDoc completa, 8/8 tests passing; B6 (Token Optimizer) pulado por ser otimização prematura
+2. **[DEC-2026-05-03-001]** - Phase 2.2 confirmada como próximo milestone (governance + aggregations); Logo Sprint 2 adiado (não-bloqueante em localhost)
+3. **[DEC-2026-05-02-003]** - Hints dinâmicos aprovados: educação progressiva > tooltips (reduz fricção cognitiva, acessível)
+4. **[DEC-2026-05-02-002]** - Pain points limit enforcement: isOptionDisabled pattern + removable cards (solução generalizada, feedback visual claro)
+5. **[DEC-2026-05-02-001]** - Autosave strategy: event listeners (beforeunload, visibilitychange, popstate, click) + fetch keepalive (sendBeacon incompatível com application/json)
+6. **[DEC-2026-05-01-003]** - Git workflow modificado: usuário assume controle de commits/push (após incidente com git stash)
+7. **[DEC-2026-05-01-002]** - Intelligence UX: guided selections aprovado como padrão (vs free text fields)
+8. **[DEC-2026-05-01-001]** - Logo v2 prompts ready for A/B testing (6 vulnerabilidades corrigidas)
+9. **[DEC-2026-04-30-004]** - Phase 2.1 deployada com sucesso (migrations 034-035, 9/9 validações OK)
 
 ## 🔗 NAVEGAÇÃO RÁPIDA
 
@@ -204,40 +214,56 @@ Nenhum blocker ativo. Próximos passos claros.
 
 ---
 
-## 📋 RESUMO DA SESSÃO ATUAL (05/05/2026)
+## 📋 RESUMO DA SESSÃO ATUAL (05/05/2026 23:45)
 
 ### ✅ Conquistas do Dia
 
-1. **Type Definitions Completas (types.ts)**
-   - SegmentExpert e RegionalExpert interfaces para L1/L2/L3 context system
-   - Estrutura completa de registries YAML
-   - Quality Score: 10/10
+1. **B8 - Endpoint Integration COMPLETE ✅**
+   - Implementação: `prompt-resolution.ts` (95 lines, 4/4 tests)
+   - Integration: `service.ts` com fallback automático + logging
+   - Deprecation: `buildCampaignPrompt` → `buildCampaignPromptLegacy`
+   - Feature flag: `USE_CONTEXT_LAYERING_PROMPT` em `feature-flags.ts`
+   - 21/21 tests passing (8 renderer + 9 context + 4 service)
+   - Quality Score: 9/10
 
-2. **B5 - Registry Loader Implementation**
-   - Loader com caching Map-based e validação runtime
-   - Path normalization (bebidas_alcoolicas ↔ bebidas-alcoolicas)
-   - clearRegistryCaches() público + type guards
-   - 10/10 tests passing | Quality Score: 10/10
+2. **Testes Manuais**
+   - ✅ Fallback automático funciona (Rio do Sul, SC → legacy-fallback)
+   - ✅ Fallback automático funciona (segment unmapped → legacy-fallback)
+   - ⚠️ Next.js image config issue fixed (emporiodifiori.com.br)
 
-3. **B1-B3 - Context Builder Complete**
-   - B1: fetchStoreMetadata() — Query stores table, region mapping
-   - B2: fetchIntelligenceContext() — RPC score extraction
-   - B3: buildAgenticPersona() + buildPromptContext() — L3 assembly + threshold logic
-   - 9/9 tests passing | Quality Score: 9.5/10
-   - Test injection pattern + lazy loading para compatibility
-
-4. **Infrastructure & Git**
-   - tsconfig.json: allowImportingTsExtensions para test runner
-   - 7 commits estruturados (types, loader, context-builder, tracker, protocol)
-   - phase-2.3-backend-integration-tracker.md atualizado
+3. **BLOCKER IDENTIFICADO: Segment Normalization Gap**
+   - UI labels ("Loja de bebidas") não mapeiam para registry slugs ("bebidas_alcoolicas")
+   - 3 estratégias propostas (dicionário, registry hierárquico, DB enum)
+   - Discussão pausada — aguarda retorno do usuário
 
 ### 📊 Progresso Phase 2.3
 - **Phase 2.3A:** 85% complete (6/10 tasks)
-- **Phase 2.3B:** 40% complete (4/10 tasks) — B5, B1-B3 done
-- **Overall:** ~35% complete
+- **Phase 2.3B:** 60% complete (6/10 tasks) — B1-B5, B7-B8 done
+- **Overall:** ~45% complete
+
+### 🚧 Bloqueio Ativo
+**BLOCK-001: Segment Normalization Gap**
+- **Severity:** 🟡 MÉDIO (workaround disponível)
+- **Impact:** Testes E2E bloqueados, UX degradada
+- **Proposta:** 3 estratégias progressivas documentadas
+- **Decisão:** PENDENTE (usuário solicitou discussão após retorno)
+- **Doc:** [docs/sessions/2026-05-05-segment-normalization-discussion.md](docs/sessions/2026-05-05-segment-normalization-discussion.md)
 
 ### ➡️ Próximos Passos (Retomada)
-**B4 - Prompt Renderer Implementation**
+
+**IMEDIATO (ao retornar):**
+1. Decidir estratégia de normalização (15min se Estratégia 1)
+2. Implementar solução escolhida
+3. Testes E2E completos (score < 30, score >= 30)
+4. Marcar B8 como VALIDATED no tracker
+
+**PRÓXIMOS MILESTONES:**
+- B10: Logging & Observability (dashboard de métricas)
+- Phase 2.3C: Validation (A/B testing, LTV projection)
+
+---
+
+**Session closure:** `docs/sessions/2026-05-05-segment-normalization-discussion.md`
 - Implementar buildCampaignPrompt() function body
 - Assemblar XML structure com L1/L2/L3 formatters
 - Owner: @dev | Estimativa: 2 dias
