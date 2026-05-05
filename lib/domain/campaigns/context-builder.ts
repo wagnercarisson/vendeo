@@ -21,7 +21,7 @@ type QueryTable = {
   select<T = unknown>(columns: string): QueryChain<T>
 }
 
-type ContextBuilderClient = {
+export type ContextBuilderClient = {
   from(table: string): QueryTable
   rpc(fn: string, args: Record<string, unknown>): Promise<QueryResponse<unknown>>
 }
@@ -195,7 +195,11 @@ function extractCompletenessScore(data: unknown, fallbackScore?: number | null):
   return 0
 }
 
-async function getContextBuilderClient(): Promise<ContextBuilderClient> {
+async function getContextBuilderClient(client?: ContextBuilderClient): Promise<ContextBuilderClient> {
+  if (client) {
+    return client
+  }
+
   if (clientFactoryOverride) {
     return clientFactoryOverride()
   }
@@ -223,8 +227,8 @@ export function mapLocationToRegion(city: string, state: string): string {
   throw new Error(`Region mapping not available for: ${city}, ${state}. MVP supports only SP/RJ/MG capitals.`)
 }
 
-export async function fetchStoreMetadata(storeId: string): Promise<StoreMetadata> {
-  const supabase = await getContextBuilderClient()
+export async function fetchStoreMetadata(storeId: string, client?: ContextBuilderClient): Promise<StoreMetadata> {
+  const supabase = await getContextBuilderClient(client)
   const { data, error } = await supabase
     .from('stores')
     .select<StoreRecord>(
@@ -244,8 +248,11 @@ export async function fetchStoreMetadata(storeId: string): Promise<StoreMetadata
   return toStoreMetadata(data)
 }
 
-export async function fetchIntelligenceContext(storeId: string): Promise<IntelligenceContext> {
-  const supabase = await getContextBuilderClient()
+export async function fetchIntelligenceContext(
+  storeId: string,
+  client?: ContextBuilderClient
+): Promise<IntelligenceContext> {
+  const supabase = await getContextBuilderClient(client)
   const { data, error } = await supabase
     .from('store_intelligence')
     .select<IntelligenceRecord>('context, intelligence_score')
@@ -290,8 +297,18 @@ export function buildAgenticPersona(
   return buildL3Context(normalizedSegment, region)
 }
 
-export async function buildPromptContext(storeId: string): Promise<PromptAssemblyContext> {
-  const [L1, L2] = await Promise.all([fetchStoreMetadata(storeId), fetchIntelligenceContext(storeId)])
+export async function buildPromptContext(
+  storeId: string,
+  options?: {
+    client?: ContextBuilderClient
+    intelligenceThreshold?: number
+  }
+): Promise<PromptAssemblyContext> {
+  const threshold = options?.intelligenceThreshold ?? 30
+  const [L1, L2] = await Promise.all([
+    fetchStoreMetadata(storeId, options?.client),
+    fetchIntelligenceContext(storeId, options?.client),
+  ])
   const L3 = buildAgenticPersona(L1.mainSegment, {
     city: L1.location.city,
     state: L1.location.state,
@@ -302,7 +319,7 @@ export async function buildPromptContext(storeId: string): Promise<PromptAssembl
     L2,
     L3,
     intelligenceScore: L2.score,
-    useL2: L2.score >= 30,
+    useL2: L2.score >= threshold,
     tokenCount: 0,
   }
 }
