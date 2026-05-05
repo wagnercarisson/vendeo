@@ -1,10 +1,15 @@
-import { CampaignContext } from "./types";
-import { StoreContext } from "@/lib/domain/stores/types";
+import type { CampaignContext } from "./types.ts";
+import type { StoreContext } from "../stores/types.ts";
 
 /**
- * Monta o prompt de copywriting para geração de conteúdo de campanha (post/arte).
+ * DEPRECATED: Use buildCampaignPrompt from lib/ai/prompts/prompt-renderer.ts.
+ *
+ * Este prompt genérico foi substituído pelo Context Layering System (Phase 2.3B).
+ * Mantido apenas para rollback emergencial via feature flag.
+ *
+ * @deprecated Será removido na Phase 2.4.
  */
-export function buildCampaignPrompt(
+export function buildCampaignPromptLegacy(
   campaign: CampaignContext,
   store: StoreContext,
   description?: string
