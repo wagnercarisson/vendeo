@@ -2,10 +2,10 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { callAIWithRetry } from "@/lib/ai/parse";
 import { fetchStoreContext } from "@/lib/domain/stores/queries";
 import { CampaignAISchema } from "./schemas";
-import { buildCampaignPrompt } from "./prompts";
 import { mapAiCampaignToDomain, mapDbCampaignToAIContext } from "./mapper";
 import { mapDbCampaignToDomain } from "./mapper";
 import { CampaignAIOutput } from "./types";
+import { resolveCampaignPrompt } from "./prompt-resolution.ts";
 
 export type GenerateCampaignInput = {
   campaign_id: string;
@@ -85,7 +85,22 @@ export async function generateCampaignContent(
   }
 
   // 5) Monta prompt e chama IA
-  const prompt = buildCampaignPrompt(campaignCtx, store, description);
+  const { prompt, source } = await resolveCampaignPrompt(
+    {
+      campaign: campaignCtx,
+      store,
+      storeId,
+      description,
+      strategicTheme,
+    },
+    {
+      onFallbackError: (error) => {
+        console.warn("[generateCampaignContent] Context layering failed, using legacy prompt:", error);
+      },
+    }
+  );
+  console.info(`[generateCampaignContent] Prompt source: ${source}`);
+
   const { data: aiData } = await callAIWithRetry(prompt, CampaignAISchema, { temperature: 0.7 });
 
   // 6) Normaliza cópia gerada
