@@ -10,6 +10,18 @@ const nextConfig = {
                 protocol: "https",
                 hostname: "*.supabase.co",
             },
+            {
+                protocol: "https",
+                hostname: "emporiodifiori.com.br",
+            },
+            {
+                protocol: "http",
+                hostname: "**",
+            },
+            {
+                protocol: "https",
+                hostname: "**",
+            },
         ],
     },
 };
