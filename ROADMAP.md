@@ -43,18 +43,44 @@
 
 | Track | Status | Progresso | ETA | Blocker |
 |-------|--------|-----------|-----|---------|
-| **Subsegmentação** | 🔴 Sprint 1/3 | ▓░░░░░░░░░ 10% | 1.5d | Migration 042 |
-| **Context Layering** | ⏸️ Pausado | ▓▓▓▓▓▓░░░░ 60% | — | Aguarda subseg |
+| **Subsegmentação** | 🟢 Sprint 1 DONE | ▓▓▓░░░░░░░ 33% | Sprint 2: 1d | Variant YAMLs (9 files) |
+| **Context Layering** | ⏸️ Pausado | ▓▓▓▓▓▓░░░░ 60% | — | Aguarda subseg Sprint 2 |
 | **Governança** | 📋 Backlog | ░░░░░░░░░░ 0% | 2w | — |
 
-**Last Migration:** 036 (logo_generations)  
-**Next Migration:** 042 (category/subcategory — BLOQUEANTE)
+**Last Migration:** 042 (category/subcategory — DEPLOYED ✅ 06 Mai 2026)  
+**Next Migration:** TBD (Governance Sprint)
 
 ---
 
+## � COMPLETO (Sprint 1)
+
 ## 🔴 EM EXECUÇÃO
 
-### Subsegmentação Sprint 1 — Fundação
+### Subsegmentação Sprint 2 — Variant YAMLs + UI Fix
+**Prazo:** 1 dia (10h) | **Responsável:** @content-copy + @brand-designer + @ux-design-expert  
+**Dependência:** Sprint 1 COMPLETE ✅
+
+**Tasks:**
+- [ ] **Variant YAMLs** — Criar 9 files (6h):
+  - `bebidas-alcoolicas/variants/`: adega.yaml, loja-bebidas.yaml, distribuidor.yaml, emporio-cervejas.yaml
+  - `mercearia/variants/`: mercadinho-bairro.yaml, minimercado.yaml, hortifruti.yaml, emporio-gourmet.yaml, sacolao.yaml
+  - Cada YAML: tone, vocabulary, CTAs, seasonal_patterns específicos do subsegmento
+- [ ] **UI CSS Fix** — Dropdown layout refactor (4h):
+  - CSS grid: horizontal (desktop), vertical (mobile)
+  - Spacing: 16px gap (desktop), 12px (mobile)
+  - Task: [TASK-UI-FIX-DROPDOWN-LAYOUT.md](docs/tasks/TASK-UI-FIX-DROPDOWN-LAYOUT.md)
+
+**Blocker:** Variant YAMLs bloqueia quality improvement (70% → 95%)  
+**Próximo:** Sprint 2 segunda metade (Visual Composer — 40h)  
+**Impacto:** De 70% quality (base fallback) para 95% quality (variant específico)
+
+---
+
+## 📋 PRÓXIMO (Backlog Priorizado)
+
+### 🟡 Subsegmentação Sprint 2 (Segunda Metade) — Visual Composer
+**Prazo:** 5 dias (40h) | **Responsável:** @dev (Dex) + @brand-designer  
+**Dependência:** Variant YAMLs completosação
 **Prazo:** 1.5 dias (12h) | **Responsável:** @data-engineer + @ux-design-expert + @content-copy  
 **Decisão:** [DEC-2026-05-06-002](docs/integration-checklists/DEC-2026-05-06-002.md)
 

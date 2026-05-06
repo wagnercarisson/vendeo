@@ -19,17 +19,26 @@ Motor de vendas social para varejo físico (adegas, farmácias, moda, beauty, ho
 
 ## 📍 ONDE ESTAMOS AGORA
 
-**Fase:** Beta/Pré-lançamento — Backend Integration (Phase 2.3B + Subsegmentação)  
-**Status Técnico:** Phase 2.2 DEPLOYED ✅ + Phase 2.3B IN PROGRESS (60% completo)  
-**Último Milestone:** DEC-2026-05-06-002 APPROVED — Subsegmentação implementação aprovada
+**Fase:** Beta/Pré-lançamento — Backend Integration (Phase 2.3B + Subsegmentação Sprint 1 COMPLETE)  
+**Status Técnico:** Phase 2.2 DEPLOYED ✅ + Phase 2.3B IN PROGRESS (60%) + Subsegmentação Sprint 1 ✅ DEPLOYED  
+**Último Milestone:** Migration 042 DEPLOYED + QA Gate APPROVED (06 Mai 2026)
+
+**Subsegmentação Sprint 1 — COMPLETE ✅:**
+- ✅ **Migration 042:** category + subcategory + subcategory_custom columns DEPLOYED
+- ✅ **CHECK Constraints:** 4 constraints enforcing controlled vocabulary (bebidas 4 + mercearia 5)
+- ✅ **Frontend:** Hierarchical dropdown DEPLOYED (categoria → subcategoria → custom se "outro")
+- ✅ **API Validation:** Keyword detection preventing subsegmentation loss (80% cases)
+- ✅ **Registry Loader:** Fallback logic (variant → base) implemented and tested
+- ✅ **QA Gate:** APPROVED (7/7 SQL tests PASSED, TypeScript 0 errors, E2E 6/6)
+- ⚠️ **Known Issue:** UI dropdowns cramped (cosmetic only, Sprint 2 fix planned, 4h)
 
 **Phase 2.3B Progress (Context Layering System):**
 - ✅ **B1-B3:** Context Builder completo (L1/L2/L3 assembly, 9/9 tests passing)
 - ✅ **B4:** Prompt Renderer completo (L1/L2/L3 integration, 8/8 tests passing, JSDoc completo)
-- ✅ **B5:** Registry Loader completo (YAML loading, caching, type guards, 10/10 tests passing)
-- ✅ **B7/B8:** Endpoint Integration + Feature Flags COMPLETE (21/21 tests passing, fallback validated)
-- 🟡 **BLOCKER IDENTIFICADO:** Segment normalization gap (UI "Loja de bebidas" → DB → Registry "bebidas_alcoolicas")
-- 🎯 **PRÓXIMO:** Resolver normalização de segmentos (3 estratégias propostas) + B10 Logging
+- ✅ **B5:** Registry Loader completo (YAML loading, caching, fallback, 10/10 tests passing)
+- ✅ **B7/B8:** Endpoint Integration + Feature Flags COMPLETE (21/21 tests passing)
+- ✅ **BLOCKER RESOLVIDO:** Segment normalization via subsegmentação hierárquica
+- 🎯 **PRÓXIMO:** B10 Logging + Sprint 2 (9 variant YAMLs + Visual Composer)
 
 **3 Gaps Críticos Identificados:**
 1. **Marketing Intelligence Layer** (COMPLETO) — Phase 2.1 deployed + 2.2 deployed
@@ -76,10 +85,22 @@ Motor de vendas social para varejo físico (adegas, farmácias, moda, beauty, ho
 
 ## 🚧 BLOCKERS ATIVOS
 
-**Blocker 1:** Migration 042 (DB Schema category/subcategory) — 🔴 CRÍTICO  
-**Blocker 2:** Registry Variants (10 YAML files) — 🟡 ALTO  
-**Blocker 3:** Visual Composer System (40h implementation) — 🟡 MÉDIO  
-**Blocker 4:** Onboarding UI Refactor (dropdown hierárquico) — 🟢 BAIXO
+**Blocker 1:** Variant YAML Files (9 arquivos) — 🟡 MÉDIO  
+- **Impacto:** Quality improvement de 70% (base fallback) → 95% (variant específico)  
+- **Resolution:** Sprint 2 (6h para criar 9 arquivos)  
+- **Status:** System funcional com fallback, mas não otimizado
+
+**Blocker 2:** Visual Composer System (40h implementation) — 🟡 MÉDIO  
+- **Impacto:** Sprint 2 segunda metade bloqueada  
+- **Resolution:** style-resolver + layout-composer + variation-generator  
+- **Status:** Aguarda variant YAMLs
+
+**Blocker 3:** UI Dropdown Layout (CSS cramped) — 🟢 BAIXO  
+- **Impacto:** UX degradation (cosmetic only, non-blocking)  
+- **Resolution:** Sprint 2 (4h CSS grid refactor)  
+- **Status:** Functional behavior 100% correct
+
+**✅ BLOCKER RESOLVIDO:** Migration 042 (DEPLOYED 06 Mai 2026)
 
 ---
 

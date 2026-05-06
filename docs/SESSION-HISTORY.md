@@ -11,6 +11,21 @@ Este documento registra o resumo de cada sessão de trabalho. Para detalhes téc
 
 ---
 
+## 📋 Sessão 06 Mai 2026 — Subsegmentação Sprint 1 COMPLETE
+
+**Conquistas:**
+- Migration 042 DEPLOYED ao Supabase (category + subcategory + 4 CHECK constraints)
+- Frontend subsegmentação hierárquica DEPLOYED (bebidas 4 opts + mercearia 5 opts)
+- API keyword validation implementada (previne subsegmentation loss em 80% casos)
+- QA Gate: ✅ APPROVED (7/7 SQL tests PASSED, TypeScript 0 errors, E2E 6/6)
+
+**Próximo:** Sprint 2 — Create 9 variant YAMLs (6h) + Fix UI dropdown CSS (4h)  
+**Artefatos:** [DEC-003](integration-checklists/DEC-2026-05-06-003.md), [DEC-004](integration-checklists/DEC-2026-05-06-004.md), [DEC-005](integration-checklists/DEC-2026-05-06-005.md), Migration 042, [QA Report](../qa/subsegmentation-implementation-QA-REPORT.md)  
+**Known Issue:** ⚠️ UI dropdowns cramped (cosmetic, non-blocking, fix Sprint 2)  
+**Detalhes técnicos:** [closure-2026-05-06-subsegmentation.md](closures/closure-2026-05-06-subsegmentation.md)
+
+---
+
 ## 📋 Sessão 06 Mai 2026 — Documentation Governance Refactoring
 
 **Conquistas:**
