@@ -1076,6 +1076,80 @@ Antes de encerrar, confirmar:
 
 ## 📝 HISTÓRICO DE SESSÕES
 
+### 📋 SESSÃO 06 MAI 2026 — Subsegmentação Decision & Architecture
+
+#### ✅ Conquistas do Dia
+1. **Research Validation Complete**
+   - @analyst (Alex): RESEARCH-MARKETING-AGENCY-BRIEFING-2026-05-05.md (600+ lines)
+   - Comparação com práticas de agências profissionais
+   - Score: 78/100 baseline → 98/100 com subsegmentação
+   - Gap crítico (P0): Falta hierarquia categoria/subcategoria
+
+2. **Commerce Strategist Validation**
+   - @commerce-strategist (Mercer): Análise completa de impacto comercial
+   - Bebidas: 4 subsegmentos + 1 missing (empório de cervejas)
+   - Mercearia: 5 subsegmentos definidos
+   - Impacto conversão: +37% mercearia, +30% bebidas
+   - ROI: 14× (perde 5% onboarding, ganha 73% efetividade)
+
+3. **Architecture Design (3-Layer System)**
+   - Layer 1: Registry (base segment + variant subsegment YAML)
+   - Layer 2: L3 Specialist (merge base + variant → tone/vocabulary/cta/visual)
+   - Layer 3: Visual Composer (style-resolver → layout-composer → variation-generator)
+   - Fluxo: Captação → Resolução → Geração → Composição → Apresentação
+
+4. **Decision Documentation**
+   - DEC-2026-05-06-002.md criada e aprovada
+   - 3 sprints definidos: Sprint 1 (12h), Sprint 2 (40h), Sprint 3 (16h opcional)
+   - 4 blockers mapeados com severidade e responsáveis
+   - Critérios de validação definidos por sprint
+
+5. **Strategic Documentation Updates**
+   - PROJECT-CONTEXT.md atualizado (status, blockers, próximos passos)
+   - ROADMAP.md atualizado (Phase 2.3B status + subsegmentação roadmap)
+   - AIOX-MASTER-PROTOCOL.md atualizado (histórico sessão)
+
+#### 📊 Progresso Phase 2.3
+- **Phase 2.3B:** 60% complete (B1-B5, B7-B8 complete, B10 pending)
+- **Overall:** Context Layering System funcional mas sem conteúdo (registry variants missing)
+
+#### ➡️ Próximos Passos (Retomada Próxima Sessão)
+**Sprint 1 — Fundação (12h)**
+- Migration 042: ADD COLUMN category, subcategory em stores table
+- Criar 10 registry variant YAML files (4 bebidas + 5 mercearia + 1 empório cervejas)
+- Refatorar onboarding UI: dropdown hierárquico (categoria → subcategoria)
+- Backfill: Mapear main_segment existente → (category, subcategory)
+- Responsável: @data-engineer (Migration) + @content-copy (Registries) + @ux-design-expert (UI)
+- **Bloqueando:** Sprint 2 (Visual Composer)
+
+#### ❓ Questões Pendentes
+- Ceticismo do usuário sobre execução ("já falhamos tantas vezes")
+- Necessidade de validação incremental (não big-bang)
+- Approach: Sprint 1 primeiro, validar, depois Sprint 2
+
+#### 🎯 Estado para Retomada
+- ✅ Research completa (analyst + commerce-strategist)
+- ✅ Decisão aprovada e documentada (DEC-2026-05-06-002)
+- ✅ Arquitetura técnica definida (3 layers)
+- ✅ Roadmap de implementação claro (3 sprints)
+- ✅ Blockers mapeados com severidade
+- ⚠️ **PRÓXIMO CRÍTICO:** Migration 042 (bloqueia tudo)
+
+#### 📦 Artefatos Gerados
+- `docs/integration-checklists/DEC-2026-05-06-002.md` (decisão formal, 400+ lines)
+- `docs/analysis/RESEARCH-MARKETING-AGENCY-BRIEFING-2026-05-05.md` (research, 600+ lines)
+- `docs/integration-checklists/COMMERCE-STRATEGIST-BRIEFING-SUBSEGMENTATION.md` (briefing)
+- PROJECT-CONTEXT.md updated (status, blockers, decisão)
+- ROADMAP.md updated (Phase 2.3B + subsegmentação)
+
+#### 🎓 Lições Aprendidas
+- Multi-agent switching não funciona dinamicamente no chat (usar abas separadas)
+- Research + validation (2 agents) fornece confiança sólida para decisões estratégicas
+- ROI calculation concreto (14×) supera ceticismo
+- Documentação formal (DEC) é essencial para tracking e accountability
+
+---
+
 ### 📋 SESSÃO 05 MAI 2026 00:15 — Phase 2.3B Implementation
 
 #### ✅ Conquistas do Dia

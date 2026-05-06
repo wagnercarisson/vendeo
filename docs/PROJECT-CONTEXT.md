@@ -1,6 +1,6 @@
 # Vendeo — Project Context (Session Bootstrap)
 
-**Última Atualização:** 2026-05-05 23:45 por @aiox-master  
+**Última Atualização:** 2026-05-06 por @aiox-master  
 **Propósito:** Contexto obrigatório para @aiox-master no início de cada sessão
 
 ---
@@ -13,9 +13,9 @@ Motor de vendas social para varejo físico (adegas, farmácias, moda, beauty, ho
 
 ## 📍 ONDE ESTAMOS AGORA
 
-**Fase:** Beta/Pré-lançamento — Backend Integration (Phase 2.3B)  
+**Fase:** Beta/Pré-lançamento — Backend Integration (Phase 2.3B + Subsegmentação)  
 **Status Técnico:** Phase 2.2 DEPLOYED ✅ + Phase 2.3B IN PROGRESS (60% completo)  
-**Último Milestone:** B8 Endpoint Integration COMPLETE ✅ (05/05/2026 23:45)
+**Último Milestone:** DEC-2026-05-06-002 APPROVED — Subsegmentação implementação aprovada
 
 **Phase 2.3B Progress (Context Layering System):**
 - ✅ **B1-B3:** Context Builder completo (L1/L2/L3 assembly, 9/9 tests passing)
@@ -27,8 +27,8 @@ Motor de vendas social para varejo físico (adegas, farmácias, moda, beauty, ho
 
 **3 Gaps Críticos Identificados:**
 1. **Marketing Intelligence Layer** (COMPLETO) — Phase 2.1 deployed + 2.2 deployed
-2. **Conversion Science / Agency Principles** (EM PROGRESSÃO) — Context Layering System 50% completo
-3. **Conteúdo Unidimensional** (PLANEJADO) — Weekly Plan contextualizado
+2. **Conversion Science / Agency Principles** (EM PROGRESSÃO) — Context Layering System 60% completo + Subsegmentação aprovada
+3. **Conteúdo Unidimensional** (EM PROGRESSÃO) — Subsegmentação hierárquica (Sprint 1-3 definido)
 
 **Trabalho Concluído (01-02/05/2026):**
 - ✅ **Intelligence UX Refinements** — 8 melhorias implementadas (máscaras BRL, campos guiados, hints)
@@ -52,12 +52,12 @@ Motor de vendas social para varejo físico (adegas, farmácias, moda, beauty, ho
 
 ## 🎯 PARA ONDE VAMOS
 
-**Próximo Objetivo:** Resolver Segment Normalization Gap (BLOCKER para testes E2E)  
-**Prioridade 1:** Implementar dicionário de normalização UI → Registry (Estratégia 1 — MVP imediato)  
-**Prioridade 2:** Validação E2E completa com stores em SP/RJ/MG (score < 30, score >= 30)  
-**Prioridade 3:** Phase 2.3C Validation — A/B Testing (baseline vs. L1+L3 vs. L1+L2+L3)  
-**Prioridade 4:** B10 Logging & Observability (dashboard de métricas)  
-**Meta de Impacto:** LTV +200-300% (de R$ 200-300 para R$ 900-1.200) via intelligence-driven campaigns
+**Próximo Objetivo:** Implementar Subsegmentação (DEC-2026-05-06-002)  
+**Sprint 1 (12h):** Migration 042 + 10 Registry Variants + Onboarding UI hierárquico  
+**Sprint 2 (40h):** Visual Composer System (style-resolver + layout-composer + variation-generator)  
+**Sprint 3 (16h, opcional):** Learned Patterns tracking por subsegmento  
+**Blocker Crítico:** Migration 042 (category/subcategory columns) — Bloqueia tudo  
+**Meta de Impacto:** CTR +30-37%, LTV +200-300% (R$ 200-300 → R$ 900-1.200), ROI 14×
 
 **Estratégia:** Context Layering System (L1/L2/L3)
 - **L1 (Store Metadata):** 100% disponível (nome, segmento, localização)
@@ -70,17 +70,21 @@ Motor de vendas social para varejo físico (adegas, farmácias, moda, beauty, ho
 
 ## 🚧 BLOCKERS ATIVOS
 
-Nenhum blocker ativo. Próximos passos claros.
+**Blocker 1:** Migration 042 (DB Schema category/subcategory) — 🔴 CRÍTICO  
+**Blocker 2:** Registry Variants (10 YAML files) — 🟡 ALTO  
+**Blocker 3:** Visual Composer System (40h implementation) — 🟡 MÉDIO  
+**Blocker 4:** Onboarding UI Refactor (dropdown hierárquico) — 🟢 BAIXO
 
 ---
 
 ## 📚 DECISÕES RECENTES (Últimas 10)
 
-1. **[DEC-2026-05-05-003]** - Phase 2.3B (B8) completo: Endpoint integration com feature flag, fallback automático, logging; 21/21 tests passing; **Blocker identificado:** Segment normalization gap (UI labels não mapeiam diretamente para registry slugs)
-2. **[DEC-2026-05-05-002]** - Testes manuais B8 revelaram: (1) Fallback funciona perfeitamente para regiões não suportadas (Rio do Sul, SC), (2) "Loja de bebidas" no UI não mapeia para "bebidas_alcoolicas" no registry, (3) Proposta de 3 estratégias progressivas para normalização
-3. **[DEC-2026-05-05-001]** - Phase 2.3B (B4) completo: Prompt Renderer aprovado com JSDoc completa, 8/8 tests passing; B6 (Token Optimizer) pulado por ser otimização prematura
-2. **[DEC-2026-05-03-001]** - Phase 2.2 confirmada como próximo milestone (governance + aggregations); Logo Sprint 2 adiado (não-bloqueante em localhost)
-3. **[DEC-2026-05-02-003]** - Hints dinâmicos aprovados: educação progressiva > tooltips (reduz fricção cognitiva, acessível)
+1. **[DEC-2026-05-06-002]** - Subsegmentação APROVADA: Implementação hierárquica (category + subcategory) em 3 sprints; Migration 042 + 10 Registry Variants + Visual Composer; ROI 14× (CTR +30-37%, perde 5% onboarding); Validado por @commerce-strategist (Mercer) e @analyst (Alex)
+2. **[DEC-2026-05-05-003]** - Phase 2.3B (B8) completo: Endpoint integration com feature flag, fallback automático, logging; 21/21 tests passing; **Blocker identificado:** Segment normalization gap (UI labels não mapeiam diretamente para registry slugs)
+3. **[DEC-2026-05-05-002]** - Testes manuais B8 revelaram: (1) Fallback funciona perfeitamente para regiões não suportadas (Rio do Sul, SC), (2) "Loja de bebidas" no UI não mapeia para "bebidas_alcoolicas" no registry, (3) Proposta de 3 estratégias progressivas para normalização
+4. **[DEC-2026-05-05-001]** - Phase 2.3B (B4) completo: Prompt Renderer aprovado com JSDoc completa, 8/8 tests passing; B6 (Token Optimizer) pulado por ser otimização prematura
+5. **[DEC-2026-05-03-001]** - Phase 2.2 confirmada como próximo milestone (governance + aggregations); Logo Sprint 2 adiado (não-bloqueante em localhost)
+6. **[DEC-2026-05-02-003]** - Hints dinâmicos aprovados: educação progressiva > tooltips (reduz fricção cognitiva, acessível)
 4. **[DEC-2026-05-02-002]** - Pain points limit enforcement: isOptionDisabled pattern + removable cards (solução generalizada, feedback visual claro)
 5. **[DEC-2026-05-02-001]** - Autosave strategy: event listeners (beforeunload, visibilitychange, popstate, click) + fetch keepalive (sendBeacon incompatível com application/json)
 6. **[DEC-2026-05-01-003]** - Git workflow modificado: usuário assume controle de commits/push (após incidente com git stash)

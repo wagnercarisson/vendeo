@@ -1,7 +1,7 @@
 # Vendeo - Roadmap e Decisões Estratégicas
 
-**Última Atualização:** 03 Mai 2026 por @aiox-master  
-**Status Atual:** Phase 2.2 — Governança Intelligence + Agregações (em planejamento)
+**Última Atualização:** 06 Mai 2026 por @aiox-master  
+**Status Atual:** Phase 2.3B — Context Layering System (60% complete) + Subsegmentação (Sprint 1 iniciando)
 
 Este documento centraliza as discussões sobre o futuro do produto, decisões estratégicas de roadmap e funcionalidades mapeadas para próximas fases.
 
@@ -9,14 +9,14 @@ Este documento centraliza as discussões sobre o futuro do produto, decisões es
 
 ## 📍 CONTEXTO ATUAL (Mai 2026)
 
-**Status:** Beta/Pré-lançamento — Refinamento UX + Otimização de IA  
-**Milestone Atual:** Phase 2.1 DEPLOYED (migrations 034-035)  
-**Próximo Milestone:** Phase 2.2 — Governança Intelligence + Agregações (+2 semanas)  
+**Status:** Beta/Pré-lançamento — Backend Integration + Subsegmentação  
+**Milestone Atual:** Phase 2.3B IN PROGRESS (60% complete — B1-B5, B7-B8 done)  
+**Próximo Milestone:** Subsegmentação Sprint 1 — Migration 042 + Registry Variants (+1.5 dias)  
 **Última Migration:** 036 (logo_generations)  
-**Próximas Migrations:** 037-040 (JSON Schema validation, agregações, governança)
+**Próximas Migrations:** 042 (category/subcategory columns — BLOQUEANTE), 037-040 (governance — adiado)
 
-**Decisão Estratégica (03/05/2026):**  
-Foco em **Intelligence Layer** (Phase 2.2) como fundação para backend integration. Logo optimization (Sprint 2) adiado: não-bloqueante + custo adicional desnecessário em fase localhost. Prioridade: refatoração intelligence embarcada antes de expandir features visuais.
+**Decisão Estratégica (06/05/2026):**  
+**APROVADA:** Subsegmentação hierárquica (DEC-2026-05-06-002). Segmentos planos ("Loja de bebidas") são genéricos demais — subsegmentação (adega vs distribuidora vs empório) aumenta conversão em +30-37% segundo @commerce-strategist. ROI: 14× (perde 5% onboarding, ganha 73% efetividade). Implementação: 3 sprints (68h total). **Blocker crítico:** Migration 042 bloqueia tudo.
 
 ---
 
@@ -85,14 +85,71 @@ Foco em **Intelligence Layer** (Phase 2.2) como fundação para backend integrat
 - [ ] Onboarding modals implementados
 - [ ] Audit trail funcionando
 
+### Phase 2.3B — Context Layering System (✅ 60% COMPLETA)
+**Status:** EM PROGRESSO (B1-B5, B7-B8 complete)  
+**Migrations:** Nenhuma (feature flag USE_CONTEXT_LAYERING_PROMPT)  
+
+**Entregas Completas:**
+- ✅ B1-B3: Context Builder (L1/L2/L3 assembly, 9/9 tests)
+- ✅ B4: Prompt Renderer (XML assembly, 8/8 tests)
+- ✅ B5: Registry Loader (YAML caching, 10/10 tests)
+- ✅ B7/B8: Feature Flags + Endpoint Integration (21/21 tests, fallback validado)
+
+**Blocker Identificado:**
+- Segment normalization gap: UI "Loja de bebidas" → DB → Registry "bebidas_alcoolicas"
+- Resolução: Subsegmentação (categoria + subcategoria) — DEC-2026-05-06-002
+
+**Sistema de 3 Camadas:**
+- **L1 (Store Metadata):** 100% disponível (nome, segmento, localização)
+- **L2 (Intelligence Calibrada):** 0-100% disponível (threshold score >= 30)
+- **L3 (Profissional Agêntico):** 100% disponível (segment + regional experts via YAML registry)
+
+**Objetivo:** Graceful degradation — lojas sem intelligence (score=0) recebem L1+L3 (70% qualidade), lojas calibradas recebem L1+L2+L3 (95% qualidade).
+
+### Phase 2.3S — Subsegmentação (🔄 PRÓXIMO — Sprint 1 iniciando)
+**Status:** APROVADA (DEC-2026-05-06-002)  
+**Migrations:** 042 (category, subcategory columns — BLOQUEANTE)  
+**Prazo Total:** 68h (8.5 dias) em 3 sprints
+
+**Sprint 1 — Fundação (12h, 1.5 dias):**
+- [ ] Migration 042: ADD COLUMN category TEXT, subcategory TEXT em stores
+- [ ] Backfill: Mapear main_segment → (category, subcategory)
+- [ ] Criar 10 registry variant YAML files:
+  - bebidas-alcoolicas/variants/: adega.yaml, loja-bebidas.yaml, distribuidor.yaml, emporio-cervejas.yaml
+  - mercearia/variants/: mercadinho-bairro.yaml, minimercado.yaml, hortifruti.yaml, emporio-gourmet.yaml, sacolao.yaml
+- [ ] Refatorar onboarding UI: dropdown hierárquico (categoria → subcategoria)
+- **Responsáveis:** @data-engineer (migration), @content-copy + @commerce-strategist (registries), @ux-design-expert (UI)
+
+**Sprint 2 — Visual Composer (40h, 5 dias):**
+- [ ] Criar Visual Composer System:
+  - style-resolver.ts: Resolve subsegment → visual guidelines (palette, typography, mood)
+  - layout-composer.ts: Aplica guidelines em composição
+  - variation-generator.ts: Gera 3-5 variações de layout
+- [ ] Integração com Registry L3 (visual_style section)
+- **Responsáveis:** @dev (Dex) + @brand-designer (Palette)
+- **Dependência:** Sprint 1 completo
+
+**Sprint 3 — Learned Patterns (16h, 2 dias, OPCIONAL):**
+- [ ] Sistema de aprendizagem: trackear CTR, CTAs, vocabulário por subsegmento
+- [ ] Feedback loop: performance → registry refinement
+- **Responsáveis:** @data-engineer + @analyst
+- **Dependência:** Sprint 2 completo + dados reais de produção
+
+**Impacto Esperado:**
+- CTR +30-37% (campanhas personalizadas vs genéricas)
+- Retenção +15-25% (lojista vê valor imediato)
+- Onboarding completion -5% (ligeiro aumento fricção cognitiva)
+- ROI: 14× (perde 5%, ganha 73%)
+
+**Validação:** @commerce-strategist (Mercer) + @analyst (Alex) — Research completa (600+ lines)
+
 ### Phase 2.3 — Backend Integration (Futuro)
-**Status:** Aguarda conclusão de Phase 2.2
+**Status:** Aguarda conclusão de Phase 2.3S (Subsegmentação)
 
 **Escopo:**
-- Integrar `store_intelligence.context` nos prompts de geração
-- Implementar contexto comercial (@commerce-strategist)
-- Testing end-to-end com intelligence ativo
-- Métricas de impacto (LTV, conversão)
+- Validação E2E completa: L1+L3 vs L1+L2+L3 (A/B testing)
+- Métricas de impacto: LTV, conversão, retenção
+- B10: Logging & Observability (dashboard de métricas)
 
 ---
 
