@@ -39,6 +39,29 @@ function resolveSegmentDirectory(segment: string): { cacheKey: string; directory
   throw new Error(`Segment expert not found: ${segment}`)
 }
 
+function resolveVariantFile(directoryPath: string, subcategory: string): { cacheKey: string; filePath: string } | null {
+  assertNonEmptyIdentifier(subcategory, 'subcategory code')
+
+  const normalizedSubcategory = subcategory.trim()
+  const candidates = [
+    normalizedSubcategory,
+    normalizedSubcategory.replace(/_/g, '-'),
+    normalizedSubcategory.replace(/-/g, '_'),
+  ]
+
+  for (const candidate of candidates) {
+    const filePath = join(directoryPath, 'variants', `${candidate}.yaml`)
+    if (existsSync(filePath)) {
+      return {
+        cacheKey: candidate,
+        filePath,
+      }
+    }
+  }
+
+  return null
+}
+
 function parseYamlFile<T>(filePath: string, errorLabel: string): T {
   try {
     const fileContent = readFileSync(filePath, 'utf8')
@@ -149,18 +172,39 @@ function validateRegionalExpert(expert: unknown, filePath: string): RegionalExpe
   return candidate
 }
 
-export function loadSegmentExpert(segment: string): SegmentExpert {
+export function loadSegmentExpert(segment: string, subcategory?: string | null): SegmentExpert {
   const resolved = resolveSegmentDirectory(segment)
+  const normalizedSubcategory = typeof subcategory === 'string' ? subcategory.trim() : ''
 
-  if (segmentCache.has(resolved.cacheKey)) {
-    return segmentCache.get(resolved.cacheKey) as SegmentExpert
+  if (normalizedSubcategory && normalizedSubcategory !== 'outro') {
+    const variant = resolveVariantFile(resolved.directoryPath, normalizedSubcategory)
+
+    if (variant) {
+      const variantCacheKey = `${resolved.cacheKey}:variant:${variant.cacheKey}`
+
+      if (segmentCache.has(variantCacheKey)) {
+        return segmentCache.get(variantCacheKey) as SegmentExpert
+      }
+
+      const parsedVariant = parseYamlFile<unknown>(variant.filePath, 'Segment expert variant')
+      const validatedVariant = validateSegmentExpert(parsedVariant, variant.filePath)
+
+      segmentCache.set(variantCacheKey, validatedVariant)
+      return validatedVariant
+    }
+  }
+
+  const baseCacheKey = `${resolved.cacheKey}:base`
+
+  if (segmentCache.has(baseCacheKey)) {
+    return segmentCache.get(baseCacheKey) as SegmentExpert
   }
 
   const filePath = join(resolved.directoryPath, 'segment-expert.yaml')
   const parsed = parseYamlFile<unknown>(filePath, 'Segment expert')
   const validated = validateSegmentExpert(parsed, filePath)
 
-  segmentCache.set(resolved.cacheKey, validated)
+  segmentCache.set(baseCacheKey, validated)
   return validated
 }
 
@@ -183,9 +227,13 @@ export function loadRegionalExpert(segment: string, region: string): RegionalExp
   return validated
 }
 
-export function buildL3Context(segment: string, region: string): { segment: SegmentExpert; regional: RegionalExpert } {
+export function buildL3Context(
+  segment: string,
+  region: string,
+  subcategory?: string | null
+): { segment: SegmentExpert; regional: RegionalExpert } {
   return {
-    segment: loadSegmentExpert(segment),
+    segment: loadSegmentExpert(segment, subcategory),
     regional: loadRegionalExpert(segment, region),
   }
 }

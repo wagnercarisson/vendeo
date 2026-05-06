@@ -2,12 +2,10 @@
 
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { Upload, Loader2, Image as ImageIcon, X, Sparkles } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { MotionWrapper } from "../_components/MotionWrapper";
 import { getSignedUrlAction } from "@/lib/supabase/storage-actions";
-import { saveStoreAction } from "@/lib/domain/stores/actions";
 import LogoGeneratorModal from "@/components/LogoGeneratorModal";
 
 function Toast({
@@ -19,7 +17,7 @@ function Toast({
 }) {
   return (
     <div
-      className={`fixed right-6 top-6 z-50 rounded-xl px-4 py-3 text-sm font-medium shadow-lg transition-all ${type === "success" ? "bg-emerald-600 text-white" : "bg-red-600 text-white"
+      className={`fixed right-6 top-6 z-50 rounded-xl px-4 py-3 text-sm font-medium shadow-lg transition-all ${type === "success" ? "success-message bg-emerald-600 text-white" : "error-message bg-red-600 text-white"
         }`}
     >
       {message}
@@ -146,6 +144,114 @@ const SEGMENT_OPTIONS = [
   "Outro…",
 ];
 
+const SEGMENT_HIERARCHY = {
+  bebidas_alcoolicas: {
+    label: "Bebidas Alcoólicas",
+    legacyLabel: "Loja de bebidas",
+    icon: "🍷",
+    subcategories: [
+      { value: "adega", label: "Adega / Wine Bar", legacyLabel: "Adega", description: "Curadoria de vinhos e rótulos premium" },
+      { value: "loja-bebidas", label: "Loja de Bebidas", legacyLabel: "Loja de bebidas", description: "Variedade ampla para o dia a dia" },
+      { value: "distribuidor", label: "Distribuidora / Atacado", legacyLabel: "Distribuidora", description: "Vendas B2B em volume" },
+      { value: "emporio-cervejas", label: "Empório de Cervejas / Craft", legacyLabel: "Emporio de Cervejas", description: "Especialização em cervejas artesanais" },
+      { value: "outro", label: "Outro (especifique)", legacyLabel: "Outro", description: "Não se encaixa nas opções acima" },
+    ],
+  },
+  mercearia: {
+    label: "Mercado / Mercearia",
+    legacyLabel: "Mercado / Mercearia",
+    icon: "🛒",
+    subcategories: [
+      { value: "mercadinho-bairro", label: "Mercadinho de Bairro", legacyLabel: "Mercadinho", description: "Proximidade e atendimento familiar" },
+      { value: "minimercado", label: "Minimercado", legacyLabel: "Minimercado", description: "Conveniência e produtos básicos" },
+      { value: "hortifruti", label: "Hortifrúti / Frutaria", legacyLabel: "Hortifruti", description: "Foco em produtos frescos" },
+      { value: "emporio-gourmet", label: "Empório Gourmet", legacyLabel: "Emporio Gourmet", description: "Produtos premium e especiais" },
+      { value: "sacolao", label: "Sacolão", legacyLabel: "Sacolao", description: "Preço e volume em hortifruti" },
+      { value: "outro", label: "Outro (especifique)", legacyLabel: "Outro", description: "Não se encaixa nas opções acima" },
+    ],
+  },
+} as const;
+
+type SegmentCategory = keyof typeof SEGMENT_HIERARCHY;
+
+function normalizeSegmentValue(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+function inferSegmentationFromLegacy(mainSegment: string): {
+  category: SegmentCategory | "";
+  subcategory: string;
+  custom: string;
+} {
+  const normalized = normalizeSegmentValue(mainSegment);
+
+  if (!normalized) {
+    return { category: "", subcategory: "", custom: "" };
+  }
+
+  if (normalized.includes("adega") || normalized.includes("vinho") || normalized.includes("wine")) {
+    return { category: "bebidas_alcoolicas", subcategory: "adega", custom: "" };
+  }
+
+  if (normalized.includes("cervej") || normalized.includes("craft")) {
+    return { category: "bebidas_alcoolicas", subcategory: "emporio-cervejas", custom: "" };
+  }
+
+  if (normalized.includes("distribuidor") || normalized.includes("distribuidora") || normalized.includes("atacado")) {
+    return { category: "bebidas_alcoolicas", subcategory: "distribuidor", custom: "" };
+  }
+
+  if (normalized.includes("bebida")) {
+    return { category: "bebidas_alcoolicas", subcategory: "loja-bebidas", custom: "" };
+  }
+
+  if (normalized.includes("hortifruti") || normalized.includes("frutaria") || normalized.includes("fruta") || normalized.includes("verdura")) {
+    return { category: "mercearia", subcategory: "hortifruti", custom: "" };
+  }
+
+  if (normalized.includes("sacolao")) {
+    return { category: "mercearia", subcategory: "sacolao", custom: "" };
+  }
+
+  if (normalized.includes("minimercado")) {
+    return { category: "mercearia", subcategory: "minimercado", custom: "" };
+  }
+
+  if (normalized.includes("gourmet")) {
+    return { category: "mercearia", subcategory: "emporio-gourmet", custom: "" };
+  }
+
+  if (normalized.includes("mercado") || normalized.includes("mercearia") || normalized.includes("mercadinho")) {
+    return { category: "mercearia", subcategory: "mercadinho-bairro", custom: "" };
+  }
+
+  return { category: "", subcategory: "", custom: "" };
+}
+
+function buildLegacyMainSegment(category: string, subcategory: string, subcategoryCustom: string) {
+  if (!category) return "";
+
+  const categoryData = SEGMENT_HIERARCHY[category as SegmentCategory];
+  if (!categoryData) {
+    return "";
+  }
+
+  if (subcategory === "outro") {
+    return subcategoryCustom.trim();
+  }
+
+  const subcategoryData = categoryData.subcategories.find((item) => item.value === subcategory);
+  if (subcategoryData) {
+    return subcategoryData.legacyLabel;
+  }
+
+  return categoryData.legacyLabel;
+}
+
 const TONE_OPTIONS = [
   "Amigável",
   "Direto",
@@ -174,6 +280,9 @@ type StoreRow = {
   logo_url: string | null;
 
   main_segment: string | null;
+  category: SegmentCategory | null;
+  subcategory: string | null;
+  subcategory_custom: string | null;
   brand_positioning: string | null;
   tone_of_voice: string | null;
 
@@ -210,6 +319,7 @@ export default function StorePage() {
 
   // posicionamento
   const [segmentChoice, setSegmentChoice] = useState("");
+  const [subcategoryChoice, setSubcategoryChoice] = useState("");
   const [mainSegmentCustom, setMainSegmentCustom] = useState("");
   const [toneChoice, setToneChoice] = useState("");
   const [toneCustom, setToneCustom] = useState("");
@@ -244,11 +354,15 @@ export default function StorePage() {
 
   const isEditMode = !!activeStoreId;
 
+  const selectedCategory = segmentChoice
+    ? SEGMENT_HIERARCHY[segmentChoice as SegmentCategory]
+    : null;
+
+  const showCustomSubcategoryField = subcategoryChoice === "outro";
+
   const mainSegment = useMemo(() => {
-    const v =
-      segmentChoice === "Outro…" ? mainSegmentCustom.trim() : segmentChoice.trim();
-    return v;
-  }, [segmentChoice, mainSegmentCustom]);
+    return buildLegacyMainSegment(segmentChoice, subcategoryChoice, mainSegmentCustom);
+  }, [segmentChoice, subcategoryChoice, mainSegmentCustom]);
 
   const toneOfVoice = useMemo(() => {
     const v = toneChoice === "Outro…" ? toneCustom.trim() : toneChoice.trim();
@@ -359,6 +473,7 @@ export default function StorePage() {
     setStateUf("");
 
     setSegmentChoice("");
+    setSubcategoryChoice("");
     setMainSegmentCustom("");
     setToneChoice("");
     setToneCustom("");
@@ -380,18 +495,10 @@ export default function StorePage() {
     setCity(s.city ?? "");
     setStateUf((s.state ?? "").toUpperCase());
 
-    // segmento / tom: tenta casar com opções; se não bater, cai em "Outro…"
-    const seg = (s.main_segment ?? "").trim();
-    if (seg && SEGMENT_OPTIONS.includes(seg as any)) {
-      setSegmentChoice(seg);
-      setMainSegmentCustom("");
-    } else if (seg) {
-      setSegmentChoice("Outro…");
-      setMainSegmentCustom(seg);
-    } else {
-      setSegmentChoice("");
-      setMainSegmentCustom("");
-    }
+    const inferred = !s.category && s.main_segment ? inferSegmentationFromLegacy(s.main_segment) : null;
+    setSegmentChoice(s.category ?? inferred?.category ?? "");
+    setSubcategoryChoice(s.subcategory ?? inferred?.subcategory ?? "");
+    setMainSegmentCustom(s.subcategory_custom ?? inferred?.custom ?? "");
 
     const tone = (s.tone_of_voice ?? "").trim();
     if (tone && TONE_OPTIONS.includes(tone as any)) {
@@ -435,8 +542,15 @@ export default function StorePage() {
     if (primaryColor && !isValidHexColor(primaryColor)) return "Cor primária inválida.";
     if (secondaryColor && !isValidHexColor(secondaryColor)) return "Cor secundária inválida.";
 
-    if (segmentChoice === "Outro…" && !mainSegmentCustom.trim())
-      return "Digite o segmento principal (opção “Outro…”).";
+    if (!segmentChoice) return "Selecione o segmento principal da loja.";
+
+    if (selectedCategory && !subcategoryChoice) {
+      return "Escolha o tipo da sua loja para campanhas mais fiéis ao seu negócio.";
+    }
+
+    if (showCustomSubcategoryField && !mainSegmentCustom.trim()) {
+      return 'Campo "especifique o tipo" é obrigatório quando seleciona "Outro".';
+    }
 
     if (toneChoice === "Outro…" && !toneCustom.trim())
       return "Digite o tom de voz (opção “Outro…”).";
@@ -570,14 +684,15 @@ export default function StorePage() {
       }
 
       const payload = {
-        owner_user_id: user.id,
-
         name: name.trim(),
         city: city.trim() || null,
         state: stateUf.trim().toUpperCase() || null,
         logo_url: logoUrl.trim() || null,
 
         main_segment: mainSegment || null,
+        category: segmentChoice || null,
+        subcategory: subcategoryChoice || null,
+        subcategory_custom: subcategoryChoice === "outro" ? mainSegmentCustom.trim() || null : null,
         brand_positioning: brandPositioning.trim() || null,
         tone_of_voice: toneOfVoice || null,
 
@@ -592,8 +707,19 @@ export default function StorePage() {
         secondary_color: secondaryColor || null,
       };
 
-      // ✅ Usa Server Action para salvar e invalidar cache (Etapa 1.2)
-      const { error: saveError } = await saveStoreAction(payload, activeStoreId);
+      const response = await fetch("/api/stores", {
+        method: activeStoreId ? "PUT" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...payload,
+          storeId: activeStoreId || undefined,
+        }),
+      });
+
+      const result = await response.json().catch(() => ({}));
+      const saveError = response.ok ? null : result?.message || result?.error || "Erro ao salvar a loja.";
 
       if (saveError) {
         showToast(saveError, "error");
@@ -942,27 +1068,73 @@ export default function StorePage() {
 
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="grid gap-1">
-                          <label className="text-sm font-medium">Segmento principal</label>
+                          <label htmlFor="category" className="text-sm font-medium">Qual o segmento da sua loja?</label>
                           <select
+                            id="category"
                             className="h-11 rounded-xl border border-zinc-200 bg-white px-3 outline-none focus:ring-2 focus:ring-emerald-200"
                             value={segmentChoice}
-                            onChange={(e) => setSegmentChoice(e.target.value)}
+                            onChange={(e) => {
+                              setSegmentChoice(e.target.value);
+                              setSubcategoryChoice("");
+                              setMainSegmentCustom("");
+                            }}
                           >
                             <option value="">Selecione</option>
-                            {SEGMENT_OPTIONS.map((opt) => (
-                              <option key={opt} value={opt}>
-                                {opt}
+                            {Object.entries(SEGMENT_HIERARCHY).map(([key, option]) => (
+                              <option key={key} value={key}>
+                                {option.icon} {option.label}
                               </option>
                             ))}
                           </select>
 
-                          {segmentChoice === "Outro…" && (
-                            <input
-                              className="h-11 rounded-xl border border-zinc-200 px-3 outline-none focus:ring-2 focus:ring-emerald-200"
-                              value={mainSegmentCustom}
-                              onChange={(e) => setMainSegmentCustom(e.target.value)}
-                              placeholder="Digite o segmento"
-                            />
+                          {selectedCategory && (
+                            <>
+                              <label htmlFor="subcategory" className="mt-3 text-sm font-medium">Especifique o tipo</label>
+                              <select
+                                id="subcategory"
+                                className="h-11 rounded-xl border border-zinc-200 bg-white px-3 outline-none focus:ring-2 focus:ring-emerald-200"
+                                value={subcategoryChoice}
+                                onChange={(e) => {
+                                  setSubcategoryChoice(e.target.value);
+                                  if (e.target.value !== "outro") {
+                                    setMainSegmentCustom("");
+                                  }
+                                }}
+                              >
+                                <option value="">Escolha a opção que melhor descreve</option>
+                                {selectedCategory.subcategories.map((sub) => (
+                                  <option key={sub.value} value={sub.value}>
+                                    {sub.label}
+                                  </option>
+                                ))}
+                              </select>
+
+                              {subcategoryChoice && subcategoryChoice !== "outro" && (
+                                <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
+                                  {selectedCategory.subcategories.find((sub) => sub.value === subcategoryChoice)?.description}
+                                </div>
+                              )}
+                            </>
+                          )}
+
+                          {showCustomSubcategoryField && (
+                            <>
+                              <input
+                                id="subcategory_custom"
+                                className="h-11 rounded-xl border border-zinc-200 px-3 outline-none focus:ring-2 focus:ring-emerald-200"
+                                value={mainSegmentCustom}
+                                onChange={(e) => setMainSegmentCustom(e.target.value)}
+                                placeholder="Ex.: Conveniência, Empório de cachaças, Armazém..."
+                              />
+
+                              <div className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                                <strong>Atenção:</strong> Escolha "Outro" apenas se nenhuma opção acima descreve sua loja. Se existir uma opção parecida, prefira ela para campanhas mais efetivas.
+                              </div>
+
+                              <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
+                                Seus dados ajudam o Vendeo a vender com mais precisão. Se esse perfil aparecer bastante, podemos criar uma categoria específica no futuro.
+                              </div>
+                            </>
                           )}
                         </div>
 

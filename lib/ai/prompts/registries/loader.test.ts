@@ -59,11 +59,77 @@ test('buildL3Context returns segment and regional experts together', () => {
 })
 
 test('loadSegmentExpert throws when segment does not exist', () => {
-  assert.throws(() => loadSegmentExpert('segmento_invalido'), /Segment expert not found/) 
+  assert.throws(() => loadSegmentExpert('segmento_invalido'), /Segment expert not found/)
+})
+
+test('loadSegmentExpert loads a subcategory variant when it exists', () => {
+  const tempRoot = mkdtempSync(join(tmpdir(), 'vendeo-registry-test-'))
+  const segmentDir = join(tempRoot, 'bebidas-alcoolicas')
+  const variantsDir = join(segmentDir, 'variants')
+  mkdirSync(variantsDir, { recursive: true })
+  writeFileSync(
+    join(segmentDir, 'segment-expert.yaml'),
+    [
+      'segment_id: bebidas_alcoolicas',
+      'segment_name: "Bebidas Alcoólicas"',
+      'version: "1.0"',
+      'title: "Base"',
+      'description: "Base"',
+      'expertise:',
+      '  - "base"',
+      'seasonal_patterns: {}',
+      'conversion_triggers:',
+      '  occasions: []',
+      'language_rules:',
+      '  tone: "teste"',
+      '  formality: "teste"',
+      'version_notes: "teste"',
+      'last_updated: "2026-05-06"',
+    ].join('\n')
+  )
+  writeFileSync(
+    join(variantsDir, 'adega.yaml'),
+    [
+      'segment_id: bebidas_alcoolicas',
+      'segment_name: "Adega Especialista"',
+      'version: "1.0"',
+      'title: "Adega"',
+      'description: "Variante"',
+      'expertise:',
+      '  - "vinhos"',
+      'seasonal_patterns: {}',
+      'conversion_triggers:',
+      '  occasions: []',
+      'language_rules:',
+      '  tone: "teste"',
+      '  formality: "teste"',
+      'version_notes: "teste"',
+      'last_updated: "2026-05-06"',
+    ].join('\n')
+  )
+
+  __setRegistriesRootForTests(tempRoot)
+
+  const expert = loadSegmentExpert('bebidas_alcoolicas', 'adega')
+  assert.equal(expert.segment_name, 'Adega Especialista')
+})
+
+test('loadSegmentExpert falls back to base when subcategory is outro', () => {
+  const expert = loadSegmentExpert('bebidas_alcoolicas', 'outro')
+  assert.equal(expert.segment_id, 'bebidas_alcoolicas')
+})
+
+test('loadSegmentExpert falls back to base when variant does not exist', () => {
+  const expert = loadSegmentExpert('bebidas_alcoolicas', 'nao-existe')
+  assert.equal(expert.segment_id, 'bebidas_alcoolicas')
+})
+
+test('loadSegmentExpert with subcategory still errors when base does not exist', () => {
+  assert.throws(() => loadSegmentExpert('segmento_invalido', 'adega'), /Segment expert not found/)
 })
 
 test('loadRegionalExpert throws when region does not exist', () => {
-  assert.throws(() => loadRegionalExpert('mercearia', 'invalid-region'), /Regional expert not found/) 
+  assert.throws(() => loadRegionalExpert('mercearia', 'invalid-region'), /Regional expert not found/)
 })
 
 test('loadSegmentExpert throws a parse error for invalid yaml', () => {
@@ -74,7 +140,7 @@ test('loadSegmentExpert throws a parse error for invalid yaml', () => {
 
   __setRegistriesRootForTests(tempRoot)
 
-  assert.throws(() => loadSegmentExpert('mercearia'), /Failed to parse YAML/) 
+  assert.throws(() => loadSegmentExpert('mercearia'), /Failed to parse YAML/)
 })
 
 test('loadRegionalExpert validates required fields', () => {

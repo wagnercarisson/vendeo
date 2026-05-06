@@ -30,6 +30,8 @@ type StoreRecord = {
   id?: string | null
   name?: string | null
   main_segment?: string | null
+  category?: string | null
+  subcategory?: string | null
   city?: string | null
   state?: string | null
   neighborhood?: string | null
@@ -64,6 +66,8 @@ export interface StoreMetadata {
   name: string
   segment: string
   mainSegment: string
+  category: string | null
+  subcategory: string | null
   location: {
     city: string
     state: string
@@ -127,6 +131,8 @@ function toStoreMetadata(raw: StoreRecord): StoreMetadata {
   const id = toOptionalString(raw.id)
   const name = toOptionalString(raw.name)
   const mainSegment = toOptionalString(raw.main_segment)
+  const category = toOptionalString(raw.category)
+  const subcategory = toOptionalString(raw.subcategory)
   const city = toOptionalString(raw.city)
   const state = toOptionalString(raw.state)
 
@@ -138,8 +144,8 @@ function toStoreMetadata(raw: StoreRecord): StoreMetadata {
     throw new Error("Invalid store metadata: missing required field 'name'")
   }
 
-  if (!mainSegment) {
-    throw new Error("Invalid store metadata: missing required field 'main_segment'")
+  if (!mainSegment && !category) {
+    throw new Error("Invalid store metadata: missing required field 'category' or 'main_segment'")
   }
 
   if (!city) {
@@ -153,8 +159,10 @@ function toStoreMetadata(raw: StoreRecord): StoreMetadata {
   return {
     id,
     name,
-    segment: mainSegment,
-    mainSegment,
+    segment: category ?? (mainSegment as string),
+    mainSegment: mainSegment ?? category ?? '',
+    category: category ?? null,
+    subcategory: subcategory ?? null,
     location: {
       city,
       state,
@@ -232,7 +240,7 @@ export async function fetchStoreMetadata(storeId: string, client?: ContextBuilde
   const { data, error } = await supabase
     .from('stores')
     .select<StoreRecord>(
-      'id, name, main_segment, city, state, neighborhood, address, brand_positioning, tone_of_voice, phone, whatsapp'
+      'id, name, main_segment, category, subcategory, city, state, neighborhood, address, brand_positioning, tone_of_voice, phone, whatsapp'
     )
     .eq('id', storeId)
     .maybeSingle()
@@ -286,7 +294,8 @@ export async function fetchIntelligenceContext(
 
 export function buildAgenticPersona(
   segment: string,
-  location: { city: string; state: string }
+  location: { city: string; state: string },
+  subcategory?: string | null
 ): { segment: SegmentExpert; regional: RegionalExpert } {
   const normalizedSegment = segment.trim()
   if (!normalizedSegment) {
@@ -294,7 +303,7 @@ export function buildAgenticPersona(
   }
 
   const region = mapLocationToRegion(location.city, location.state)
-  return buildL3Context(normalizedSegment, region)
+  return buildL3Context(normalizedSegment, region, subcategory)
 }
 
 export async function buildPromptContext(
@@ -309,10 +318,10 @@ export async function buildPromptContext(
     fetchStoreMetadata(storeId, options?.client),
     fetchIntelligenceContext(storeId, options?.client),
   ])
-  const L3 = buildAgenticPersona(L1.mainSegment, {
+  const L3 = buildAgenticPersona(L1.category ?? L1.mainSegment, {
     city: L1.location.city,
     state: L1.location.state,
-  })
+  }, L1.subcategory)
 
   return {
     L1,
