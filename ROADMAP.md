@@ -1,7 +1,39 @@
 # Vendeo Roadmap
 
+> **Links relacionados:**  
+> **Detalhes técnicos:** [PROJECT-CONTEXT.md](docs/PROJECT-CONTEXT.md)  
+> **Histórico de sessões:** [SESSION-HISTORY.md](docs/SESSION-HISTORY.md)  
+> **Governança:** [doc-governance.md](docs/doc-governance.md)
+
 **Última Atualização:** 06 Mai 2026  
 **Sprint Atual:** Subsegmentação 1/3 (1.5d) | **Blocker Crítico:** Migration 042
+
+---
+
+## 🎯 Como Usar Este Documento
+
+**Este é o mapa do projeto — a "bússola" que SEMPRE deve estar atualizada.**
+
+### No Início de Cada Sessão
+1. Leia o Status Dashboard → Onde estamos?
+2. Veja "Em Execução" → O que está sendo feito agora?
+3. Verifique blocker crítico → Tem algo travando?
+4. Confirme próximo passo → O que vem depois?
+
+### Durante o Trabalho
+- Marque checkboxes conforme completa tasks: `[ ]` → `[x]`
+- Atualize progresso no Dashboard (%, ETA)
+- Remova blocker quando desbloqueado
+
+### Ao Encerrar Sessão
+- Mova tasks completas para "✅ Completo"
+- Atualize "Próximo" com nova prioridade
+- Adicione decisões em "🎯 Decisões Estratégicas"
+
+**Tempo de leitura:** 1-2 minutos  
+**Regra:** Se não atualizou o ROADMAP, a sessão não está completa.
+
+---
 
 > Este documento registra progresso, decisões e próximos passos. Detalhes técnicos e justificativas estão em artefatos linkados.
 

@@ -1,5 +1,11 @@
 # Vendeo — Project Context (Session Bootstrap)
 
+> **Links relacionados:**  
+> **Roadmap completo:** [ROADMAP.md](../ROADMAP.md)  
+> **Histórico de sessões:** [SESSION-HISTORY.md](SESSION-HISTORY.md)  
+> **Última decisão:** [DEC-2026-05-06-002.md](integration-checklists/DEC-2026-05-06-002.md)  
+> **Protocolo:** [AIOX-MASTER-PROTOCOL.md](AIOX-MASTER-PROTOCOL.md)
+
 **Última Atualização:** 2026-05-06 por @aiox-master  
 **Propósito:** Contexto obrigatório para @aiox-master no início de cada sessão
 
