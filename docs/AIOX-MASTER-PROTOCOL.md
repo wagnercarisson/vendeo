@@ -1,738 +1,147 @@
-# @aiox-master Protocol — Freio Mandatório
+# @aiox-master Protocol — Session Workflow
 
-**Data:** 2026-04-22  
-**Propósito:** Protocolo obrigatório para @aiox-master antes de qualquer decisão técnica  
-**Status:** 🔴 MANDATÓRIO — Não pular este protocolo
+> **Links relacionados:**  
+> **Roadmap:** [ROADMAP.md](../ROADMAP.md)  
+> **Session History:** [SESSION-HISTORY.md](SESSION-HISTORY.md)  
+> **Project Context:** [PROJECT-CONTEXT.md](PROJECT-CONTEXT.md)  
+> **Governança:** [doc-governance.md](doc-governance.md)
+
+**Data:** 06 Mai 2026  
+**Propósito:** Fluxo simplificado para início e fechamento de sessões  
+**Status:** 🔴 OBRIGATÓRIO — Sempre seguir este fluxo
 
 ---
 
 ## 🎯 QUANDO USAR
 
-Execute este protocolo ANTES de:
-- ✅ Criar ou aprovar roadmap
-- ✅ Criar ou aprovar epic
-- ✅ Criar ou aprovar story
-- ✅ Delegar trabalho para qualquer agente (@dev, @sm, @qa, etc)
-- ✅ Sugerir implementação técnica
-- ✅ Aprovar PR ou merge
-- ✅ Responder pergunta técnica que envolve decisão
-
-**Se você não seguir este protocolo:** Decisão errada → retrabalho → frustração do usuário
+Execute este protocolo:
+- ✅ No **início** de cada sessão com @aiox-master
+- ✅ Ao **encerrar** cada sessão
+- ✅ Antes de **decisões estratégicas** (criar epic, aprovar arquitetura, etc)
 
 ---
 
-## � FASE 0: PROJECT CONTEXT (2 minutos) — SEMPRE EXECUTAR PRIMEIRO
+## 📋 FASE 0: BOOTSTRAP (2-3 min) — INÍCIO DE SESSÃO
 
-**Objetivo:** Carregar contexto completo do projeto antes de qualquer decisão.
+**Objetivo:** Carregar contexto completo do projeto antes de agir.
 
-**Checklist:**
-- [ ] Li `docs/PROJECT-CONTEXT.md` completo
-- [ ] Entendi o que é o Vendeo e seu objetivo
-- [ ] Identifiquei fase atual do projeto
-- [ ] Revisei últimas 2-3 decisões tomadas
-- [ ] Identifiquei blockers ativos (se houver)
-- [ ] Entendi para onde estamos indo (próximos passos)
+### Checklist Obrigatório
+1. [ ] Ler [ROADMAP.md](../ROADMAP.md) (1-2 min)
+   - Status Dashboard → Onde estamos?
+   - Tasks em execução → O que está sendo feito?
+   - Blocker crítico → Tem algo travando?
+   - Próximo passo → O que vem depois?
 
-**GATE 0:** 
-```yaml
-IF PROJECT-CONTEXT.md não lido:
-  ❌ BLOCK decisão
-  ACTION: Ler PROJECT-CONTEXT.md primeiro
+2. [ ] Ler [SESSION-HISTORY.md](SESSION-HISTORY.md) última entrada (30s)
+   - O que fizemos na sessão anterior?
+   - Quais artefatos foram gerados?
 
-IF PROJECT-CONTEXT.md desatualizado (>14 dias):
-  ⚠️ WARN usuário: "Context pode estar desatualizado, validar antes de decidir"
+3. [ ] Se precisar detalhes técnicos:
+   - Ler [PROJECT-CONTEXT.md](PROJECT-CONTEXT.md) (3-5 min)
+   - Ler decisões específicas (DEC-*.md)
+   - Ler closure anterior (docs/closures/closure-*.md)
+
+### Retorno ao Usuário
+
+Confirmar verbalmente:
+```
+✅ **Protocolo Lido e Compreendido**
+
+📍 **Fase Atual:** [Nome da fase do projeto]
+
+🔙 **Sessão Anterior:** [Conquistas resumidas em 1 linha]
+
+⏸️ **Blocker:** [Nome do blocker ou "Nenhum"]
+
+➡️ **Próximo Passo:** [Ação específica com contexto]
+   - Detalhamento: [O que envolve]
+   - Responsável: [Qual agente]
+   - Bloqueando: [O que está bloqueado por isso]
+
+**Confirma que seguimos?**
 ```
 
-**Entrega desta fase:**
-Confirmar verbalmente ao usuário:
-- ✅ "Li o protocolo e entendo as diretrizes que regem os agentes"
-- ✅ "Entendi que estamos na fase [FASE_ATUAL]"
-- ✅ "Último ponto trabalhado: [CONTEXTO]"
-- ✅ "Pendência (se houver): [PENDENCIA ou 'Nenhuma']"
-- ✅ "Próximo passo: [PROXIMO_PASSO com detalhes]"
+**Tempo total:** 2-3 minutos
 
 ---
 
-## �📋 PROTOCOLO PRE-FLIGHT (5 FASES)
+## 🤔 DECISÃO ESTRATÉGICA (15-30 min) — QUANDO NECESSÁRIO
 
-### FASE 1: CONTEXTO (5 minutos)
+**Quando usar:** Criar epic, aprovar arquitetura, substituir código existente, mudança breaking
 
-**Objetivo:** Entender o pedido REAL, não só o superficial.
+### Checklist de Decisão
 
-**Checklist:**
-- [ ] Li user request COMPLETO (não apenas primeira frase)
-- [ ] Identifiquei objetivo real (pode ser diferente do pedido)
-- [ ] Identifiquei riscos:
-  - [ ] Regressão (quebrar algo que funciona)
-  - [ ] Duplicação (criar algo que já existe)
-  - [ ] Substituição (trocar sem migration plan)
-  - [ ] Complexidade desnecessária
+1. [ ] Li [CAPABILITIES-INVENTORY.md](CAPABILITIES-INVENTORY.md)
+   - Funcionalidade já existe? → Reutilizar
+   - Vai substituir algo? → Migration plan obrigatório
 
-**Perguntas a responder:**
-1. O que o usuário REALMENTE quer? (objetivo final)
-2. Por que ele quer isso? (problema sendo resolvido)
-3. Qual o risco se eu errar? (impacto de decisão errada)
+2. [ ] Li [CRITICAL-FLOWS.md](CRITICAL-FLOWS.md) (seções relevantes)
+   - Quais fluxos são afetados?
+   - O que NÃO pode regredir?
+   - Testes de regressão definidos?
 
-**Documentar:**
-```yaml
-context:
-  user_request: "[Texto literal do pedido]"
-  real_objective: "[Objetivo inferido]"
-  problem_being_solved: "[Problema raiz]"
-  risks:
-    - "[Risco 1]"
-    - "[Risco 2]"
-```
+3. [ ] Li [INTEGRATION-CHECKLIST.md](INTEGRATION-CHECKLIST.md) (seções relevantes)
+   - Dependências identificadas?
+   - Entry points mapeados?
+   - Breaking changes detectados?
 
----
+4. [ ] Documentei decisão
+   - Criar `docs/integration-checklists/DEC-YYYY-MM-DD-NNN.md`
+   - Incluir rationale completo (POR QUÊ desta decisão)
+   - Listar alternativas rejeitadas
+   - Referenciar research/validações
 
-### FASE 2: INVENTÁRIO (10 minutos)
+### Gates Automáticos
 
-**Objetivo:** Verificar o que JÁ EXISTE antes de criar/modificar.
+❌ **BLOQUEAR se:**
+- Substituir código SEM migration plan
+- Afetar fluxo crítico SEM testes de regressão
+- Não consultou CAPABILITIES-INVENTORY
+- Decisão estratégica SEM documentação (DEC-*.md)
 
-**Checklist:**
-- [ ] Li `docs/CAPABILITIES-INVENTORY.md` COMPLETO
-- [ ] Busquei por funcionalidade relacionada (Ctrl+F)
-- [ ] Verifiquei se funcionalidade JÁ EXISTE:
-  - [ ] Existe e funciona → Reutilizar
-  - [ ] Existe mas incompleta → Estender
-  - [ ] Não existe → Criar do zero
-- [ ] Se vou SUBSTITUIR algo:
-  - [ ] Listei TODAS as funcionalidades da versão antiga
-  - [ ] Criei migration plan (ver INTEGRATION-CHECKLIST Caso 1)
-  - [ ] Defini rollback plan
+✅ **PROSSEGUIR se:**
+- Todos os checklists completos
+- Gates validados
+- Decisão documentada
 
-**Perguntas a responder:**
-1. Esta funcionalidade já existe em algum lugar?
-2. Se existe, por que não está sendo usada?
-3. Se vou substituir, o que será PERDIDO?
-4. Como preservar capacidades críticas?
-
-**Documentar:**
-```yaml
-inventory_check:
-  consulted: true
-  existing_capabilities:
-    - path: "lib/visual-reader/"
-      description: "Visual Reader atual com 18 campos"
-      status: "funcional mas não integrado"
-  will_replace: true/false
-  migration_plan: |
-    [Se replace=true, descrever plano completo:
-     - O que será substituído
-     - O que será perdido
-     - Como preservar funcionalidades críticas
-     - Rollback plan]
-```
+**Detalhes completos:** Ver [AIOX-MASTER-PROTOCOL-old.md](../docs-old/AIOX-MASTER-PROTOCOL-old.md) Fases 1-5
 
 ---
 
-### FASE 3: FLUXOS CRÍTICOS (10 minutos)
-
-**Objetivo:** Identificar fluxos afetados e o que NÃO PODE REGREDIR.
-
-**Checklist:**
-- [ ] Li `docs/CRITICAL-FLOWS.md` — seções relevantes
-- [ ] Identifiquei fluxos afetados (lista com IDs: F1, F2, etc)
-- [ ] Para cada fluxo afetado:
-  - [ ] Li seção "O QUE NÃO PODE REGREDIR"
-  - [ ] Verifiquei se minha decisão mantém esses requisitos
-  - [ ] Defini testes de regressão necessários (RT-1, RT-2, etc)
-- [ ] Se não há fluxos afetados:
-  - [ ] Confirmei que é funcionalidade nova (não toca código existente)
-
-**Perguntas a responder:**
-1. Quais fluxos críticos serão afetados?
-2. O que NÃO PODE REGREDIR em cada fluxo?
-3. Como vou testar que não regrediu?
-4. Se quebrar, qual o impacto no usuário?
-
-**Documentar:**
-```yaml
-critical_flows_check:
-  consulted: true
-  affected_flows:
-    - id: "F1"
-      name: "Criação de Campanha Manual"
-      cannot_regress:
-        - "Validação de campos obrigatórios"
-        - "Geração de texto funcional"
-      regression_tests: ["RT-1"]
-    - id: "F4"
-      name: "Validação Produto vs Imagem"
-      cannot_regress:
-        - "Detecção de inconsistências (Coca vs Pepsi)"
-      regression_tests: ["RT-2", "RT-3"]
-```
-
----
-
-### FASE 4: INTEGRATION (5 minutos)
-
-**Objetivo:** Entender dependências e entry points.
-
-**Checklist:**
-- [ ] Li `docs/INTEGRATION-CHECKLIST.md` — seções relevantes
-- [ ] Identifiquei dependencies:
-  - [ ] O que esta funcionalidade CONSOME (inputs)
-  - [ ] Formato esperado (types, schemas)
-- [ ] Identifiquei entry points:
-  - [ ] Onde esta funcionalidade será CHAMADA
-  - [ ] Contexto de uso
-- [ ] Verifiquei backward compatibility:
-  - [ ] Mudança quebra código existente? (breaking change)
-  - [ ] Se sim: migration necessária
-
-**Perguntas a responder:**
-1. O que esta funcionalidade consome? (dependencies)
-2. Onde será chamada? (entry points)
-3. Quebra algo existente? (breaking changes)
-4. Como integrar sem quebrar?
-
-**Documentar:**
-```yaml
-integration_check:
-  consulted: true
-  dependencies:
-    - module: "lib/visual-reader/service.ts"
-      consumes: "readVisualTarget()"
-      format: "VisualReaderResult"
-  entry_points:
-    - path: "lib/domain/campaigns/service.ts"
-      line: 104
-      context: "Geração de conteúdo"
-  breaking_changes: true/false
-  backward_compatible: true/false
-```
-
----
-
-### FASE 5: DECISÃO (5 minutos)
-
-**Objetivo:** Documentar decisão final e validar gates.
-
-**Checklist:**
-- [ ] Decidi ação (create_story | modify_code | delegate_to_agent | reject)
-- [ ] Justifiquei decisão (POR QUÊ esta é a escolha correta)
-- [ ] Validei gates automáticos (ver abaixo)
-- [ ] Salvei decisão em `docs/integration-checklists/DEC-{timestamp}.md`
-
-**Perguntas a responder:**
-1. Qual ação vou tomar?
-2. Por que esta é a decisão correta?
-3. Quem vai executar? (agente ou implementação direta)
-4. Quando executar? (agora ou depois de dependências)
-
-**Documentar:**
-```yaml
-decision:
-  id: "DEC-2026-04-22-001"
-  timestamp: "2026-04-22T15:30:00Z"
-  action: "create_story | modify_story | delegate_to_agent | reject"
-  target: "@dev | @sm | @qa | direct_implementation"
-  rationale: |
-    [Explicar POR QUÊ esta é a decisão correta.
-     Referenciar CAPABILITIES-INVENTORY, CRITICAL-FLOWS, etc]
-  
-  validation:
-    pre_flight_complete: true
-    all_phases_executed: true
-    gates_validated: true
-    ready_to_proceed: true
-```
-
----
-
-## 🚨 GATES AUTOMÁTICOS
-
-Antes de prosseguir, validar TODOS os gates:
-
-### GATE 1: Inventory Check
-
-```yaml
-IF inventory_check.consulted == false:
-  ❌ BLOCK
-  ACTION: Voltar para FASE 2, ler CAPABILITIES-INVENTORY.md
-```
-
-### GATE 2: Migration Plan
-
-```yaml
-IF inventory_check.will_replace == true AND migration_plan == null:
-  ❌ BLOCK
-  ACTION: Criar migration plan (ver INTEGRATION-CHECKLIST Caso 1)
-```
-
-### GATE 3: Critical Flows
-
-```yaml
-IF critical_flows_check.affected_flows.length > 0 AND regression_tests == []:
-  ❌ BLOCK
-  ACTION: Definir testes de regressão obrigatórios
-```
-
-### GATE 4: Pre-Flight Complete
-
-```yaml
-IF decision.validation.pre_flight_complete == false:
-  ❌ BLOCK
-  ACTION: Completar TODAS as 5 fases do protocolo
-```
-
-### GATE 5: Visual Reader Protection (Especial)
-
-```yaml
-IF decision.target contains "lib/visual-reader/":
-  IF migration_plan == null OR product_validation_preserved == false:
-    ❌ BLOCK
-    ACTION: Seguir Artigo II da PROJECT-CONSTITUTION.md
-```
-
-**Todos os gates passaram?**
-- ✅ SIM → Prosseguir com decisão
-- ❌ NÃO → PARAR, corrigir gates primeiro
-
----
-
-## 📝 TEMPLATE DE DECISÃO (Salvar em docs/integration-checklists/)
-
-```markdown
-# Decision DEC-2026-04-22-001
-
-**Data:** 2026-04-22T15:30:00Z  
-**Decisor:** @aiox-master  
-**Contexto:** [User request literal]
-
----
-
-## FASE 1: CONTEXTO
-
-**User Request:**
-```
-[Texto literal do pedido do usuário]
-```
-
-**Objetivo Real:**
-[O que o usuário REALMENTE quer]
-
-**Problema Sendo Resolvido:**
-[Problema raiz]
-
-**Riscos Identificados:**
-- [Risco 1: Ex: Regressão em Fluxo F1]
-- [Risco 2: Ex: Perda de capacidade de validação]
-
----
-
-## FASE 2: INVENTÁRIO
-
-**CAPABILITIES-INVENTORY.md consultado:** ✅ SIM
-
-**Funcionalidades Existentes:**
-| Path | Descrição | Status |
-|------|-----------|--------|
-| lib/visual-reader/ | Visual Reader com 18 campos | Funcional, não integrado |
-
-**Vai Substituir?** ✅ SIM / ❌ NÃO
-
-**Migration Plan:**
-```
-[Se SIM, descrever plano completo]
-```
-
----
-
-## FASE 3: FLUXOS CRÍTICOS
-
-**CRITICAL-FLOWS.md consultado:** ✅ SIM
-
-**Fluxos Afetados:**
-| ID | Nome | Não Pode Regredir | Testes |
-|----|------|-------------------|--------|
-| F1 | Criação de Campanha | Validação de campos | RT-1 |
-| F4 | Validação Produto vs Imagem | Detecção de inconsistências | RT-2, RT-3 |
-
----
-
-## FASE 4: INTEGRATION
-
-**INTEGRATION-CHECKLIST.md consultado:** ✅ SIM
-
-**Dependencies:**
-- lib/visual-reader/service.ts → readVisualTarget()
-
-**Entry Points:**
-- lib/domain/campaigns/service.ts (linha 104)
-
-**Breaking Changes:** ❌ NÃO
-
----
-
-## FASE 5: DECISÃO
-
-**Ação:** [create_story | modify_story | delegate_to_agent | reject]
-
-**Target:** [@dev | @sm | @qa | direct_implementation]
-
-**Rationale:**
-```
-[Explicação detalhada do POR QUÊ desta decisão.
- Referenciar documentação consultada.]
-```
-
-**Gates Validados:**
-- [✅] GATE 1: Inventory Check
-- [✅] GATE 2: Migration Plan (se aplicável)
-- [✅] GATE 3: Critical Flows
-- [✅] GATE 4: Pre-Flight Complete
-- [✅] GATE 5: Visual Reader Protection (se aplicável)
-
-**Pronto para Proceder:** ✅ SIM
-
----
-
-## NEXT STEPS
-
-1. [Passo 1]
-2. [Passo 2]
-3. [Passo 3]
-
----
-
-**Decisão aprovada e documentada.**
-```
-
----
-
-## 🎯 EXEMPLO REAL: Epic 4.1 (O QUE DEU ERRADO)
-
-### Situação
-
-Usuário pediu: "Melhorar Visual Reader para composição de layout"
-
-### O QUE EU FIZ (ERRADO) — SEM PROTOCOLO
-
-```yaml
-decision:
-  context:
-    user_request: "Melhorar Visual Reader"
-  action: "Aprovar Story 4.1 - Criar novo Visual Reader"
-  
-  # ❌ FASES NÃO EXECUTADAS
-  inventory_check:
-    consulted: FALSE  # ❌ NÃO VERIFIQUEI que já existe Visual Reader
-  
-  critical_flows_check:
-    consulted: FALSE  # ❌ NÃO VERIFIQUEI fluxos afetados
-  
-  # RESULTADO
-  outcome: |
-    Story 4.1 propôs criar novo reader em lib/ai/visual-reader/
-    com apenas 8 campos, SUBSTITUINDO o atual que tem 18 campos.
-    PERDEU capacidades críticas: productName, matchType, matchedTarget.
-    Fluxo F4 (Validação de Produto) seria QUEBRADO.
-```
-
-**Consequência:** Retrabalho, criação de 4 documentos bússola, revisão completa.
-
----
-
-### O QUE EU DEVERIA TER FEITO (CERTO) — COM PROTOCOLO
-
-```yaml
-decision:
-  id: "DEC-2026-04-15-001"
-  context:
-    user_request: "Melhorar Visual Reader"
-    real_objective: "Adicionar análise de composição visual para layout"
-    problem_being_solved: "Renderer precisa saber características visuais da imagem"
-    risks:
-      - "Substituir reader atual pode perder validação de produto"
-      - "Duplicar reader aumenta custo de API"
-  
-  # ✅ FASE 2: INVENTÁRIO
-  inventory_check:
-    consulted: TRUE ✅
-    existing_capabilities:
-      - path: "lib/visual-reader/"
-        description: "Visual Reader com 18 campos, inclui validação de produto"
-        status: "Funcional mas não integrado em geração de campanha"
-    will_replace: TRUE
-    migration_plan: |
-      OPÇÃO A (RECOMENDADA): Estender reader atual
-      - Adicionar 8 campos de composição aos 18 existentes
-      - Total: 26 campos (validação + composição)
-      - Um reader completo
-      - Custo: 1 API call por campanha
-      
-      OPÇÃO B: Manter dois readers separados
-      - lib/visual-reader/ → Validação (18 campos)
-      - lib/visual-composition-reader/ → Composição (8 campos)
-      - Custo: 2 API calls por campanha
-      
-      DECISÃO: Opção A (estender)
-  
-  # ✅ FASE 3: FLUXOS CRÍTICOS
-  critical_flows_check:
-    consulted: TRUE ✅
-    affected_flows:
-      - id: "F1"
-        name: "Criação de Campanha Manual"
-        cannot_regress:
-          - "Geração de conteúdo funcional"
-        regression_tests: ["RT-1"]
-      - id: "F2"
-        name: "Geração de Conteúdo"
-        cannot_regress:
-          - "Prompt não pode ser cego em relação à imagem"
-        regression_tests: ["RT-1"]
-      - id: "F4"
-        name: "Validação Produto vs Imagem"
-        cannot_regress:
-          - "Detecção de Coca vs Pepsi"
-          - "matchType, matchedTarget"
-        regression_tests: ["RT-2", "RT-3"]
-  
-  # ✅ FASE 4: INTEGRATION
-  integration_check:
-    consulted: TRUE ✅
-    dependencies:
-      - module: "lib/visual-reader/service.ts"
-        consumes: "Nenhum (é provider)"
-    entry_points:
-      - path: "lib/domain/campaigns/service.ts"
-        line: 104
-        context: "Geração de campanha (atualmente não usa, deveria usar)"
-    breaking_changes: FALSE
-    backward_compatible: TRUE (se estender campos)
-  
-  # ✅ FASE 5: DECISÃO
-  action: "modify_story"
-  target: "@sm"
-  rationale: |
-    Story 4.1 deve ESTENDER Visual Reader atual, não substituir.
-    
-    Motivo:
-    1. Reader atual tem capacidades CRÍTICAS (validação de produto)
-    2. Substituir sem migration plan = perda de capacidades
-    3. Fluxo F4 (Validação) seria quebrado
-    4. Estender é mais simples e mantém tudo
-    
-    Ação:
-    - Modificar Story 4.1 para adicionar 8 campos aos 18 existentes
-    - Manter lib/visual-reader/ (não criar lib/ai/visual-reader/)
-    - Atualizar contracts.ts com novos campos
-    - Atualizar prompts.ts com instruções de composição
-    - Manter retrocompatibilidade total
-  
-  validation:
-    pre_flight_complete: TRUE ✅
-    all_phases_executed: TRUE ✅
-    gates_validated: TRUE ✅
-    ready_to_proceed: TRUE ✅
-```
-
-**Resultado:** Story 4.1 corrigida, zero regressão, zero retrabalho.
-
----
-
-## 🎬 FASE 6: CLOSURE & HANDOFF (Session Closure Protocol)
-
-**Objetivo:** Encerrar sessão de trabalho com contexto completo preservado e git housekeeping.
-
-**Executar quando:**
-- Sessão de implementação foi concluída
-- Usuário solicita fechamento de sessão
-- Handoff para outro agente necessário
-
-**Checklist:**
-- [ ] Verificar localização (O que foi feito? Onde estamos? Pendências? Próximos passos?)
-- [ ] Validar build (`npm exec tsc --noEmit` ou equivalente)
-- [ ] Checar status de commit (`get_changed_files` ou `git status`)
-- [ ] Gerar comandos de commit estruturados conforme `git-standards.md`
-- [ ] Criar documento de session closure em `.aiox/sessions/`
-- [ ] Entregar comandos de commit para usuário executar
-
-**Perguntas a responder:**
-1. O que foi implementado nesta sessão?
-2. Quais validações foram executadas? (Status: PASS/FAIL)
-3. Quais arquivos foram modificados? (Path, linhas alteradas, propósito)
-4. Quais decisões técnicas foram tomadas?
-5. O que ficou pendente para próxima sessão?
-6. Build está compilando corretamente?
-7. Há arquivos unstaged/uncommitted?
-
-**Documentar:**
-```yaml
-session_closure:
-  timestamp: "2026-05-02T16:30:00Z"
-  work_completed:
-    - summary: "Implementação dos 3 fixes UX (autosave, pain points, guidance)"
-      files_modified: 10
-      lines_changed: 866
-  validations:
-    - type: "typescript"
-      status: "PASS"
-      details: "0 errors"
-    - type: "build"
-      status: "PASS"
-      details: "npm exec tsc --noEmit = no output"
-    - type: "manual_testing"
-      status: "PASS"
-      details: "Usuário testou Patch 2, todos fixes funcionando"
-  decisions:
-    - id: "DEC-001"
-      title: "Autosave strategy"
-      decision: "fetch + keepalive + event listeners"
-      rationale: "sendBeacon incompatível com endpoint application/json"
-  pending:
-    - item: "E2E tests para autosave scenarios"
-      priority: "LOW"
-      owner: "@qa"
-  git_status:
-    changed_files: 10
-    staged: 0
-    unstaged: 10
-  commit_commands:
-    - "git add <files> && git commit -m '<message>'"
-    - "git add <files> && git commit -m '<message>'"
-```
-
-### Procedimento Detalhado
-
-#### 1. Verificação & Localização (5 min)
-
-```markdown
-## O QUE FOI FEITO
-- [Item 1 implementado]
-- [Item 2 implementado]
-
-## ONDE ESTAMOS
-- Fase atual: [Beta/Production/Sprint X]
-- Milestone: [Nome do milestone]
-- Blockers: [Nenhum/Lista de blockers]
-
-## PENDÊNCIAS
-- [Pendência 1: descrição + owner]
-- [Pendência 2: descrição + owner]
-
-## PRÓXIMOS PASSOS
-1. [Passo 1]
-2. [Passo 2]
-```
-
-#### 2. Build Validation (2 min)
-
-Execute validação de build conforme stack do projeto:
-
-```bash
-# TypeScript/Node
-npm exec tsc --noEmit
-
-# Python
-pytest --collect-only
-
-# Go
-go build ./...
-```
-
-**Status esperado:** ✅ 0 errors (compilation clean)
-
-#### 3. Git Status Check (1 min)
-
-Obter lista completa de arquivos modificados:
-
-```bash
-# Via tool (preferido)
-get_changed_files()
-
-# Via shell (alternativa)
-git status --short
-git diff --stat
-```
-
-#### 4. Commit Commands Generation (10 min)
-
-**IMPORTANTE:** Seguir rigorosamente `docs/architecture/git-standards.md`
-
-**Formato oficial:**
-```
-[tipo]: breve descrição
-
-- Detalhe 1
-- Detalhe 2
-- Detalhe 3
-```
-
-**Tipos permitidos:**
-- `feat`: Nova funcionalidade
-- `fix`: Correção de bug
-- `refactor`: Mudança sem alterar funcionalidade
-- `docs`: Documentação
-- `chore`: Manutenção técnica
-- `style`: Ajustes visuais
-
-**Diretrizes:**
-1. Idioma: Português (PT-BR)
-2. Contexto: Sempre citar componente/campo principal
-3. Especificidade: Citar casos de uso específicos
-4. Impacto: Listar pontos principais da mudança
-
-**Agrupamento lógico:**
-- Commits devem ser atômicos (1 funcionalidade = 1 commit)
-- Agrupar arquivos relacionados (ex: component + hook)
-- Separar docs de código
-- Commits priorizados (P0 primeiro, P2 último)
-
-**Exemplo de saída:**
-
-```bash
-# Commit 1: Feature crítica (P0)
-git add app/hooks/useAutosave.ts
-git commit -m "feat: implementa autosave em navegação
-
-- Event handlers: beforeunload, visibilitychange, popstate
-- Fetch com keepalive para save confiável durante unload
-- Helper isDirtySignature() evita saves desnecessários
-- Resolve perda de dados ao navegar sem trocar de tab (Fix 3 - P0)"
-
-# Commit 2: Feature secundária (P1)
-git add app/components/Form.tsx
-git commit -m "feat: adiciona layout horizontal em pain points
-
-- Layout vertical → horizontal (flex gap-2)
-- Hints dinâmicos baseados em estado
-- Disabled state visualmente claro
-- Resolve Fix 1 (P1)"
-
-# Commit 3: Documentação
-git add docs/handoffs/handoff-ux-to-dev-20260502.yaml
-git commit -m "docs: adiciona handoff UX-to-Dev para fixes
-
-- Specs detalhadas dos 3 fixes
-- Acceptance criteria completos
-- Testing checklists"
-```
-
-#### 5. Session Closure Document (15 min)
-
-Criar documento em `.aiox/sessions/session-{description}-{date}.md`:
-
-**Estrutura obrigatória:**
-- FASE 0: PROJECT CONTEXT (validado)
-- FASE 1: CONTEXTO DA SESSÃO (objetivo, trabalho realizado)
-- FASE 2: INVENTÁRIO DE MUDANÇAS (arquivos, linhas, impacto)
-- FASE 3: VALIDAÇÕES (TypeScript, build, manual testing)
-- FASE 4: DECISÕES TÉCNICAS (com contexto e alternativas)
-- FASE 5: PENDÊNCIAS E PRÓXIMOS PASSOS (priorizados)
-- FASE 6: ARTEFATOS GERADOS (docs, código)
-- FASE 7: CONTEXTO DE CONTINUIDADE (como retomar)
-
-Ver exemplo: `.aiox/sessions/intelligence-refinement-session-20260502.md`
-
-#### 6. Handoff ao Usuário
-
-**Mensagem final:**
+## 🎬 FASE FINAL: CLOSURE (5-10 min) — FECHAMENTO DE SESSÃO
+
+**Objetivo:** Preservar contexto completo para próxima sessão.
+
+### Checklist Obrigatório
+
+1. [ ] Atualizar [ROADMAP.md](../ROADMAP.md) (se status/decisão mudou)
+   - Status Dashboard
+   - Tasks (checkboxes)
+   - Timeline de decisões
+
+2. [ ] Atualizar [PROJECT-CONTEXT.md](PROJECT-CONTEXT.md)
+   - Status atual
+   - Blockers ativos
+   - Próximos passos (máximo 3 ações)
+
+3. [ ] Atualizar [SESSION-HISTORY.md](SESSION-HISTORY.md)
+   - Adicionar nova entrada no topo
+   - Resumo: máximo 4 linhas por conquista
+   - Link para closure
+
+4. [ ] Criar `docs/closures/closure-YYYY-MM-DD.md`
+   - Detalhes técnicos completos (7 fases)
+   - Validações executadas
+   - Decisões tomadas
+   - Contexto de continuidade
+
+5. [ ] Gerar comandos de commit estruturados
+   - Seguir `docs/architecture/git-standards.md`
+   - Commits atômicos (1 funcionalidade = 1 commit)
+   - Separar docs de código
+   - Entregar comandos ao usuário (não executar)
+
+### Template de Retorno
 
 ```
 ## ✅ SESSION CLOSURE COMPLETO
@@ -740,489 +149,91 @@ Ver exemplo: `.aiox/sessions/intelligence-refinement-session-20260502.md`
 ### Trabalho Realizado
 - [Item 1]
 - [Item 2]
+- [Item 3]
 
 ### Validações
-- Build: ✅ PASS
-- TypeScript: ✅ PASS
-- Manual testing: ✅ PASS (ou 🟡 PENDENTE)
+- Build: ✅ PASS / 🟡 PENDENTE / ❌ FAIL
+- TypeScript: ✅ PASS / ❌ FAIL (N errors)
+- Tests: ✅ PASS (N/N)
 
-### Git Status
-- 10 arquivos modificados
-- 866 linhas alteradas
-- 0 arquivos staged
-
-### Próximos Passos (VOCÊ)
-1. Revisar comandos de commit abaixo
-2. Executar comandos na ordem
-3. `git push origin main` (ou branch atual)
-4. Validar em ambiente de teste/produção
+### Próximos Passos (Próxima Sessão)
+1. [Passo 1 crítico]
+2. [Passo 2]
+3. [Passo 3]
 
 ### Comandos de Commit
-[Comandos estruturados conforme git-standards.md]
+[Comandos estruturados para o usuário executar]
 
 ---
 
-**Sessão encerrada.** Faço o fechamento final com os commits e push para o remoto.
+**Sessão encerrada.** Documentação completa e contexto preservado para retomada.
 ```
 
-**User mantém controle:** Sempre entregue comandos para usuário executar. NUNCA execute `git commit` ou `git push` diretamente (exceto se explicitamente solicitado pelo usuário).
-
-### Critérios de Sucesso
-
-- [ ] Build validado (0 errors)
-- [ ] Git status checado (lista completa de arquivos)
-- [ ] Comandos de commit gerados (seguindo git-standards.md)
-- [ ] Session closure document criado (`.aiox/sessions/`)
-- [ ] Contexto de continuidade preservado
-- [ ] Usuário recebeu comandos de commit para executar
+**Tempo total:** 5-10 minutos
 
 ---
 
-## 📊 CHECKLIST RÁPIDO (Use Antes de Cada Decisão)
+## 📊 MÉTRICAS DE SUCESSO
 
-```markdown
-## Pre-Flight Checklist
-
-- [ ] FASE 1: Entendi objetivo REAL do usuário
-- [ ] FASE 2: Li CAPABILITIES-INVENTORY.md completo
-- [ ] FASE 2: Verifiquei se funcionalidade já existe
-- [ ] FASE 2: Se substituir: criei migration plan
-- [ ] FASE 3: Li CRITICAL-FLOWS.md (seções relevantes)
-- [ ] FASE 3: Identifiquei fluxos afetados
-- [ ] FASE 3: Defini testes de regressão
-- [ ] FASE 4: Li INTEGRATION-CHECKLIST.md (seções relevantes)
-- [ ] FASE 4: Identifiquei dependencies e entry points
-- [ ] FASE 5: Documentei decisão em YAML
-- [ ] FASE 5: Validei TODOS os gates automáticos
-- [ ] FASE 5: Salvei decisão em docs/integration-checklists/
-- [ ] FASE 6: Validei build antes de gerar commits (se aplicável)
-- [ ] FASE 6: Gerei comandos de commit estruturados (se aplicável)
-- [ ] FASE 6: Criei session closure document (se aplicável)
-
-**Todos marcados?** → Pronto para proceder ✅
-```
+| Métrica | Target |
+|---------|--------|
+| Tempo de bootstrap | <= 3 min |
+| Decisões sem retrabalho | >= 95% |
+| Documentação atualizada | 100% |
+| Links bidirecionais válidos | 100% |
+| Working tree limpo ao encerrar | 100% |
 
 ---
 
 ## 🔄 CONTINUOUS IMPROVEMENT
 
-### Aprendizado com Erros
+### Quando Falhar
 
-Quando uma decisão resulta em retrabalho:
-1. Auditar decisão em `docs/integration-checklists/DEC-{id}.md`
-2. Identificar qual fase foi mal executada
-3. Atualizar este protocolo se necessário
-4. Adicionar exemplo ao final deste documento
-
-### Métricas de Sucesso
-
-| Métrica | Target |
-|---------|--------|
-| Decisões sem retrabalho | >= 95% |
-| Pre-flight completo | 100% |
-| Gates validados | 100% |
-| Tempo médio de protocolo | <= 30 min |
+1. Identificar qual fase foi mal executada
+2. Atualizar checklist com item faltante
+3. Adicionar exemplo ao [doc-governance.md](doc-governance.md)
+4. Revisar métricas mensalmente
 
 ### Revisão Periódica
 
-- Após cada Epic: Revisar decisões tomadas
-- Mensal: Auditar `docs/integration-checklists/`
-- Identificar padrões de erro
-- Atualizar protocolo conforme necessário
+- **Semanal:** Validar que documentação está atualizada
+- **Mensal:** Auditar decisões (DEC-*.md) e closure (closure-*.md)
+- **Trimestral:** Revisar protocolo e simplificar se necessário
 
 ---
 
-## 📁 ONDE SALVAR DECISÕES
+## 📁 ESTRUTURA DE DOCUMENTAÇÃO
 
 ```
-docs/integration-checklists/
-├── README.md (índice de todas as decisões)
-├── DEC-2026-04-22-001.md (decisão 1)
-├── DEC-2026-04-22-002.md (decisão 2)
-└── ...
-```
-
-**Formato do nome:** `DEC-YYYY-MM-DD-NNN.md`
-- YYYY-MM-DD: Data da decisão
-- NNN: Número sequencial do dia (001, 002, etc)
-
-**README.md deve listar:**
-| ID | Data | Contexto | Ação | Status |
-|----|------|----------|------|--------|
-| DEC-2026-04-22-001 | 2026-04-22 | Revisão Story 4.1 | Modificar story | ✅ Executado |
-
----
-
-**Última atualização:** 2026-04-29  
-**Responsável:** @aiox-master  
-**Auditável por:** Product Owner (humano)
-
----
-
-## 📢 PROTOCOLO DE SESSÃO (OBRIGATÓRIO A CADA INÍCIO)
-
-**Quando executar:** SEMPRE no início de cada nova sessão com @aiox-master
-
-**Ação obrigatória:**
-1. Ler `docs/PROJECT-CONTEXT.md` completo
-2. Retornar ao usuário com:
-
-```
-✅ **Protocolo Lido e Compreendido**
-
-📍 **Fase Atual:** [Nome da fase do projeto]
-
-🔙 **Ponto Anterior:** [Onde paramos na última sessão]
-
-⏸️ **Pendências:** [O que ficou pendente, se houver, ou "Nenhuma"]
-
-➡️ **Próximo Passo:** [Ação específica com detalhes do que fazer]
-   - Detalhamento: [Explicação do que envolve este passo]
-   - Responsável: [Qual agente deve executar]
-   - Impacto: [Por que este passo é importante agora]
-```
-
-**Exemplo de retorno:**
-
-```
-✅ **Protocolo Lido e Compreendido**
-
-📍 **Fase Atual:** Beta/Pré-lançamento — Consolidação Arquitetural
-
-🔙 **Ponto Anterior:** Squad Marketing definido (5 agentes: @commerce-strategist, @brand-designer, @content-copy, @prompt-eng, @ux-design-expert)
-
-⏸️ **Pendências:** Implementação do Marketing Intelligence Layer ainda não iniciada
-
-➡️ **Próximo Passo:** Criar questionário de onboarding inteligente (5 minutos)
-   - Detalhamento: Coletar perfil do lojista (tipo de loja, produto destaque, cliente ideal, competidores, desafios) para alimentar Layer 1 da solução proposta
-   - Responsável: @ux-design-expert (Uma) para UX + @commerce-strategist para definir perguntas comerciais
-   - Impacto: Sem este contexto, campanhas continuam genéricas e conversão permanece baixa (2-3%). Com context, sobe para 8-12% (+300%).
-```
-
-**CRÍTICO:** Nunca pule esta confirmação. É o meu "handshake" com você a cada sessão.
-
----
-
-## 🔚 PROTOCOLO DE FECHAMENTO DE SESSÃO (OBRIGATÓRIO AO ENCERRAR)
-
-**Quando executar:** SEMPRE que o usuário indicar "fechar sessão", "encerrar", "até amanhã" ou similar.
-
-**Ação obrigatória:**
-
-1. **Registrar trabalho realizado** (resumido, não extenso)
-2. **Próximos passos naturais** (baseado no fluxo atual)
-3. **Questões/dúvidas pendentes** (coisas para verificar/esclarecer depois)
-4. **Atualizar `docs/PROJECT-CONTEXT.md`** com resumo da sessão
-5. **Commitar mudanças** antes de encerrar
-
-### Template de Fechamento
-
-```markdown
-## 📋 RESUMO DA SESSÃO ATUAL (YYYY-MM-DD)
-
-### ✅ Conquistas do Dia
-1. [Conquista principal 1 com detalhes importantes]
-2. [Conquista principal 2]
-3. [Conquista principal 3]
-...
-
-### ➡️ Próximos Passos (Retomada Amanhã)
-**[Nome da próxima fase/tarefa]**
-- [Detalhe 1]
-- [Detalhe 2]
-- Responsável: [Agente]
-- Referência: [Documento]
-
-### ❓ Questões Pendentes (Verificar na Próxima Sessão)
-- ⚠️ [Questão 1 a esclarecer]
-- ⚠️ [Questão 2 a verificar]
-- ⚠️ [Inconsistência observada]
-
-### 🎯 Estado para Retomada
-- ✅ [O que está pronto]
-- ✅ [O que foi validado]
-- ⚠️ [Avisos importantes]
-```
-
-### Regras de Fechamento
-
-**DOIS ARTEFATOS OBRIGATÓRIOS a cada fechamento:**
-
-#### 1. PROJECT-CONTEXT.md (Resumo Executivo)
-**Propósito:** Quick start para próxima sessão (2-3 minutos de leitura)
-
-**Conteúdo obrigatório:**
-- ✅ Conquistas principais (máximo 5 bullet points)
-- ✅ Progresso quantitativo (% complete, tasks done)
-- ✅ Próximos passos (1 parágrafo, máximo 3 ações)
-- ✅ Métricas básicas (commits, linhas, arquivos, duração)
-- ✅ Questões pendentes (se houver)
-
-**Formato:** ~50 linhas, incremental (nova seção ao final)
-
----
-
-#### 2. Session Closure File (Documentação Técnica)
-**Propósito:** Snapshot imutável e auditável (~600 linhas, 10-15 minutos de leitura)
-
-**Localização:** `docs/sessions/session-YYYY-MM-DD-closure.md`
-
-**Estrutura das 7 FASES (OBRIGATÓRIAS):**
-
-**FASE 0: PROJECT CONTEXT**
-- Validação de `PROJECT-CONTEXT.md` lido
-- Fase atual, status técnico, último milestone
-- Blockers ativos (se houver)
-
-**FASE 1: CONTEXTO DA SESSÃO**
-- Objetivo principal (1 parágrafo)
-- Escopo de trabalho (lista detalhada)
-- Trabalho realizado (seções por parte/agente)
-
-**FASE 2: INVENTÁRIO DE MUDANÇAS**
-- Tabela de arquivos criados (path, linhas, descrição)
-- Tabela de arquivos modificados (path, mudanças, descrição)
-- Lista de commits criados (hash, mensagem)
-
-**FASE 3: VALIDAÇÕES**
-- TypeScript compilation (status, erros)
-- Unit tests (status, quantidade passing)
-- Manual testing (status ou N/A)
-- Build status
-
-**FASE 4: DECISÕES TÉCNICAS**
-- DEC-YYYY-MM-DD-NNN para cada decisão
-- Contexto, decisão tomada, alternativas rejeitadas
-- Rationale completo (POR QUÊ desta escolha)
-- Resultado/impacto
-
-**FASE 5: PENDÊNCIAS E PRÓXIMOS PASSOS**
-- Próximo blocker crítico (detalhado)
-- Pendências secundárias (não-bloqueantes)
-- Questões pendentes (se houver)
-
-**FASE 6: ARTEFATOS GERADOS**
-- Lista de código de produção criado
-- Lista de testes criados
-- Lista de documentação atualizada
-- Lista de commits
-
-**FASE 7: CONTEXTO DE CONTINUIDADE**
-- Como retomar na próxima sessão
-- Estado atual (checklist de o que está pronto)
-- Primeira ação ao retomar
-- Convocação sugerida para próximo agente
-- Blockers identificados
-- Dependências externas
-
-**MÉTRICAS DA SESSÃO (ao final):**
-- Tabela com: duração, commits, linhas, arquivos, tests, erros, agents
-
----
-
-### Por que AMBOS são necessários?
-
-| Aspecto | PROJECT-CONTEXT.md | Session Closure File |
-|---------|-------------------|---------------------|
-| **Tamanho** | ~50 linhas | ~600 linhas |
-| **Propósito** | Quick start executivo | Auditoria técnica completa |
-| **Leitura** | 2-3 minutos | 10-15 minutos |
-| **Atualização** | Incremental (append) | Snapshot imutável |
-| **Quando usar** | Início de cada sessão | Troubleshooting, decisões técnicas, onboarding |
-
-**Exemplo de uso:**
-- **PROJECT-CONTEXT.md:** "O que fizemos ontem? → B1-B3 complete, próximo B4"
-- **Session Closure:** "Por que escolhemos lazy loading? → DEC-2026-05-05-002 com contexto completo"
-
----
-
-### Checklist de Fechamento Atualizado
-
-Antes de encerrar sessão, confirmar:
-- [ ] **PROJECT-CONTEXT.md atualizado** (resumo executivo adicionado)
-- [ ] **Session Closure file criado** (`docs/sessions/session-YYYY-MM-DD-closure.md`)
-- [ ] Questões pendentes registradas em AMBOS (se houver)
-- [ ] Próximos passos claros em AMBOS
-- [ ] Commits estruturados conforme `git-standards.md`
-- [ ] Working tree commitado (`git status` limpo)
-- [ ] Confirmação verbal ao usuário: "Sessão encerrada, documentação completa"
-
-### Exemplo de Questão Pendente
-
-**Situação:** Fechamos Phase 0 e próximo passo é Phase 2, mas Phase 1 não foi mencionada.
-
-**Registro correto:**
-```markdown
-### ❓ Questões Pendentes (Verificar na Próxima Sessão)
-- ⚠️ **Phase 1 existe ou foi desconsiderada?** migration-plan.md menciona Phase 0 e Phase 2, mas Phase 1 não aparece. Verificar se:
-  - Phase 1 foi mesclada em Phase 0
-  - Phase 1 é sinônimo de Phase 2
-  - Houve erro na numeração
-  - Referência: docs/architecture/migration-plan.md
-```
-
-### Checkpoint Final
-
-Antes de encerrar, confirmar:
-- [ ] PROJECT-CONTEXT.md atualizado com resumo da sessão
-- [ ] Questões pendentes registradas (se houver)
-- [ ] Próximos passos claros
-- [ ] Working tree commitado (git status limpo)
-- [ ] Confirmação verbal ao usuário: "Sessão encerrada, resumo registrado"
-
-**CRÍTICO:** Este registro é essencial para retomada eficiente na próxima sessão.
-
----
-
-## 📝 HISTÓRICO DE SESSÕES
-
-### 📋 SESSÃO 06 MAI 2026 — Subsegmentação Decision & Architecture
-
-#### ✅ Conquistas do Dia
-1. **Research Validation Complete**
-   - @analyst (Alex): RESEARCH-MARKETING-AGENCY-BRIEFING-2026-05-05.md (600+ lines)
-   - Comparação com práticas de agências profissionais
-   - Score: 78/100 baseline → 98/100 com subsegmentação
-   - Gap crítico (P0): Falta hierarquia categoria/subcategoria
-
-2. **Commerce Strategist Validation**
-   - @commerce-strategist (Mercer): Análise completa de impacto comercial
-   - Bebidas: 4 subsegmentos + 1 missing (empório de cervejas)
-   - Mercearia: 5 subsegmentos definidos
-   - Impacto conversão: +37% mercearia, +30% bebidas
-   - ROI: 14× (perde 5% onboarding, ganha 73% efetividade)
-
-3. **Architecture Design (3-Layer System)**
-   - Layer 1: Registry (base segment + variant subsegment YAML)
-   - Layer 2: L3 Specialist (merge base + variant → tone/vocabulary/cta/visual)
-   - Layer 3: Visual Composer (style-resolver → layout-composer → variation-generator)
-   - Fluxo: Captação → Resolução → Geração → Composição → Apresentação
-
-4. **Decision Documentation**
-   - DEC-2026-05-06-002.md criada e aprovada
-   - 3 sprints definidos: Sprint 1 (12h), Sprint 2 (40h), Sprint 3 (16h opcional)
-   - 4 blockers mapeados com severidade e responsáveis
-   - Critérios de validação definidos por sprint
-
-5. **Strategic Documentation Updates**
-   - PROJECT-CONTEXT.md atualizado (status, blockers, próximos passos)
-   - ROADMAP.md atualizado (Phase 2.3B status + subsegmentação roadmap)
-   - AIOX-MASTER-PROTOCOL.md atualizado (histórico sessão)
-
-#### 📊 Progresso Phase 2.3
-- **Phase 2.3B:** 60% complete (B1-B5, B7-B8 complete, B10 pending)
-- **Overall:** Context Layering System funcional mas sem conteúdo (registry variants missing)
-
-#### ➡️ Próximos Passos (Retomada Próxima Sessão)
-**Sprint 1 — Fundação (12h)**
-- Migration 042: ADD COLUMN category, subcategory em stores table
-- Criar 10 registry variant YAML files (4 bebidas + 5 mercearia + 1 empório cervejas)
-- Refatorar onboarding UI: dropdown hierárquico (categoria → subcategoria)
-- Backfill: Mapear main_segment existente → (category, subcategory)
-- Responsável: @data-engineer (Migration) + @content-copy (Registries) + @ux-design-expert (UI)
-- **Bloqueando:** Sprint 2 (Visual Composer)
-
-#### ❓ Questões Pendentes
-- Ceticismo do usuário sobre execução ("já falhamos tantas vezes")
-- Necessidade de validação incremental (não big-bang)
-- Approach: Sprint 1 primeiro, validar, depois Sprint 2
-
-#### 🎯 Estado para Retomada
-- ✅ Research completa (analyst + commerce-strategist)
-- ✅ Decisão aprovada e documentada (DEC-2026-05-06-002)
-- ✅ Arquitetura técnica definida (3 layers)
-- ✅ Roadmap de implementação claro (3 sprints)
-- ✅ Blockers mapeados com severidade
-- ⚠️ **PRÓXIMO CRÍTICO:** Migration 042 (bloqueia tudo)
-
-#### 📦 Artefatos Gerados
-- `docs/integration-checklists/DEC-2026-05-06-002.md` (decisão formal, 400+ lines)
-- `docs/analysis/RESEARCH-MARKETING-AGENCY-BRIEFING-2026-05-05.md` (research, 600+ lines)
-- `docs/integration-checklists/COMMERCE-STRATEGIST-BRIEFING-SUBSEGMENTATION.md` (briefing)
-- PROJECT-CONTEXT.md updated (status, blockers, decisão)
-- ROADMAP.md updated (Phase 2.3B + subsegmentação)
-
-#### 🎓 Lições Aprendidas
-- Multi-agent switching não funciona dinamicamente no chat (usar abas separadas)
-- Research + validation (2 agents) fornece confiança sólida para decisões estratégicas
-- ROI calculation concreto (14×) supera ceticismo
-- Documentação formal (DEC) é essencial para tracking e accountability
-
----
-
-### 📋 SESSÃO 05 MAI 2026 00:15 — Phase 2.3B Implementation
-
-#### ✅ Conquistas do Dia
-1. **Type Definitions Completas (types.ts)**
-   - SegmentExpert e RegionalExpert interfaces definidas
-   - Estrutura completa de registries para L1/L2/L3
-   - Quality Score: 10/10
-
-2. **B5 - Registry Loader Implementation (loader.ts + tests)**
-   - Loader com caching Map-based e validação runtime
-   - Path normalization (bebidas_alcoolicas ↔ bebidas-alcoolicas)
-   - clearRegistryCaches() público + type guards (isSegmentExpert, isRegionalExpert)
-   - 10/10 tests passing
-   - Quality Score: 10/10
-
-3. **B1-B3 - Context Builder Complete (context-builder.ts + tests)**
-   - B1: fetchStoreMetadata() — Query stores table, region mapping
-   - B2: fetchIntelligenceContext() — Query store_intelligence + RPC score extraction
-   - B3: buildAgenticPersona() + buildPromptContext() — L3 assembly + threshold logic
-   - 9/9 tests passing
-   - Test injection pattern (optional client parameter)
-   - Lazy loading de Supabase para test compatibility
-   - Quality Score: 9.5/10
-
-4. **Infrastructure Fixes**
-   - tsconfig.json: allowImportingTsExtensions para test runner compatibility
-   - Relative imports com .ts extensions funcionando em Next.js e node:test
-
-5. **Tracker & Git Commits**
-   - phase-2.3-backend-integration-tracker.md atualizado (35% complete)
-   - 6 commits estruturados conforme git-standards.md
-   - Working tree clean, 9 commits ahead of origin/main
-
-#### 📊 Progresso Phase 2.3
-- **Phase 2.3A:** 85% complete (6/10 tasks)
-- **Phase 2.3B:** 40% complete (4/10 tasks)
-- **Overall:** ~35% complete
-
-#### ➡️ Próximos Passos (Retomada Próxima Sessão)
-**B4 - Prompt Renderer Implementation**
-- Implementar buildCampaignPrompt() function body em campaign-prompt-v1.ts
-- Chamar helpers: formatL1Metadata(), formatL2Intelligence() (condicional), formatL3Persona(), formatTaskDefinition(), formatRules()
-- Assemblar XML structure completo
-- Retornar prompt string final
-- Responsável: @dev
-- Estimativa: 2 dias
-- Referência: lib/ai/prompts/templates/campaign-prompt-v1.ts
-- **Bloqueando:** B8 (API Integration)
-
-#### ❓ Questões Pendentes
-- Nenhuma — Sessão limpa, todos os deliverables completos e validados
-
-#### 🎯 Estado para Retomada
-- ✅ B1-B3 (Context Builder) implementation complete — 19/19 tests passing
-- ✅ B5 (Registry Loader) refined with cache management + type guards
-- ✅ Type definitions ready for all context layers
-- ✅ All TypeScript compilation errors resolved
-- ✅ Test runner compatibility issues fixed (module resolution, lazy loading)
-- ✅ Git commits ready for push (6 new commits)
-- ⚠️ **PRÓXIMO CRÍTICO:** B4 desbloqueia B8 (API Integration) — prioridade máxima
-
-#### 📦 Artefatos Gerados
-- `lib/ai/prompts/registries/types.ts` (125 lines)
-- `lib/ai/prompts/registries/loader.ts` (200 lines, 10 tests)
-- `lib/domain/campaigns/context-builder.ts` (260 lines, 9 tests)
-- 6 git commits estruturados
-- Tracker atualizado
-
-#### 🔄 Comandos para Push
-```bash
-git push origin main  # 9 commits ahead
+docs/
+├── AIOX-MASTER-PROTOCOL.md        (este arquivo - workflow simplificado)
+├── PROJECT-CONTEXT.md              (detalhes técnicos do projeto)
+├── SESSION-HISTORY.md              (índice de sessões)
+├── doc-governance.md               (hierarquia e linkagem formal)
+├── CAPABILITIES-INVENTORY.md       (funcionalidades existentes)
+├── CRITICAL-FLOWS.md               (fluxos que não podem regredir)
+├── INTEGRATION-CHECKLIST.md        (dependências e entry points)
+├── integration-checklists/
+│   ├── DEC-2026-05-06-002.md      (decisão formal)
+│   └── ...
+└── closures/
+    ├── closure-2026-05-06.md      (detalhes técnicos da sessão)
+    └── ...
+
+ROADMAP.md                          (raiz - mapa visual do projeto)
 ```
 
 ---
 
-*Este protocolo é meu FREIO. Sem ele, eu causo retrabalho.*
+## ⚠️ IMPORTANTE
+
+**Este protocolo é ENXUTO propositalmente** (150 linhas vs 1200+ linhas do antigo).
+
+**Regra de ouro:** Se você não consegue ler e seguir o protocolo completo em 3 minutos no início de cada sessão, ele está grande demais.
+
+**Protocolo antigo:** Arquivado em [docs-old/AIOX-MASTER-PROTOCOL-old.md](../docs-old/AIOX-MASTER-PROTOCOL-old.md) para referência histórica.
+
+---
+
+*Última atualização: 06 Mai 2026 por @aiox-master*  
+*Versão: 2.0 (simplificada)*
